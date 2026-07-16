@@ -35,14 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${plusJakarta.variable}`}>
       <body>
-        <ClerkProvider
-          appearance={{
-            baseTheme: dark,
-            variables: {
-              colorPrimary: "#6366f1",
-            }
-          }}
-        >
+        <ClerkProvider>
           {children}
         </ClerkProvider>
       </body>

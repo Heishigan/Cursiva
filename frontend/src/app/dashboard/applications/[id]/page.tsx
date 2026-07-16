@@ -22,7 +22,7 @@ export default function ApplicationDetailPage() {
     const fetchApplication = async () => {
       try {
         const token = await getToken();
-        const res = await fetch(`http://localhost:8000/api/applications/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -49,7 +49,7 @@ export default function ApplicationDetailPage() {
     try {
       // Compile CV
       const cvPayload = JSON.parse(data.cv_data_json);
-      const cvRes = await fetch("http://localhost:8000/api/compile_cv", {
+      const cvRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cv`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cvPayload)
@@ -70,7 +70,7 @@ export default function ApplicationDetailPage() {
         clPayload.sign_off
       ].filter(Boolean);
 
-      const clRes = await fetch("http://localhost:8000/api/compile_cl", {
+      const clRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cl`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

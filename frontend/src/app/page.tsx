@@ -9,7 +9,7 @@ export default function Home() {
     <main className={styles.container}>
       <div style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 100 }}>
         <Show when="signed-in">
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </Show>
         <Show when="signed-out">
           <Link href="/sign-in" style={{ textDecoration: 'none', color: 'var(--text-secondary)', marginRight: '16px' }}>Log In</Link>

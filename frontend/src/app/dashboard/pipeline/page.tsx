@@ -34,7 +34,7 @@ export default function PipelinePage() {
       const token = await getToken();
       const genericCv = localStorage.getItem("generic_cv_json") || "{}";
       
-      const response = await fetch("http://localhost:8000/api/intake", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/intake`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,7 +98,7 @@ export default function PipelinePage() {
       const genericCv = localStorage.getItem("generic_cv_json") || "{}";
       const threadId = "thread_" + Math.random().toString(36).substring(7);
       
-      const response = await fetch("http://localhost:8000/api/tailor", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/tailor`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +170,7 @@ export default function PipelinePage() {
   const handleApproveAndSave = async (cvPdfUrl: string, clPdfUrl: string, cvData: any, clData: any) => {
     try {
       const token = await getToken();
-      const res = await fetch("http://localhost:8000/api/applications", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

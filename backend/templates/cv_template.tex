@@ -79,7 +79,9 @@
 {% for item in section['items'] %}
 {% if section.type == 'education' %}
 \textbf{ {{- item.title -}} } \hfill \textit{ {{- item.date -}} }\\
-{{ item.subtitle }} \quad|\quad {{ item.context }}
+{%- if (item.subtitle and item.subtitle|trim) or (item.context and item.context|trim) %}
+{{ item.subtitle }} {% if (item.subtitle and item.subtitle|trim) and (item.context and item.context|trim) %}\quad|\quad{% endif %} {{ item.context }}
+{%- endif %}
 {%- if item.bullets %}
 \begin{itemize}[leftmargin=1.3em, noitemsep, topsep=4pt, itemsep=2pt]
 {% for bullet in item.bullets %}
@@ -95,8 +97,8 @@
 {%- else -%}
 \textbf{ {{- item.title -}} } \hfill \textit{ {{- item.date -}} }\\
 {%- endif %}
-{%- if item.subtitle or item.context %}
-{\small {{ item.subtitle }} {% if item.subtitle and item.context %}|{% endif %} {{ item.context }} }
+{%- if (item.subtitle and item.subtitle|trim) or (item.context and item.context|trim) %}
+{\small {{ item.subtitle }} {% if (item.subtitle and item.subtitle|trim) and (item.context and item.context|trim) %}|{% endif %} {{ item.context }} }
 {%- endif %}
 {%- if item.bullets %}
 \begin{itemize}[leftmargin=1.3em, noitemsep, topsep=4pt, itemsep=2pt]
