@@ -3,3 +3,9 @@ uvicorn
 pydantic
 langgraph
 langchain-openai
+PyMuPDF
+python-multipart
+SQLAlchemy
+cryptography
+PyJWT
+requests

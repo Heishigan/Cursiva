@@ -1,13 +1,30 @@
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 export const metadata: Metadata = {
-  title: "Cursiva | Project Sentinel",
-  description: "The Agentic Job Hunter",
+  title: "Cursiva | AI-Powered Job Applications",
+  description: "Stop spray-and-pray applying. Deploy an autonomous Executive Assistant that builds meticulously researched, natively compiled applications.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -16,9 +33,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${outfit.variable}`}>
-        {children}
+    <html lang="en" className={`${inter.variable} ${plusJakarta.variable}`}>
+      <body>
+        <ClerkProvider
+          appearance={{
+            baseTheme: dark,
+            variables: {
+              colorPrimary: "#6366f1",
+            }
+          }}
+        >
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );

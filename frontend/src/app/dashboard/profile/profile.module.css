@@ -1,0 +1,542 @@
+.splitLayout {
+  display: flex;
+  gap: 2rem;
+  padding: 2rem 4rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  height: calc(100vh - 100px);
+}
+
+.leftColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.rightColumn {
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  background: #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  min-height: 800px;
+}
+
+.pdfContainer {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.pdfFrame {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  border: none;
+}
+
+.downloadFab {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s;
+  z-index: 5;
+}
+
+.downloadFab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6);
+  background: var(--accent-2);
+}
+
+.pdfOverlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  z-index: 10;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-top: 4rem;
+}
+
+/* Base Card Style */
+.card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Header Profile Card */
+.headerLayout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: var(--font-plus-jakarta);
+  flex-shrink: 0;
+}
+
+.headerInfo {
+  flex: 1;
+}
+
+.name {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.summary {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.location {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.socials {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.socials a {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.socials a:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* PDF Row */
+.pdfRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pdfIcon {
+  color: #ef4444; /* Red tint for PDF */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdfInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdfName {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.pdfType {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Dynamic Sections */
+.sectionGroup {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cardGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Item Card inside sections */
+.itemCard {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.itemCard:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.itemLayout {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.itemIconBox {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.itemContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.itemTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.itemMeta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.itemContext {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.bullets {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.bullets li {
+  margin-bottom: 0.25rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.badge {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 99px;
+}
+
+/* Icon Buttons */
+.iconBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.iconBtnSmall {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.itemCard:hover .iconBtnSmall {
+  opacity: 1;
+}
+
+.iconBtnSmall:hover {
+  color: var(--text-primary);
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modalContent {
+  background: #111111;
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modalField label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.modalField input,
+.modalField textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.modalField input:focus,
+.modalField textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modalField textarea {
+  resize: vertical;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.btnGhost {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnGhost:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btnPrimary {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnPrimary:hover {
+  background: #4f46e5;
+}
+
+/* Tooltip Styles */
+.labelWithInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.infoWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: help;
+}
+
+.infoIcon {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.infoWrapper:hover .infoIcon {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2a2a2a;
+  border: 1px solid var(--surface-border);
+  color: var(--text-primary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4);
+  z-index: 110;
+}
+
+.infoWrapper:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}

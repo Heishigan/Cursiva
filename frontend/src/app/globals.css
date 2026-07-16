@@ -1,14 +1,13 @@
 :root {
-  --background: #0f172a;
-  --surface: rgba(30, 41, 59, 0.7);
-  --surface-border: rgba(255, 255, 255, 0.1);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+  --background: #0c0e16;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.07);
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f1f5f9;
+  --text-secondary: #64748b;
   --accent-1: #6366f1;
-  --accent-2: #a855f7;
+  --accent-2: #4f46e5;
   --accent-gradient: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-  --font-sans: var(--font-inter), sans-serif;
-  --font-heading: var(--font-outfit), sans-serif;
 }
 
 * {
@@ -17,19 +16,24 @@
   padding: 0;
 }
 
+/* Fonts — using CSS variables injected by Next.js font system */
 body {
-  background-color: var(--background);
+  background: 
+    radial-gradient(ellipse at 12% 40%, rgba(99,102,241,0.11) 0%, transparent 52%),
+    radial-gradient(ellipse at 88% 65%, rgba(99,102,241,0.07) 0%, transparent 52%),
+    var(--background);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  /* Use the CSS var injected by Next.js, fallback to Inter from Google */
+  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
-  line-height: 1.5;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
-  font-weight: 600;
+  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -38,30 +42,37 @@ a {
   text-decoration: none;
 }
 
-/* Utility for glassmorphism panels */
-.glass-panel {
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--surface-border);
-  border-radius: 16px;
-  padding: 24px;
-}
-
 /* Primary Button */
 .btn-primary {
   background: var(--accent-gradient);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-family: var(--font-sans);
-  font-weight: 500;
+  padding: 0.65rem 1.5rem;
+  border-radius: 6px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent-1) 100%);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

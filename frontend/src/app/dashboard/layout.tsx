@@ -1,19 +1,101 @@
-import Link from 'next/link';
-import styles from './layout.module.css';
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { UserButton, useAuth } from "@clerk/nextjs";
+import { LayoutGrid, PlusCircle, User, Settings } from "lucide-react";
+import styles from "./layout.module.css";
+import React, { useEffect, useState } from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [missingBaseline, setMissingBaseline] = useState(false);
+  const [missingApiKey, setMissingApiKey] = useState(false);
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch("http://localhost:8000/api/user/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          setMissingBaseline(!data.data.has_baseline);
+          setMissingApiKey(!data.data.has_api_key);
+          
+          if (data.data.cv_data) {
+             localStorage.setItem('generic_cv_json', JSON.stringify(data.data.cv_data));
+          } else {
+             localStorage.removeItem('generic_cv_json');
+          }
+        }
+      } catch(e) { console.error(e) }
+    };
+    
+    fetchProfile();
+    const interval = setInterval(fetchProfile, 5000);
+    return () => clearInterval(interval);
+  }, [getToken]);
+
+  const getStatusText = () => {
+    if (missingApiKey && missingBaseline) return "Not Configured";
+    if (missingApiKey) return "Missing API Key";
+    if (missingBaseline) return "Missing CV";
+    return "Status: Ready";
+  };
+
+  const isError = missingApiKey || missingBaseline;
+
   return (
     <div className={styles.container}>
+      {/* Sidebar */}
       <aside className={styles.sidebar}>
-        <div className={styles.logo}>Project Sentinel</div>
+        <div className={styles.logoContainer}>
+          <Link href="/" className={styles.logo}>
+            C<span>ursiva</span>
+          </Link>
+        </div>
+
         <nav className={styles.nav}>
-          <Link href="/dashboard" className={`${styles.navLink} ${styles.navLinkActive}`}>Dashboard</Link>
-          <Link href="/dashboard/diff" className={styles.navLink}>Diff Viewer (Demo)</Link>
-          <Link href="#" className={styles.navLink}>Applications</Link>
-          <Link href="#" className={styles.navLink}>Settings</Link>
+          <Link href="/dashboard" className={`${styles.navItem} ${pathname === '/dashboard' ? styles.active : ''}`}>
+            <LayoutGrid size={22} />
+            <span className={styles.navLabel}>Dashboard</span>
+          </Link>
+          <Link href="/dashboard/pipeline" className={`${styles.navItem} ${pathname.startsWith('/dashboard/pipeline') ? styles.active : ''}`}>
+            <PlusCircle size={22} />
+            <span className={styles.navLabel}>New Application</span>
+          </Link>
+          <Link href="/dashboard/profile" className={`${styles.navItem} ${pathname.startsWith('/dashboard/profile') ? styles.active : ''}`}>
+            <User size={22} />
+            <span className={styles.navLabel}>Profile</span>
+          </Link>
+          <Link href="/dashboard/settings" className={`${styles.navItem} ${pathname.startsWith('/dashboard/settings') ? styles.active : ''}`}>
+            <Settings size={22} />
+            <span className={styles.navLabel}>Settings</span>
+          </Link>
         </nav>
+
+        <div className={styles.sidebarBottom}>
+          <UserButton 
+            fallbackRedirectUrl="/" 
+            appearance={{
+              elements: {
+                userButtonAvatarBox: { width: 36, height: 36 },
+              }
+            }}
+          />
+          <div className={styles.userInfo}>
+            <span className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
+              {getStatusText()}
+            </span>
+          </div>
+        </div>
       </aside>
-      <main className={styles.content}>
+
+      {/* Main Content Area */}
+      <main className={styles.mainContent}>
         {children}
       </main>
     </div>

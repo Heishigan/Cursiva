@@ -1,61 +1,196 @@
-import Link from 'next/link';
-import styles from './page.module.css';
+"use client";
+import Link from "next/link";
+import { Show, UserButton } from "@clerk/nextjs";
+import { Search, Brain, FileText, CheckCircle, Zap, Mail, LayoutDashboard } from "lucide-react";
+import styles from "./page.module.css";
 
 export default function Home() {
   return (
-    <main className={styles.main}>
-      {/* Hero Section */}
-      <section className={styles.hero}>
-        <div className={styles.heroBackground}></div>
-        <div className={styles.container}>
-          <h1 className={styles.heroTitle}>Project Sentinel</h1>
-          <p className={styles.heroSubtitle}>
-            The Agentic Job Hunter. Stop spray-and-pray applying. Deploy an autonomous Executive Assistant that builds meticulously researched, natively compiled applications.
-          </p>
-          <div className={styles.ctaGroup}>
-            <Link href="/dashboard" className="btn-primary" style={{ display: 'inline-block', textAlign: 'center' }}>
-              Launch Dashboard
+    <main className={styles.container}>
+      <div style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 100 }}>
+        <Show when="signed-in">
+          <UserButton afterSignOutUrl="/" />
+        </Show>
+        <Show when="signed-out">
+          <Link href="/sign-in" style={{ textDecoration: 'none', color: 'var(--text-secondary)', marginRight: '16px' }}>Log In</Link>
+          <Link href="/sign-up">
+            <button className="btn-primary" style={{ padding: '8px 16px', borderRadius: '6px' }}>Sign Up</button>
+          </Link>
+        </Show>
+      </div>
+
+      <div className={styles.hero}>
+        <div style={{ fontSize: '2.25rem', fontFamily: 'var(--font-plus-jakarta)', fontWeight: 800, marginBottom: '16px' }}>
+          C<span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>ursiva</span>
+        </div>
+        <h1 className={styles.title}>
+          Stop Applying.<br/><span className={styles.titleHighlight}>Start Strategizing.</span>
+        </h1>
+        <p className={styles.description}>
+          Deploy a team of autonomous AI agents to research, tailor, and natively compile your technical job applications. Not just a keyword stuffer, but a true career executive assistant that crafts both your CV and Cover Letter.
+        </p>
+        <div className={styles.ctaGroup}>
+          <Show when="signed-out">
+            <Link href="/sign-up">
+              <button className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '8px' }}>
+                Deploy Your Agents - It&apos;s Free
+              </button>
             </Link>
-            <a href="https://github.com/Heishigan/Cursiva" target="_blank" rel="noopener noreferrer" className={styles.btnSecondary}>
-              View Source
-            </a>
+          </Show>
+          <Show when="signed-in">
+            <Link href="/dashboard">
+              <button className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '8px' }}>
+                Go to Dashboard →
+              </button>
+            </Link>
+          </Show>
+        </div>
+      </div>
+
+      <div className={styles.pipelineVisual}>
+        <div className={styles.agentNode}>
+          <div className={styles.agentIcon}><Search size={24} /></div>
+          <div className={styles.agentLabel}>Requirements Extractor</div>
+          <div className={styles.agentSub}>Analyzes JD</div>
+        </div>
+        <div className={styles.pipelineConnector}></div>
+        <div className={styles.agentNode}>
+          <div className={styles.agentIcon}><Brain size={24} /></div>
+          <div className={styles.agentLabel}>Job Fit Strategist</div>
+          <div className={styles.agentSub}>Formulates angle</div>
+        </div>
+        <div className={styles.pipelineConnector}></div>
+        <div className={styles.agentNode}>
+          <div className={styles.agentIcon}><FileText size={24} /></div>
+          <div className={styles.agentLabel}>Resume Tailor</div>
+          <div className={styles.agentSub}>Rewrites impact</div>
+        </div>
+        <div className={styles.pipelineConnector}></div>
+        <div className={styles.agentNode}>
+          <div className={styles.agentIcon}><CheckCircle size={24} /></div>
+          <div className={styles.agentLabel}>Quality Reviewer</div>
+          <div className={styles.agentSub}>Checks facts</div>
+        </div>
+        <div className={styles.pipelineConnector}></div>
+        <div className={styles.agentNode}>
+          <div className={styles.agentIcon}><Mail size={24} /></div>
+          <div className={styles.agentLabel}>Cover Letter Writer</div>
+          <div className={styles.agentSub}>Crafts narrative</div>
+        </div>
+      </div>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>An Autonomous Team at your Fingertips</h2>
+          <p className={styles.sectionSubtitle}>Generic AI tools just replace words with keywords. Cursiva deploys specialized LangGraph agents that understand context, evaluate your fit, and strategize before they write a single word.</p>
+        </div>
+        <div className={styles.grid2}>
+          <div className={styles.glassCard}>
+            <div className={styles.cardIcon}><Brain size={28} /></div>
+            <h3 className={styles.cardTitle}>Human-in-the-Loop Strategy</h3>
+            <p className={styles.cardDesc}>Our Strategist agent analyzes the job description against your baseline CV, formulating a unique angle. You review and approve the strategy before tailoring begins.</p>
+          </div>
+          <div className={styles.glassCard}>
+            <div className={styles.cardIcon}><CheckCircle size={28} /></div>
+            <h3 className={styles.cardTitle}>Self-Correcting Pipeline</h3>
+            <p className={styles.cardDesc}>The Reviewer agent critiques the drafted resume. If it hallucinates skills you don't have, or misses critical requirements, it kicks it back for a rewrite.</p>
+          </div>
+          <div className={styles.glassCard}>
+            <div className={styles.cardIcon}><Zap size={28} /></div>
+            <h3 className={styles.cardTitle}>Insanely Cost-Effective</h3>
+            <p className={styles.cardDesc}>Bring your own OpenAI API key. By leveraging highly targeted prompts and structured JSON, you pay exactly what the API costs, no ridiculous SaaS markups.</p>
+          </div>
+          <div className={styles.glassCard}>
+            <div className={styles.cardIcon}><LayoutDashboard size={28} /></div>
+            <h3 className={styles.cardTitle}>All Applications in One Place</h3>
+            <p className={styles.cardDesc}>Stop losing track of which resume you sent where. Our powerful dashboard acts as a central CRM, storing every tailored CV, Cover Letter, and original JD you've applied to.</p>
+          </div>
+        </div>
+        <div className={styles.metricsContainer}>
+          <div className={styles.metric}>
+            <div className={styles.metricValue}>~$0.02</div>
+            <div className={styles.metricLabel}>Per Application</div>
+          </div>
+          <div className={styles.metric}>
+            <div className={styles.metricValue}>95%</div>
+            <div className={styles.metricLabel}>Time Saved</div>
           </div>
         </div>
       </section>
 
-      {/* Why This Matters Section */}
-      <section className={styles.whySection}>
-        <div className={styles.container}>
-          <h2 className={styles.sectionTitle}>Quality Over Quantity</h2>
-          <div className={styles.featuresGrid}>
+      <section className={styles.section}>
+        <div className={styles.grid2}>
+          <div>
+            <h2 className={styles.sectionTitle}>Why Jake&apos;s Resume Format?</h2>
+            <p className={styles.sectionSubtitle} style={{ marginLeft: 0, textAlign: 'left', marginBottom: '24px' }}>
+              We exclusively compile your tailored CV and Cover Letter into the legendary "Jake's Resume" LaTeX template and a standard business format. Here is why:
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px', color: 'var(--text-secondary)' }}>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>100% ATS Parser Compatibility.</strong> Complex columns, icons, and graphic templates confuse Applicant Tracking Systems. Jake's format is perfectly structured text.</span>
+              </li>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>High Readability.</strong> Recruiters scan resumes in 6 seconds. This academic-grade format directs eyes straight to your bolded job titles, companies, and impact metrics.</span>
+              </li>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>Persuasive Cover Letters.</strong> We also generate a highly targeted Cover Letter (CL) that pairs beautifully with your CV, compiled in a clean, standard business letter format.</span>
+              </li>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>Pristine PDF Compilation.</strong> We don't use sketchy HTML-to-PDF generators. Your documents are compiled via pdflatex on our servers, generating flawless, crisp PDFs every time.</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div className={styles.resumePreview}>
+            <div className={styles.resumeHeader}>
+              <div className={styles.resumeName}>John Doe</div>
+              <div className={styles.resumeContact}>San Francisco, CA • (123) 456-7890 • john.doe@email.com • github.com/johndoe</div>
+            </div>
             
-            <div className={`glass-panel ${styles.featureCard}`}>
-              <span className={styles.featureIcon}>✦</span>
-              <h3 className={styles.featureTitle}>Adversarial Critic Nodes</h3>
-              <p className={styles.featureDesc}>
-                Most tools wrap basic ChatGPT prompts. We use LangGraph Actor-Critic architecture to aggressively reject "AI-speak", em-dashes, and hallucinations before they ever reach the final draft.
-              </p>
+            <div className={styles.resumeSectionTitle}>Experience</div>
+            <div className={styles.resumeItem}>
+              <span>Senior Software Engineer | TechCorp</span>
+              <span>Jan 2021 - Present</span>
             </div>
-
-            <div className={`glass-panel ${styles.featureCard}`}>
-              <span className={styles.featureIcon}>✧</span>
-              <h3 className={styles.featureTitle}>Native LaTeX Compilation</h3>
-              <p className={styles.featureDesc}>
-                Stand out from generic web-PDFs. Sentinel injects verified data strictly into professional, ATS-optimized LaTeX templates, compiled natively via our microservices.
-              </p>
+            <ul className={styles.resumeBullets}>
+              <li>Architected and deployed a highly scalable microservices architecture...</li>
+              <li>Led a team of 5 engineers to deliver the flagship product, increasing revenue by 15%...</li>
+            </ul>
+            
+            <div className={styles.resumeItem}>
+              <span>Software Engineer | StartupInc</span>
+              <span>Jun 2018 - Dec 2020</span>
             </div>
-
-            <div className={`glass-panel ${styles.featureCard}`}>
-              <span className={styles.featureIcon}>✦</span>
-              <h3 className={styles.featureTitle}>Zero Hallucination Guarantee</h3>
-              <p className={styles.featureDesc}>
-                Every metric, tool, and claim in the tailored CV is strictly bound to your uploaded source of truth. The agent weaves keywords organically without compromising your authentic voice.
-              </p>
-            </div>
-
+            <ul className={styles.resumeBullets}>
+              <li>Developed RESTful APIs using Node.js and Express...</li>
+            </ul>
           </div>
         </div>
       </section>
+
+      <div style={{ marginTop: '40px', padding: '60px 0', borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%' }}>
+        <h2 className={styles.sectionTitle}>Ready to end the job hunt?</h2>
+        <div className={styles.ctaGroup} style={{ marginTop: '32px' }}>
+          <Show when="signed-out">
+            <Link href="/sign-up">
+              <button className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '8px' }}>
+                Start Strategizing Today
+              </button>
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <Link href="/dashboard">
+              <button className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '8px' }}>
+                Return to Dashboard
+              </button>
+            </Link>
+          </Show>
+        </div>
+      </div>
     </main>
   );
 }

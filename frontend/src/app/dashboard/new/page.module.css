@@ -1,0 +1,73 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+}
+
+.formPanel {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.textarea {
+  width: 100%;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 16px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  min-height: 300px;
+  resize: vertical;
+  margin-bottom: 24px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  align-items: center;
+}
+
+.statusText {
+  font-size: 0.9rem;
+  color: var(--accent-1);
+  font-weight: 500;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
