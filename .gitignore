@@ -33,3 +33,6 @@ ENV/
 
 # MacOS
 .DS_Store
+
+# Databases
+*.db

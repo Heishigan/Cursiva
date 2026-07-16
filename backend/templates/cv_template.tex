@@ -1,0 +1,115 @@
+%----------------------------------------------------------------------------------------
+%	CURRICULUM VITAE
+%----------------------------------------------------------------------------------------
+
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage[a4paper, top=1.9cm, bottom=1.9cm, left=2.0cm, right=2.0cm]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
+
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[\vspace{0.2em}\titlerule\vspace{0.5em}]
+\titlespacing{\section}{0pt}{1.2em}{0.4em}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=black,
+    citecolor=black,
+    filecolor=black,
+    pdftitle={ {{- personal_info.get('name', '') -}} \ CV},
+    pdfauthor={ {{- personal_info.get('name', '') -}} }
+}
+
+\pagestyle{empty}
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	HEADER
+%----------------------------------------------------------------------------------------
+
+\begin{center}
+    {\LARGE\bfseries {{ personal_info.get('name', '') }} }\\[0.5em]
+    {\small
+        {{ personal_info.get('location', '') }} \quad$\cdot$\quad
+        {{ personal_info.get('phone', '') }} \quad$\cdot$\quad
+        \href{mailto:{{ personal_info.get('email', '') }} }{ {{- personal_info.get('email', '') -}} }\\[0.25em]
+        \href{ {{- personal_info.get('github', '') -}} }{ {{- personal_info.get('github', '')|replace('https://', '') -}} }
+        \quad$\cdot$\quad
+        \href{ {{- personal_info.get('linkedin', '') -}} }{ {{- personal_info.get('linkedin', '')|replace('https://', '')|replace('www.', '') -}} }
+        {%- if personal_info.get('portfolio', '') %}
+        \quad$\cdot$\quad
+        \href{ {{- personal_info.get('portfolio', '') -}} }{ {{- personal_info.get('portfolio', '')|replace('https://', '') -}} }
+        {%- endif %}
+    }
+\end{center}
+
+\vspace{0.3em}
+
+%----------------------------------------------------------------------------------------
+%	PROFESSIONAL SUMMARY
+%----------------------------------------------------------------------------------------
+
+\section{Professional Summary}
+{{ professional_summary }}
+
+%----------------------------------------------------------------------------------------
+%	DYNAMIC SECTIONS
+%----------------------------------------------------------------------------------------
+{% for section in sections %}
+\section{ {{- section.title -}} }
+
+{% if section.type == 'skills' %}
+\begin{tabular}{@{}p{3.4cm}p{13.0cm}}
+{% for item in section['items'] %}
+    \textbf{ {{- item.title -}} :} & {{ item.bullets | join(', ') }} \\[5pt]
+{% endfor %}
+\end{tabular}
+
+{% else %}
+{% for item in section['items'] %}
+{% if section.type == 'education' %}
+\textbf{ {{- item.title -}} } \hfill \textit{ {{- item.date -}} }\\
+{{ item.subtitle }} \quad|\quad {{ item.context }}
+{%- if item.bullets %}
+\begin{itemize}[leftmargin=1.3em, noitemsep, topsep=4pt, itemsep=2pt]
+{% for bullet in item.bullets %}
+    \item {{ bullet }}
+{% endfor %}
+\end{itemize}
+{%- endif %}
+\vspace{0.9em}
+{% else %}
+\begin{minipage}{\linewidth}
+{% if item.url -%}
+\href{ {{- item.url -}} }{\textbf{ {{- item.title -}} }} \hfill \textit{ {{- item.date -}} }\\
+{%- else -%}
+\textbf{ {{- item.title -}} } \hfill \textit{ {{- item.date -}} }\\
+{%- endif %}
+{%- if item.subtitle or item.context %}
+{\small {{ item.subtitle }} {% if item.subtitle and item.context %}|{% endif %} {{ item.context }} }
+{%- endif %}
+{%- if item.bullets %}
+\begin{itemize}[leftmargin=1.3em, noitemsep, topsep=4pt, itemsep=2pt]
+{% for bullet in item.bullets %}
+    \item {{ bullet }}
+{% endfor %}
+\end{itemize}
+{%- endif %}
+\end{minipage}
+\vspace{0.7em}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+\end{document}

@@ -1,41 +1,107 @@
 .header {
-  margin-bottom: 40px;
-  animation: fadeIn 0.5s ease-out;
+  margin-bottom: 24px;
 }
 
 .title {
-  font-size: 2rem;
-  margin-bottom: 8px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
 }
 
 .subtitle {
   color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
-  margin-bottom: 40px;
-  animation: fadeIn 0.7s ease-out;
+  margin-bottom: 48px;
 }
 
 .metricCard {
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .metricTitle {
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .metricValue {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  font-family: var(--font-heading);
+  color: var(--text-primary);
+}
+
+.statusActive {
+  color: #10b981;
+  font-size: 1.5rem;
+}
+
+.statusError {
+  color: #ef4444;
+  font-size: 1.5rem;
+}
+
+.recentSection {
+  margin-top: 2rem;
+}
+
+.recentTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+/* New layout additions */
+.container {
+  padding: 3rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.date {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.greeting {
+  font-family: var(--font-plus-jakarta);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.excelPlaceholder {
+  padding: 3rem;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed var(--surface-border);
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .recentSection {

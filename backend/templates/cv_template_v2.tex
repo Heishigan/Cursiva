@@ -1,0 +1,126 @@
+%----------------------------------------------------------------------------------------
+%	CURRICULUM VITAE — HEISHIGAN PATHMARAJ
+%	Swedish Market — Generic Foundation (ATS-Optimised)
+%----------------------------------------------------------------------------------------
+
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage[a4paper, top=1.9cm, bottom=1.9cm, left=2.0cm, right=2.0cm]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{0pt}
+
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[\vspace{0.2em}\titlerule\vspace{0.5em}]
+\titlespacing{\section}{0pt}{1.2em}{0.4em}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=black,
+    pdftitle={Heishigan Pathmaraj CV},
+    pdfauthor={Heishigan Pathmaraj}
+}
+
+\pagestyle{empty}
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	HEADER
+%----------------------------------------------------------------------------------------
+
+\begin{center}
+    {\LARGE\bfseries Heishigan Pathmaraj}\\[0.5em]
+    {\small
+        Stockholm, Sweden \quad$\cdot$\quad
+        +46 76 979 66 94 \quad$\cdot$\quad
+        \href{mailto:hej@heishi.se}{hej@heishi.se}\\[0.25em]
+        \href{https://github.com/Heishigan}{github.com/Heishigan}
+        \quad$\cdot$\quad
+        \href{https://www.linkedin.com/in/heishigan/}{linkedin.com/in/heishigan}
+        \quad$\cdot$\quad
+        \href{https://heishi.se}{heishi.se}
+    }
+\end{center}
+
+\vspace{0.3em}
+
+%----------------------------------------------------------------------------------------
+%	PROFESSIONAL SUMMARY
+%----------------------------------------------------------------------------------------
+
+\section{Professional Summary}
+{{ professional_summary }}
+
+%----------------------------------------------------------------------------------------
+%	WORK EXPERIENCE
+%----------------------------------------------------------------------------------------
+
+\section{Work Experience}
+
+{% for job in work_experience %}
+\textbf{ {{- job.title -}} } \hfill \textit{ {{- job.date -}} }\\
+{{ job.company }}
+\begin{itemize}[leftmargin=1.3em, noitemsep, topsep=4pt, itemsep=2pt]
+{% for bullet in job.bullets %}
+    \item {{ bullet }}
+{% endfor %}
+\end{itemize}
+{% if not loop.last %}\vspace{0.7em}{% endif %}
+{% endfor %}
+
+%----------------------------------------------------------------------------------------
+%	EDUCATION
+%----------------------------------------------------------------------------------------
+
+\section{Education}
+
+{% for edu in education %}
+\textbf{ {{- edu.degree -}} } \hfill \textit{ {{- edu.date -}} }\\
+{{ edu.institution }}{% if edu.details %}\\
+{{ edu.details }}{% endif %}
+{% if not loop.last %}\vspace{0.9em}{% endif %}
+
+{% endfor %}
+
+%----------------------------------------------------------------------------------------
+%	PROJECTS
+%----------------------------------------------------------------------------------------
+
+\section{Projects}
+
+{% for project in projects %}
+\begin{minipage}{\linewidth}
+% --- {{ loop.index }}. {{ project.id }} ---
+\href{ {{- project.url -}} }{\textbf{ {{- project.title -}} }} \hfill \textit{ {{- project.date -}} }\\
+{\small {{ project.context }} }
+\begin{itemize}[leftmargin=1.3em, noitemsep, topsep=4pt, itemsep=2pt]
+{% for bullet in project.bullets %}
+    \item {{ bullet }}
+{% endfor %}
+\end{itemize}
+\end{minipage}
+\vspace{0.7em}
+
+{% endfor %}
+
+%----------------------------------------------------------------------------------------
+%	TECHNICAL SKILLS
+%----------------------------------------------------------------------------------------
+
+\section{Technical Skills}
+
+\begin{tabular}{@{}p{3.4cm}p{13.0cm}}
+{% for skill in skills %}
+    \textbf{ {{- skill.category -}}:} & {{ skill.skills }} {% if not loop.last %}\\[5pt]{% endif %}
+{% endfor %}
+\end{tabular}
+
+\end{document}
