@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const backendForm = new FormData();
     backendForm.append('file', file);
 
-    const response = await fetch('http://localhost:8000/api/parse_pdf', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/parse_pdf`, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,

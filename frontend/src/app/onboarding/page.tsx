@@ -49,7 +49,7 @@ export default function Onboarding() {
         return;
       }
       
-      fetch("http://localhost:8000/api/user/profile", {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => res.json())
@@ -117,7 +117,7 @@ export default function Onboarding() {
       
       // Save the API key securely to the backend database
       const token = await getToken();
-      await fetch("http://localhost:8000/api/user/profile", {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
         method: "POST",
         headers: { 
           "Authorization": `Bearer ${token}`,
@@ -146,7 +146,7 @@ export default function Onboarding() {
     
     try {
       const token = await getToken();
-      const res = await fetch('http://localhost:8000/api/parse_pdf', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/parse_pdf`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

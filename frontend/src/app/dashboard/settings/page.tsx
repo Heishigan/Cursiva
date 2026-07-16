@@ -18,7 +18,7 @@ export default function SettingsPage() {
     if (apiKey.trim()) {
       try {
         const token = await getToken();
-        await fetch("http://localhost:8000/api/user/profile", {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
           method: "POST",
           headers: { 
             "Authorization": `Bearer ${token}`,

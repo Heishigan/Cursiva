@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const token = await getToken();
         if (!token) return;
-        const res = await fetch("http://localhost:8000/api/user/profile", {
+        const res = await fetch("/api/user/profile", {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -79,7 +79,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className={styles.sidebarBottom}>
           <UserButton 
-            fallbackRedirectUrl="/" 
             appearance={{
               elements: {
                 userButtonAvatarBox: { width: 36, height: 36 },

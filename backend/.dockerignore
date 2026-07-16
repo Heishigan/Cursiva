@@ -1,0 +1,28 @@
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Databases
+*.db
+cursiva.db
+app.db
+database.db
+
+# PDFs and outputs
+*.pdf
+outputs/
+
+# Environment variables
+.env
+
+# Git
+.git/
+.gitignore

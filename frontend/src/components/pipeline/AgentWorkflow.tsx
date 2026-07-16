@@ -109,19 +109,21 @@ export default function AgentWorkflow({ logs, activePipelinePhase }: { logs: str
         </div>
       </div>
 
-      <div className={styles.workflowLogViewer} style={{ flex: 1, minHeight: '120px', overflowY: 'auto', position: 'relative', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 20%, black 100%)', maskImage: 'linear-gradient(to bottom, transparent 0%, black 20%, black 100%)', scrollbarWidth: 'none' }}>
-        <style dangerouslySetInnerHTML={{__html: `
-          .${styles.workflowLogViewer}::-webkit-scrollbar { display: none; }
-        `}} />
-        <div className={styles.logLabel} style={{ position: 'sticky', top: 0, paddingTop: '16px', background: 'rgba(0,0,0,0)', zIndex: 10 }}>SYSTEM LOGS</div>
-        <div style={{ padding: '8px 0 16px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {logs.map((log, idx) => (
-            <div key={idx} className={`${styles.logMessage} ${styles.animateFadeIn}`} style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              <span style={{ color: 'var(--accent-1)', marginRight: '8px' }}>{'> '}</span>
-              <span style={{ color: 'var(--text-primary)' }}>{log}</span>
-            </div>
-          ))}
-          <div ref={logsEndRef} />
+      <div className={styles.workflowLogViewer} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '120px' }}>
+        <div className={styles.logLabel}>SYSTEM LOGS</div>
+        <div style={{ flex: 1, overflowY: 'auto', position: 'relative', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 100%)', maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 100%)', scrollbarWidth: 'none' }}>
+          <style dangerouslySetInnerHTML={{__html: `
+            .${styles.workflowLogViewer} *::-webkit-scrollbar { display: none; }
+          `}} />
+          <div style={{ padding: '8px 0 16px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {logs.map((log, idx) => (
+              <div key={idx} className={`${styles.logMessage} ${styles.animateFadeIn}`} style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                <span style={{ color: 'var(--accent-1)', marginRight: '8px' }}>{'> '}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{log}</span>
+              </div>
+            ))}
+            <div ref={logsEndRef} />
+          </div>
         </div>
       </div>
 

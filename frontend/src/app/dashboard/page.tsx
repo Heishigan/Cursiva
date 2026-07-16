@@ -20,7 +20,7 @@ export default function DashboardPage() {
     const fetchStatus = async () => {
       try {
         const token = await getToken();
-        const res = await fetch("http://localhost:8000/api/user/profile", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -37,7 +37,7 @@ export default function DashboardPage() {
     const fetchApplications = async () => {
       try {
         const token = await getToken();
-        const res = await fetch("http://localhost:8000/api/applications", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -68,7 +68,7 @@ export default function DashboardPage() {
       const token = await getToken();
       // Combine date with current time to make a valid ISO string
       const isoDate = new Date(editForm.created_at).toISOString();
-      const res = await fetch(`http://localhost:8000/api/applications/${appId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications/${appId}`, {
         method: "PUT",
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -92,7 +92,7 @@ export default function DashboardPage() {
     if (!appToDelete) return;
     try {
       const token = await getToken();
-      const res = await fetch(`http://localhost:8000/api/applications/${appToDelete}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications/${appToDelete}`, {
         method: "DELETE",
         headers: { 'Authorization': `Bearer ${token}` }
       });

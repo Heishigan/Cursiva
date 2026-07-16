@@ -5,7 +5,9 @@ langgraph
 langchain-openai
 PyMuPDF
 python-multipart
-SQLAlchemy
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.9
 cryptography
 PyJWT
 requests
+jinja2

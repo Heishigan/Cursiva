@@ -51,7 +51,7 @@ export default function DiffViewer() {
     setIsCompiling(true);
     try {
       // 1. Compile CV
-      const resCv = await fetch('http://localhost:8000/api/compile_cv', {
+      const resCv = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cvData)
@@ -67,7 +67,7 @@ export default function DiffViewer() {
 
       // 2. Compile CL
       if (clData && clData.length > 0) {
-        const resCl = await fetch('http://localhost:8000/api/compile_cl', {
+        const resCl = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cl`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -107,7 +107,7 @@ export default function DiffViewer() {
     setIsSubmittingFeedback(true);
     try {
       const token = await getToken();
-      await fetch('http://localhost:8000/api/feedback', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/feedback`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

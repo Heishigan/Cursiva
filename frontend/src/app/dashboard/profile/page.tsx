@@ -21,7 +21,7 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         const token = await getToken();
-        const res = await fetch("http://localhost:8000/api/user/profile", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -55,7 +55,7 @@ export default function ProfilePage() {
   const compilePdf = async (data: any) => {
     setIsCompiling(true);
     try {
-      const res = await fetch('http://localhost:8000/api/compile_cv', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -99,7 +99,7 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append('file', uploadFile);
       const token = await getToken();
-      const res = await fetch('http://localhost:8000/api/parse_pdf', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/parse_pdf`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -438,13 +438,15 @@ export default function ProfilePage() {
                         </button>
                       </div>
                       
-                      <div className={styles.itemMeta}>
-                        {item.subtitle} • {item.date}
-                      </div>
+                      {(item.subtitle || item.date) && (
+                        <div className={styles.itemMeta}>
+                          {item.subtitle}{item.subtitle && item.date && " • "}{item.date}
+                        </div>
+                      )}
 
                       {item.context && <p className={styles.itemContext}>{item.context}</p>}
                       
-                      {item.bullets && item.bullets.length > 0 && (
+                      {section.type !== 'skills' && item.bullets && item.bullets.length > 0 && (
                         <ul className={styles.bullets}>
                           {item.bullets.map((b: string, bIdx: number) => (
                             <li key={bIdx}>{b}</li>
@@ -454,9 +456,10 @@ export default function ProfilePage() {
 
                       {section.type === 'skills' && (
                          <div className={styles.badges}>
-                           {item.bullets.map((b: string, bIdx: number) => (
-                             <span key={bIdx} className={styles.badge}>{b}</span>
-                           ))}
+                           {item.bullets.map((b: string, bIdx: number) => {
+                             if (!b.trim()) return null;
+                             return <span key={bIdx} className={styles.badge}>{b}</span>;
+                           })}
                          </div>
                       )}
                     </div>

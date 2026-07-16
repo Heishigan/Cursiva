@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cursiva_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Optional: Mount the database if you want it to persist locally between container restarts
+      - cursiva-data:/app/data
+    environment:
+      - ENV=production
+
+  # You can optionally add a frontend service here in the future
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "3000:3000"
+
+volumes:
+  cursiva-data:

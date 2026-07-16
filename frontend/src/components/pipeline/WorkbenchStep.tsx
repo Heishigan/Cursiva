@@ -27,7 +27,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave }: { data
   const compileCv = async (cvPayload: any) => {
     setIsCompilingCv(true);
     try {
-      const res = await fetch("http://localhost:8000/api/compile_cv", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cv`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cvPayload)
@@ -54,7 +54,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave }: { data
         clPayload.sign_off
       ].filter(Boolean);
 
-      const res = await fetch("http://localhost:8000/api/compile_cl", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cl`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
