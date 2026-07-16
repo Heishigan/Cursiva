@@ -111,7 +111,7 @@ export default function AgentWorkflow({ logs, activePipelinePhase }: { logs: str
 
       <div className={styles.workflowLogViewer} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '120px' }}>
         <div className={styles.logLabel}>SYSTEM LOGS</div>
-        <div style={{ flex: 1, overflowY: 'auto', position: 'relative', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 100%)', maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 100%)', scrollbarWidth: 'none' }}>
+        <div style={{ flex: 1, overflowY: 'auto', position: 'relative', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 90%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 0%, black 90%, transparent 100%)', scrollbarWidth: 'none' }}>
           <style dangerouslySetInnerHTML={{__html: `
             .${styles.workflowLogViewer} *::-webkit-scrollbar { display: none; }
           `}} />

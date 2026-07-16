@@ -8,6 +8,7 @@ export default function SettingsPage() {
   const { getToken } = useAuth();
   const [apiKey, setApiKey] = useState("");
   const [status, setStatus] = useState("");
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const savedKey = localStorage.getItem('openai_api_key');
@@ -60,11 +61,49 @@ export default function SettingsPage() {
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
           />
+          <button className={styles.helpBtn} onClick={() => setShowHelp(true)}>How to obtain an API key?</button>
         </div>
 
         <button className={styles.saveBtn} onClick={handleSave}>Save Changes</button>
         {status && <div className={`${styles.statusMsg} ${styles.success}`}>{status}</div>}
       </div>
+
+      {showHelp && (
+        <div className={styles.modalOverlay} onClick={() => setShowHelp(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '24px' }}>How to obtain an OpenAI API Key</h2>
+            <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <li>
+                <strong>Create an OpenAI Account</strong>
+                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Go to <a href="https://platform.openai.com/signup" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', textDecoration: 'underline' }}>platform.openai.com/signup</a>. You can sign up using your email, Google, Microsoft, or Apple account. You will need to verify your phone number during this process.</p>
+              </li>
+              <li>
+                <strong>Set up Billing & Add Credits</strong>
+                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>OpenAI requires a prepaid balance to use the API. In the left sidebar, click the gear icon (Settings) and select <strong>Billing</strong>. Click "Add payment details", enter your card info, and add an initial credit balance (e.g., $5 to $10). <em>Note: ChatGPT Plus subscription does NOT cover API usage.</em></p>
+              </li>
+              <li>
+                <strong>Navigate to API Keys</strong>
+                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>In the left sidebar, find the "API keys" section under your project dashboard.</p>
+              </li>
+              <li>
+                <strong>Create a new secret key</strong>
+                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Click the "Create new secret key" button. Give it a memorable name like "Cursiva".</p>
+              </li>
+              <li>
+                <strong>Copy your API Key</strong>
+                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Copy the generated key immediately (it will start with <code>sk-...</code>). <strong>You will not be able to view it again</strong> once you close the window. Keep it secure.</p>
+              </li>
+              <li>
+                <strong>Paste it in Cursiva</strong>
+                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Return to this page, paste the key into the input field, and click "Save Changes".</p>
+              </li>
+            </ol>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
+              <button className={styles.saveBtn} onClick={() => setShowHelp(false)}>Got it!</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ if os.environ.get("ENV") == "production":
     db_url = os.environ.get("DATABASE_URL")
     if db_url and db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
-    DATABASE_URL = db_url
+    DATABASE_URL = db_url or "sqlite:///./cursiva.db"
 else:
     DATABASE_URL = "sqlite:///./cursiva.db"
 

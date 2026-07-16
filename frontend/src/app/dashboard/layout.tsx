@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [missingBaseline, setMissingBaseline] = useState(false);
-  const [missingApiKey, setMissingApiKey] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState("Checking...");
   const { getToken } = useAuth();
 
   useEffect(() => {
@@ -23,7 +23,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const data = await res.json();
         if (data.status === 'success') {
           setMissingBaseline(!data.data.has_baseline);
-          setMissingApiKey(!data.data.has_api_key);
+          
+          if (data.data.has_api_key) {
+            // Test the key
+            const testRes = await fetch("/api/user/test_key", {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (testRes.ok) {
+              setApiKeyStatus("Valid");
+            } else {
+              setApiKeyStatus("Invalid");
+            }
+          } else {
+            setApiKeyStatus("Missing");
+          }
           
           if (data.data.cv_data) {
              localStorage.setItem('generic_cv_json', JSON.stringify(data.data.cv_data));
@@ -40,13 +53,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [getToken]);
 
   const getStatusText = () => {
-    if (missingApiKey && missingBaseline) return "Not Configured";
-    if (missingApiKey) return "Missing API Key";
+    if (apiKeyStatus === "Missing" && missingBaseline) return "Not Configured";
+    if (apiKeyStatus === "Missing") return "Missing API Key";
+    if (apiKeyStatus === "Invalid") return "API Key Invalid";
     if (missingBaseline) return "Missing CV";
     return "Status: Ready";
   };
 
-  const isError = missingApiKey || missingBaseline;
+  const isError = apiKeyStatus === "Missing" || apiKeyStatus === "Invalid" || missingBaseline;
 
   return (
     <div className={styles.container}>
