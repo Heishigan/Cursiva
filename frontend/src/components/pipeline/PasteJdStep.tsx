@@ -7,7 +7,7 @@ export default function PasteJdStep({ onSubmit }: { onSubmit: (text: string) => 
   const [text, setText] = useState("");
   
   return (
-    <div className={`${styles.stepContainer} ${styles.animateFadeIn}`}>
+    <div className={`${styles.stepContainer} ${styles.animateFadeIn}`} style={{ maxWidth: '1200px', width: '90%' }}>
       <div className={styles.header}>
         <h1 className={styles.title}>Start Your Application</h1>
         <p className={styles.subtitle}>Paste the job description below to begin the analysis.</p>

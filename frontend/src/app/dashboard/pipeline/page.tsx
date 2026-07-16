@@ -24,11 +24,13 @@ export default function PipelinePage() {
   // Agent logs
   const [logs, setLogs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
   
-  const submitJd = async (text: string) => {
+  const submitJd = async (text: string, override = false) => {
     setJdText(text);
     setIsProcessing(true);
     setLogs([]);
+    setEligibilityWarning(null);
     
     try {
       const token = await getToken();
@@ -42,7 +44,8 @@ export default function PipelinePage() {
         },
         body: JSON.stringify({
           job_description: text,
-          generic_cv_raw: genericCv
+          generic_cv_raw: genericCv,
+          override_eligibility: override
         })
       });
 
@@ -72,7 +75,7 @@ export default function PipelinePage() {
                   setStrategyResult(data.strategy);
                   setStep(2);
                 } else {
-                  alert(`Ineligible: ${data.reason}`);
+                  setEligibilityWarning(data.reason);
                 }
               }
             } catch (e) {
@@ -226,7 +229,7 @@ export default function PipelinePage() {
       <main className={styles.mainArea} style={{ overflowY: (step >= 3 || isProcessing) ? 'hidden' : 'auto' }}>
         {isProcessing ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '64px', height: '100%' }}>
-            <h2 className={styles.strategyTitle} style={{ marginBottom: '16px' }}>
+            <h2 className={`${styles.strategyTitle} ${styles.agentsTitle}`} style={{ marginBottom: '16px' }}>
               Agents at Work
             </h2>
             <AgentWorkflow logs={logs} activePipelinePhase={step === 1 ? 'intake' : 'tailor'} />
@@ -240,6 +243,29 @@ export default function PipelinePage() {
           </>
         )}
       </main>
+
+      {/* Eligibility Warning Modal */}
+      {eligibilityWarning && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)' }}>
+          <div style={{ backgroundColor: '#422006', border: '1px solid #f59e0b', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(245, 158, 11, 0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#fbbf24' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+              <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>Eligibility Warning</h2>
+            </div>
+            <p style={{ color: '#fcd34d', fontSize: '15px', lineHeight: '1.5', marginBottom: '24px' }}>
+              {eligibilityWarning}
+            </p>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEligibilityWarning(null)} style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor='rgba(255,255,255,0.2)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor='rgba(255,255,255,0.1)'}>
+                Go Back
+              </button>
+              <button onClick={() => { setEligibilityWarning(null); submitJd(jdText, true); }} style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: '#f59e0b', color: '#111827', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor='#fbbf24'} onMouseOut={(e) => e.currentTarget.style.backgroundColor='#f59e0b'}>
+                Override & Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,10 +7,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Optional: Mount the database if you want it to persist locally between container restarts
-      - cursiva-data:/app/data
-    environment:
-      - ENV=production
+      - ./backend:/app
 
   # You can optionally add a frontend service here in the future
   # frontend:

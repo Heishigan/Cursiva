@@ -40,6 +40,7 @@ def get_user_api_key(user_id: str = Depends(get_current_user_id), db: Session = 
 class IntakeRequest(BaseModel):
     job_description: str
     generic_cv_raw: str
+    override_eligibility: bool = False
 
 class TailorRequest(BaseModel):
     job_description: str
@@ -58,7 +59,7 @@ def run_intake(req: IntakeRequest, api_key: str = Depends(get_user_api_key), use
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
         setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": api_key, "user_id": user_id})
         
-        if not setup_result.get("eligibility_passed", True):
+        if not setup_result.get("eligibility_passed", True) and not req.override_eligibility:
             yield f"data: {json.dumps({'type': 'result', 'status': 'ineligible', 'reason': setup_result.get('eligibility_reason')})}\n\n"
             return
             
@@ -239,7 +240,7 @@ def compile_cl(req: CompileCLRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {str(e)}")
 
-    safe_paragraphs = [_escape_data(p) for p in req.cover_letter_paragraphs]
+    safe_paragraphs = [_escape_data(p).replace('\r\n', '\n').replace('\n', ' \\newline ') for p in req.cover_letter_paragraphs]
     tex_content = template.render(
         personal_info=_escape_data(req.personal_info),
         company_name=_escape_data(req.company_name),
@@ -305,6 +306,16 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
     cv_data = json.loads(profile.cv_data_json) if profile.cv_data_json else None
     has_api_key = bool(profile.encrypted_api_key)
     return {"status": "success", "data": {"has_baseline": bool(cv_data), "has_api_key": has_api_key, "cv_data": cv_data}}
+
+@app.get("/api/user/test_key")
+def test_key(api_key: str = Depends(get_user_api_key)):
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        client.models.list()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid API Key or exhausted credits")
 
 @app.post("/api/user/profile")
 def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
