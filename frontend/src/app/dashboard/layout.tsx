@@ -1,16 +1,18 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { UserButton, useAuth } from "@clerk/nextjs";
+import { usePathname, useRouter } from "next/navigation";
+import { UserButton, useAuth, useUser } from "@clerk/nextjs";
 import { LayoutGrid, PlusCircle, User, Settings } from "lucide-react";
 import styles from "./layout.module.css";
 import React, { useEffect, useState } from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [missingBaseline, setMissingBaseline] = useState(false);
+  const router = useRouter();
+  const [missingBaseline, setMissingBaseline] = useState<boolean | null>(null);
   const [apiKeyStatus, setApiKeyStatus] = useState("Checking...");
   const { getToken } = useAuth();
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -22,6 +24,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         });
         const data = await res.json();
         if (data.status === 'success') {
+          if (!data.data.has_baseline) {
+            router.push('/onboarding');
+            return;
+          }
           setMissingBaseline(!data.data.has_baseline);
           
           if (data.data.has_api_key) {
@@ -53,6 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [getToken]);
 
   const getStatusText = () => {
+    if (apiKeyStatus === "Checking..." || missingBaseline === null) return "Checking...";
     if (apiKeyStatus === "Missing" && missingBaseline) return "Not Configured";
     if (apiKeyStatus === "Missing") return "Missing API Key";
     if (apiKeyStatus === "Invalid") return "API Key Invalid";
@@ -60,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return "Status: Ready";
   };
 
-  const isError = apiKeyStatus === "Missing" || apiKeyStatus === "Invalid" || missingBaseline;
+  const isError = apiKeyStatus === "Missing" || apiKeyStatus === "Invalid" || missingBaseline === true;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu when route changes
@@ -116,7 +123,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }}
           />
           <div className={styles.userInfo}>
-            <div className={styles.navLabel} style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Account</div>
+            <div className={styles.navLabel} style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+              {user ? (user.firstName || (user.primaryEmailAddress ? user.primaryEmailAddress.emailAddress.split('@')[0] : "Account")) : "Account"}
+            </div>
             <div className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
               {getStatusText()}
             </div>
