@@ -1,6 +1,6 @@
 "use client";
 import styles from './pipeline.module.css';
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import AgentWorkflow from "@/components/pipeline/AgentWorkflow";
 import PasteJdStep from "@/components/pipeline/PasteJdStep";
@@ -25,7 +25,18 @@ export default function PipelinePage() {
   const [logs, setLogs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
-  
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (step > 1 && step < 4) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [step]);
+
   const submitJd = async (text: string, override = false) => {
     setJdText(text);
     setIsProcessing(true);
