@@ -20,14 +20,14 @@ export default function SettingsPage() {
         });
         const data = await res.json();
         if (data.status === "success" && data.data.has_api_key) {
-          const savedKey = localStorage.getItem('openai_api_key');
+          const savedKey = localStorage.getItem(`openai_api_key_${user?.id}`);
           if (!savedKey) {
             setApiKey("sk-••••••••••••••••••••");
           } else {
             setApiKey(savedKey);
           }
         } else {
-          const savedKey = localStorage.getItem('openai_api_key');
+          const savedKey = localStorage.getItem(`openai_api_key_${user?.id}`);
           if (savedKey) setApiKey(savedKey);
         }
       } catch (e) {
@@ -51,7 +51,7 @@ export default function SettingsPage() {
           },
           body: JSON.stringify({ openai_api_key: apiKey.trim() })
         });
-        localStorage.setItem('openai_api_key', apiKey.trim());
+        localStorage.setItem(`openai_api_key_${user?.id}`, apiKey.trim());
         setStatus("Settings saved and encrypted in the database successfully!");
         setTimeout(() => setStatus(""), 3000);
       } catch (e) {

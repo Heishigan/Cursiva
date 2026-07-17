@@ -1,7 +1,7 @@
 "use client";
 import styles from './pipeline.module.css';
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import AgentWorkflow from "@/components/pipeline/AgentWorkflow";
 import PasteJdStep from "@/components/pipeline/PasteJdStep";
 import StrategyStep from "@/components/pipeline/StrategyStep";
@@ -10,6 +10,7 @@ import DoneStep from "@/components/pipeline/DoneStep";
 
 export default function PipelinePage() {
   const { getToken } = useAuth();
+  const { user } = useUser();
   
   // Overall Pipeline State
   const [step, setStep] = useState(1); // 1: Paste JD, 2: Strategy, 3: Workbench, 4: Done
@@ -45,7 +46,7 @@ export default function PipelinePage() {
     
     try {
       const token = await getToken();
-      const genericCv = localStorage.getItem("generic_cv_json") || "{}";
+      const genericCv = localStorage.getItem(`generic_cv_json_${user?.id}`) || "{}";
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/intake`, {
         method: "POST",
@@ -109,7 +110,7 @@ export default function PipelinePage() {
     
     try {
       const token = await getToken();
-      const genericCv = localStorage.getItem("generic_cv_json") || "{}";
+      const genericCv = localStorage.getItem(`generic_cv_json_${user?.id}`) || "{}";
       const threadId = "thread_" + Math.random().toString(36).substring(7);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/tailor`, {

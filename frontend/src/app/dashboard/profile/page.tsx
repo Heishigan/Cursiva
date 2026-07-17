@@ -40,7 +40,7 @@ export default function ProfilePage() {
           setHasBaseline(true);
           
           // Cache to local storage for the pipeline frontend components that still check it (diff viewer etc)
-          localStorage.setItem('generic_cv_json', JSON.stringify(parsed));
+          if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(parsed));
         } else {
           setHasBaseline(false);
         }
@@ -109,7 +109,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.status === 'success') {
         setCvData(data.parsed_data);
-        localStorage.setItem('generic_cv_json', JSON.stringify(data.parsed_data));
+        if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(data.parsed_data));
         setHasBaseline(true);
         setUploadFile(null);
       } else {
@@ -208,7 +208,7 @@ export default function ProfilePage() {
     };
     newData.professional_summary = headerForm.professional_summary;
     setCvData(newData);
-    localStorage.setItem('generic_cv_json', JSON.stringify(newData));
+    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
     compilePdf(newData);
     setIsEditingHeader(false);
   };
@@ -246,7 +246,7 @@ export default function ProfilePage() {
     }
     
     setCvData(newData);
-    localStorage.setItem('generic_cv_json', JSON.stringify(newData));
+    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
     compilePdf(newData);
     setEditingItem(null);
     setItemForm(null);
@@ -259,7 +259,7 @@ export default function ProfilePage() {
       const newData = { ...cvData };
       newData.sections[editingItem.sIdx].items.splice(editingItem.iIdx, 1);
       setCvData(newData);
-      localStorage.setItem('generic_cv_json', JSON.stringify(newData));
+      if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
       compilePdf(newData);
       setEditingItem(null);
       setItemForm(null);
@@ -283,7 +283,7 @@ export default function ProfilePage() {
       items: []
     });
     setCvData(newData);
-    localStorage.setItem('generic_cv_json', JSON.stringify(newData));
+    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
     compilePdf(newData);
     setIsAddingSection(false);
   };
@@ -303,9 +303,14 @@ export default function ProfilePage() {
   };
 
   const executeWipeData = () => {
-    localStorage.removeItem('generic_cv_json');
-    localStorage.removeItem('job_description');
-    localStorage.removeItem('diff_tailored_cv');
+    if (user?.id) {
+      localStorage.removeItem(`generic_cv_json_${user.id}`);
+      localStorage.removeItem(`job_description_${user.id}`);
+      localStorage.removeItem(`diff_tailored_cv_${user.id}`);
+      localStorage.removeItem(`diff_cover_letter_${user.id}`);
+      localStorage.removeItem(`diff_company_${user.id}`);
+      localStorage.removeItem(`diff_role_${user.id}`);
+    }
     setCvData(null);
     setPdfUrl(null);
     setHasBaseline(false);
