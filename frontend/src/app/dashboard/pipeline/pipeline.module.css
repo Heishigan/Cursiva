@@ -28,6 +28,14 @@
   gap: 32px;
   font-size: 14px;
   font-weight: 500;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .navContent {
+    justify-content: flex-start;
+  }
 }
 
 .stepItem {
@@ -35,6 +43,7 @@
   align-items: center;
   color: var(--text-secondary);
   transition: color 0.3s ease;
+  flex-shrink: 0;
 }
 
 .stepItemActive {

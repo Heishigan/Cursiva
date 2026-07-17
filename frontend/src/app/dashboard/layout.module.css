@@ -118,9 +118,89 @@
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
 }
 
-/* Main Content */
+/* Main Content Area */
 .mainContent {
   flex: 1;
   overflow-y: auto;
   position: relative;
+  height: 100vh;
+}
+
+/* Mobile Header (Hidden by default) */
+.mobileHeader {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--surface-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+}
+
+.hamburger {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile Overlay */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .mobileHeader {
+    display: flex;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px; /* Hide by default */
+    bottom: 0;
+    height: 100vh;
+    z-index: 100;
+    background: var(--background);
+    border-right: 1px solid var(--surface-border);
+    transition: left 0.3s ease;
+    padding-top: 2rem;
+  }
+
+  .sidebar.sidebarOpen {
+    left: 0;
+  }
+
+  .logoContainer {
+    margin-bottom: 2rem;
+    padding-left: 1rem;
+  }
+
+  .overlay {
+    display: block; /* Shown when sidebar is open, controlled by React state conditionally rendering the DOM node */
+  }
+
+  .mainContent {
+    height: calc(100vh - 65px); /* Subtract header height */
+  }
 }
