@@ -1,4 +1,3 @@
-"use client";
 import Link from "next/link";
 import { Show, UserButton } from "@clerk/nextjs";
 import { Search, Brain, FileText, CheckCircle, Zap, Mail, LayoutDashboard } from "lucide-react";
@@ -40,7 +39,7 @@ export default function Home() {
           <Show when="signed-in">
             <Link href="/dashboard">
               <button className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '8px' }}>
-                Go to Dashboard →
+                Go to Dashboard &rarr;
               </button>
             </Link>
           </Show>
@@ -98,99 +97,41 @@ export default function Home() {
           <div className={styles.glassCard}>
             <div className={styles.cardIcon}><Zap size={28} /></div>
             <h3 className={styles.cardTitle}>Insanely Cost-Effective</h3>
-            <p className={styles.cardDesc}>Bring your own OpenAI API key. By leveraging highly targeted prompts and structured JSON, you pay exactly what the API costs, no ridiculous SaaS markups.</p>
+            <p className={styles.cardDesc}>Bring your own OpenAI API key. A complete application including strategy, multiple resume drafts, and a cover letter costs roughly $0.05 per job.</p>
           </div>
           <div className={styles.glassCard}>
-            <div className={styles.cardIcon}><LayoutDashboard size={28} /></div>
-            <h3 className={styles.cardTitle}>All Applications in One Place</h3>
-            <p className={styles.cardDesc}>Stop losing track of which resume you sent where. Our powerful dashboard acts as a central CRM, storing every tailored CV, Cover Letter, and original JD you've applied to.</p>
-          </div>
-        </div>
-        <div className={styles.metricsContainer}>
-          <div className={styles.metric}>
-            <div className={styles.metricValue}>~$0.02</div>
-            <div className={styles.metricLabel}>Per Application</div>
-          </div>
-          <div className={styles.metric}>
-            <div className={styles.metricValue}>95%</div>
-            <div className={styles.metricLabel}>Time Saved</div>
+            <div className={styles.cardIcon}><FileText size={28} /></div>
+            <h3 className={styles.cardTitle}>Native LaTeX Compilation</h3>
+            <p className={styles.cardDesc}>No more struggling with MS Word formatting. Your tailored CV is natively compiled into a pristine, ATS-friendly LaTeX PDF directly on the server.</p>
           </div>
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.grid2}>
-          <div>
-            <h2 className={styles.sectionTitle}>Why Jake&apos;s Resume Format?</h2>
-            <p className={styles.sectionSubtitle} style={{ marginLeft: 0, textAlign: 'left', marginBottom: '24px' }}>
-              We exclusively compile your tailored CV and Cover Letter into the legendary "Jake's Resume" LaTeX template and a standard business format. Here is why:
-            </p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px', color: 'var(--text-secondary)' }}>
-              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
-                <span><strong>100% ATS Parser Compatibility.</strong> Complex columns, icons, and graphic templates confuse Applicant Tracking Systems. Jake's format is perfectly structured text.</span>
-              </li>
-              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
-                <span><strong>High Readability.</strong> Recruiters scan resumes in 6 seconds. This academic-grade format directs eyes straight to your bolded job titles, companies, and impact metrics.</span>
-              </li>
-              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
-                <span><strong>Persuasive Cover Letters.</strong> We also generate a highly targeted Cover Letter (CL) that pairs beautifully with your CV, compiled in a clean, standard business letter format.</span>
-              </li>
-              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
-                <span><strong>Pristine PDF Compilation.</strong> We don't use sketchy HTML-to-PDF generators. Your documents are compiled via pdflatex on our servers, generating flawless, crisp PDFs every time.</span>
-              </li>
-            </ul>
-          </div>
-          
-          <div className={styles.resumePreview}>
-            <div className={styles.resumeHeader}>
-              <div className={styles.resumeName}>John Doe</div>
-              <div className={styles.resumeContact}>San Francisco, CA • (123) 456-7890 • john.doe@email.com • github.com/johndoe</div>
-            </div>
-            
-            <div className={styles.resumeSectionTitle}>Experience</div>
-            <div className={styles.resumeItem}>
-              <span>Senior Software Engineer | TechCorp</span>
-              <span>Jan 2021 - Present</span>
-            </div>
-            <ul className={styles.resumeBullets}>
-              <li>Architected and deployed a highly scalable microservices architecture...</li>
-              <li>Led a team of 5 engineers to deliver the flagship product, increasing revenue by 15%...</li>
-            </ul>
-            
-            <div className={styles.resumeItem}>
-              <span>Software Engineer | StartupInc</span>
-              <span>Jun 2018 - Dec 2020</span>
-            </div>
-            <ul className={styles.resumeBullets}>
-              <li>Developed RESTful APIs using Node.js and Express...</li>
-            </ul>
-          </div>
-        </div>
+      <section className={styles.section} style={{ textAlign: 'center', marginTop: '64px' }}>
+        <h2 className={styles.sectionTitle} style={{ fontSize: '2.5rem', marginBottom: '32px' }}>Stop tweaking templates. Start winning interviews.</h2>
+        <Show when="signed-out">
+          <Link href="/sign-up">
+            <button className="btn-primary" style={{ padding: '1.25rem 3rem', fontSize: '1.25rem', borderRadius: '12px' }}>
+              Create Your Free Account
+            </button>
+          </Link>
+        </Show>
+        <Show when="signed-in">
+          <Link href="/dashboard">
+            <button className="btn-primary" style={{ padding: '1.25rem 3rem', fontSize: '1.25rem', borderRadius: '12px' }}>
+              Launch Dashboard
+            </button>
+          </Link>
+        </Show>
       </section>
 
-      <div style={{ marginTop: '40px', padding: '60px 0', borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%' }}>
-        <h2 className={styles.sectionTitle}>Ready to end the job hunt?</h2>
-        <div className={styles.ctaGroup} style={{ marginTop: '32px' }}>
-          <Show when="signed-out">
-            <Link href="/sign-up">
-              <button className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '8px' }}>
-                Start Strategizing Today
-              </button>
-            </Link>
-          </Show>
-          <Show when="signed-in">
-            <Link href="/dashboard">
-              <button className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', borderRadius: '8px' }}>
-                Return to Dashboard
-              </button>
-            </Link>
-          </Show>
+      <footer className={styles.footer}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', justifyContent: 'center' }}>
+          <div style={{ fontWeight: 800, fontSize: '1.25rem', fontFamily: 'var(--font-plus-jakarta)' }}>C<span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>ursiva</span></div>
         </div>
-      </div>
+        <p>Open-source tool by <a href="https://github.com/Heishigan" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-1)' }}>Heishigan Pathmaraj</a>.</p>
+        <p style={{ marginTop: '8px' }}>Not a SaaS. No subscriptions. Bring your own key.</p>
+      </footer>
     </main>
   );
 }

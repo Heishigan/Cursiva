@@ -1,10 +1,21 @@
 "use client";
 
 import styles from '@/app/dashboard/pipeline/pipeline.module.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function PasteJdStep({ onSubmit }: { onSubmit: (text: string) => void }) {
   const [text, setText] = useState("");
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (text.trim().length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [text]);
   
   return (
     <div className={`${styles.stepContainer} ${styles.animateFadeIn}`} style={{ maxWidth: '1200px', width: '90%' }}>
