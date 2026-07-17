@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import confetti from 'canvas-confetti';
 import styles from './page.module.css';
+import profileStyles from '../dashboard/profile/profile.module.css';
+import { Briefcase, GraduationCap, Code, Globe, User, Pencil, Plus } from "lucide-react";
+import { FaGithub, FaLinkedin } from "react-icons/fa";
 
 // Default Schema — matches gui_v2.py FullCVData exactly
 const DEFAULT_CV = {
@@ -38,6 +41,17 @@ export default function Onboarding() {
   const [parseError, setParseError] = useState('');
   const [cvData, setCvData] = useState<any>(DEFAULT_CV);
   const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
+  const [editingHeader, setEditingHeader] = useState(false);
+  const [editingItem, setEditingItem] = useState<{sIdx: number, iIdx: number} | null>(null);
+
+  const getSectionIcon = (type: string) => {
+    switch (type) {
+      case 'work_experience': return <Briefcase size={20} color="var(--accent-1)" />;
+      case 'education': return <GraduationCap size={20} color="var(--accent-1)" />;
+      case 'projects': return <Code size={20} color="var(--accent-1)" />;
+      default: return <User size={20} color="var(--accent-1)" />;
+    }
+  };
   
   // Check profile status and auto-redirect if already set up
   useEffect(() => {
@@ -220,7 +234,7 @@ export default function Onboarding() {
       bullets: []
     });
     setCvData((prev: any) => ({ ...prev, sections }));
-    setExpandedSections(prev => ({ ...prev, [sectionIdx]: true }));
+    setEditingItem({ sIdx: sectionIdx, iIdx: sections[sectionIdx].items.length - 1 });
   };
   const updateItem = (sIdx: number, iIdx: number, field: string, value: string) => {
     const sections = [...cvData.sections];
@@ -377,71 +391,87 @@ export default function Onboarding() {
                 </div>
               </div>
               
-              <div className={styles.card}>
-                <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>Personal Information</h3>
-                <div className={styles.grid3}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Full Name</label>
-                    <input className={getInputClass(cvData.personal_info.name)} value={cvData.personal_info.name} onChange={e => updatePersonalInfo('name', e.target.value)} />
+              {/* Header Profile Card */}
+              {editingHeader ? (
+                <div className={styles.card} style={{ marginBottom: '24px' }}>
+                  <div className={styles.itemHeader}>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Editing Personal Info</h3>
+                    <button className={styles.btnGhost} style={{ width: 'auto', padding: '4px 12px' }} onClick={() => setEditingHeader(false)}>Done</button>
                   </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Email</label>
-                    <input className={getInputClass(cvData.personal_info.email)} value={cvData.personal_info.email} onChange={e => updatePersonalInfo('email', e.target.value)} />
+                  <div className={styles.grid3} style={{ marginTop: '16px' }}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Full Name</label>
+                      <input className={getInputClass(cvData.personal_info.name)} value={cvData.personal_info.name} onChange={e => updatePersonalInfo('name', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Email</label>
+                      <input className={getInputClass(cvData.personal_info.email)} value={cvData.personal_info.email} onChange={e => updatePersonalInfo('email', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Phone</label>
+                      <input className={getInputClass(cvData.personal_info.phone)} value={cvData.personal_info.phone} onChange={e => updatePersonalInfo('phone', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Location</label>
+                      <input className={getInputClass(cvData.personal_info.location)} value={cvData.personal_info.location} onChange={e => updatePersonalInfo('location', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>LinkedIn URL</label>
+                      <input className={styles.input} value={cvData.personal_info.linkedin} onChange={e => updatePersonalInfo('linkedin', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>GitHub URL</label>
+                      <input className={styles.input} value={cvData.personal_info.github} onChange={e => updatePersonalInfo('github', e.target.value)} />
+                    </div>
                   </div>
+
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Phone</label>
-                    <input className={getInputClass(cvData.personal_info.phone)} value={cvData.personal_info.phone} onChange={e => updatePersonalInfo('phone', e.target.value)} />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Location</label>
-                    <input className={getInputClass(cvData.personal_info.location)} value={cvData.personal_info.location} onChange={e => updatePersonalInfo('location', e.target.value)} />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>LinkedIn URL</label>
-                    <input className={styles.input} value={cvData.personal_info.linkedin} onChange={e => updatePersonalInfo('linkedin', e.target.value)} />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>GitHub URL</label>
-                    <input className={styles.input} value={cvData.personal_info.github} onChange={e => updatePersonalInfo('github', e.target.value)} />
+                    <label className={styles.label}>Professional Summary</label>
+                    <textarea className={getInputClass(cvData.professional_summary)} value={cvData.professional_summary} onChange={e => updateSummary(e.target.value)} rows={4} />
                   </div>
                 </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Professional Summary</label>
-                  <textarea className={getInputClass(cvData.professional_summary)} value={cvData.professional_summary} onChange={e => updateSummary(e.target.value)} />
-                </div>
-              </div>
-
-              {cvData.sections.map((section: any, sIdx: number) => (
-                <div key={sIdx} className={styles.accordion}>
-                  <div className={`${styles.accordionHeader} ${expandedSections[sIdx] ? styles.expanded : ''}`} onClick={() => toggleSection(sIdx)}>
-                    <span>{section.title} <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 400 }}>({section.type})</span></span>
-                    <span>{expandedSections[sIdx] ? '▼' : '▶'}</span>
-                  </div>
-                  {expandedSections[sIdx] && (
-                    <div className={styles.accordionContent}>
-                      <div className={styles.grid2}>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Section Title</label>
-                          <input className={styles.input} value={section.title} onChange={e => updateSection(sIdx, 'title', e.target.value)} />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Section Type</label>
-                          <select className={styles.select} value={section.type} onChange={e => updateSection(sIdx, 'type', e.target.value)}>
-                            <option value="work_experience">Work Experience</option>
-                            <option value="education">Education</option>
-                            <option value="projects">Projects</option>
-                            <option value="skills">Technical Skills</option>
-                            <option value="custom">Custom</option>
-                          </select>
-                        </div>
+              ) : (
+                <div className={profileStyles.card} style={{ marginBottom: '32px' }}>
+                  <div className={profileStyles.headerLayout}>
+                    <div className={profileStyles.avatar}>
+                      {cvData.personal_info.name ? cvData.personal_info.name.charAt(0) : 'U'}
+                    </div>
+                    <div className={profileStyles.headerInfo}>
+                      <h1 className={profileStyles.name}>{cvData.personal_info.name || 'Your Name'}</h1>
+                      <p className={profileStyles.summary}>{cvData.professional_summary || 'Your professional summary'}</p>
+                      <p className={profileStyles.location}>{cvData.personal_info.location}</p>
+                      <div className={profileStyles.socials}>
+                        {cvData.personal_info.github && <a href={cvData.personal_info.github} target="_blank" rel="noreferrer"><FaGithub size={16}/> GitHub</a>}
+                        {cvData.personal_info.linkedin && <a href={cvData.personal_info.linkedin} target="_blank" rel="noreferrer"><FaLinkedin size={16}/> LinkedIn</a>}
+                        {cvData.personal_info.portfolio && <a href={cvData.personal_info.portfolio} target="_blank" rel="noreferrer"><Globe size={16}/> Portfolio</a>}
                       </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <button className={profileStyles.iconBtn} onClick={() => setEditingHeader(true)} title="Edit Profile"><Pencil size={18} /></button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                      {section.items && section.items.map((item: any, iIdx: number) => (
-                        <div key={iIdx} className={styles.itemBlock}>
-                          <div className={styles.itemHeader}>
-                            <span className={styles.itemTitle}>{item.title || 'Untitled Item'}</span>
+              {/* Dynamic Sections */}
+              {cvData.sections.map((section: any, sIdx: number) => (
+                <div key={sIdx} className={profileStyles.sectionGroup}>
+                  <div className={profileStyles.sectionHeader}>
+                    <h2 className={profileStyles.sectionTitle}>{section.title}</h2>
+                    <button className={profileStyles.iconBtn} onClick={() => addItem(sIdx)} title={`Add ${section.title}`}><Plus size={18}/></button>
+                  </div>
+
+                  <div className={profileStyles.cardGroup}>
+                    {section.items.map((item: any, iIdx: number) => {
+                      const isEditing = editingItem?.sIdx === sIdx && editingItem?.iIdx === iIdx;
+                      
+                      return isEditing ? (
+                        <div key={iIdx} className={styles.card} style={{ padding: '24px', marginBottom: '16px' }}>
+                          <div className={styles.itemHeader} style={{ marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Editing {item.title || 'Item'}</h3>
+                            <button className={styles.btnGhost} style={{ width: 'auto', padding: '4px 12px' }} onClick={() => setEditingItem(null)}>Done</button>
                           </div>
+                          
                           <div className={styles.grid2}>
                             <div className={styles.formGroup}>
                               <label className={styles.label}>Title / Role</label>
@@ -460,7 +490,7 @@ export default function Onboarding() {
                               <input className={styles.input} value={item.url || ''} onChange={e => updateItem(sIdx, iIdx, 'url', e.target.value)} placeholder="https://..." />
                             </div>
                             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                              <label className={styles.label}>Context <span style={{color:'var(--text-secondary)',fontWeight:400}}>(short line, e.g. &quot;GPA 3.9 | Dean&apos;s List&quot;)</span></label>
+                              <label className={styles.label}>Context <span style={{color:'var(--text-secondary)',fontWeight:400}}>(short line, e.g. "GPA 3.9 | Dean's List")</span></label>
                               <input className={styles.input} value={item.context || ''} onChange={e => updateItem(sIdx, iIdx, 'context', e.target.value)} />
                             </div>
                           </div>
@@ -475,15 +505,55 @@ export default function Onboarding() {
                             />
                           </div>
                         </div>
-                      ))}
-                      <button className={styles.btnGhost} onClick={() => addItem(sIdx)}>+ Add New {section.title} Item</button>
-                    </div>
-                  )}
+                      ) : (
+                        <div key={iIdx} className={profileStyles.itemCard}>
+                          <div className={profileStyles.itemLayout}>
+                            <div className={profileStyles.itemIconBox}>
+                              {getSectionIcon(section.type)}
+                            </div>
+                            <div className={profileStyles.itemContent}>
+                              <div className={profileStyles.itemHeader}>
+                                <h3 className={profileStyles.itemTitle}>{item.title || 'Untitled'}</h3>
+                                <button className={profileStyles.iconBtnSmall} onClick={() => setEditingItem({ sIdx, iIdx })}>
+                                  <Pencil size={14}/>
+                                </button>
+                              </div>
+                              
+                              {(item.subtitle || item.date) && (
+                                <div className={profileStyles.itemMeta}>
+                                  {item.subtitle}{item.subtitle && item.date && " • "}{item.date}
+                                </div>
+                              )}
+
+                              {item.context && <p className={profileStyles.itemContext}>{item.context}</p>}
+                              
+                              {section.type !== 'skills' && item.bullets && item.bullets.length > 0 && (
+                                <ul className={profileStyles.bullets}>
+                                  {item.bullets.map((b: string, bIdx: number) => (
+                                    <li key={bIdx}>{b}</li>
+                                  ))}
+                                </ul>
+                              )}
+
+                              {section.type === 'skills' && item.bullets && (
+                                 <div className={profileStyles.badges}>
+                                   {item.bullets.map((b: string, bIdx: number) => {
+                                     if (!b.trim()) return null;
+                                     return <span key={bIdx} className={profileStyles.badge}>{b}</span>;
+                                   })}
+                                 </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
 
               <button className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1.1rem', marginTop: '24px' }} onClick={handleSaveCV}>
-                Save Baseline Truth →
+                Confirm & Save Baseline →
               </button>
             </div>
           )}
