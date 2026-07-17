@@ -61,11 +61,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const isError = apiKeyStatus === "Missing" || apiKeyStatus === "Invalid" || missingBaseline;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   return (
     <div className={styles.container}>
+      {/* Mobile Header */}
+      <div className={styles.mobileHeader}>
+        <Link href="/" className={styles.logo}>
+          C<span>ursiva</span>
+        </Link>
+        <button className={styles.hamburger} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <LayoutGrid size={24} />
+        </button>
+      </div>
+
       {/* Sidebar */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.logoContainer}>
           <Link href="/" className={styles.logo}>
             C<span>ursiva</span>
@@ -100,12 +116,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }}
           />
           <div className={styles.userInfo}>
-            <span className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
+            <div className={styles.navLabel} style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Account</div>
+            <div className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
               {getStatusText()}
-            </span>
+            </div>
           </div>
         </div>
       </aside>
+
+      {/* Overlay for mobile */}
+      {isMobileMenuOpen && (
+        <div className={styles.overlay} onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
 
       {/* Main Content Area */}
       <main className={styles.mainContent}>

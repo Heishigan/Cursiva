@@ -189,8 +189,8 @@ export default function DashboardPage() {
       <div className={styles.recentSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Recent Applications</h2>
-          <a href="/dashboard/pipeline" className="btn-primary">
-            <Plus size={18} style={{ marginRight: '8px' }} /> New Application
+          <a href="/dashboard/pipeline" className={styles.actionBtn} style={{ background: 'var(--accent-1)', padding: '8px', color: 'white', borderRadius: '8px' }} title="New Application">
+            <Plus size={20} />
           </a>
         </div>
 

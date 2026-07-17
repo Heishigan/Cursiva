@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Show, UserButton } from "@clerk/nextjs";
 import { Search, Brain, FileText, CheckCircle, Zap, Mail, LayoutDashboard } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -107,6 +108,52 @@ export default function Home() {
         </div>
       </section>
 
+      <section className={styles.section}>
+        <div className={styles.grid2}>
+          <div>
+            <h2 className={styles.sectionTitle}>Why Jake&apos;s Resume Format?</h2>
+            <p className={styles.sectionSubtitle} style={{ marginLeft: 0, textAlign: 'left', marginBottom: '24px' }}>
+              We exclusively compile your tailored CV and Cover Letter into the legendary "Jake's Resume" LaTeX template and a standard business format. Here is why:
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px', color: 'var(--text-secondary)' }}>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>100% ATS Parser Compatibility.</strong> Complex columns, icons, and graphic templates confuse Applicant Tracking Systems. Jake's format is perfectly structured text.</span>
+              </li>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>High Readability.</strong> Recruiters scan resumes in 6 seconds. This academic-grade format directs eyes straight to your bolded job titles, companies, and impact metrics.</span>
+              </li>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>Persuasive Cover Letters.</strong> We also generate a highly targeted Cover Letter (CL) that pairs beautifully with your CV, compiled in a clean, standard business letter format.</span>
+              </li>
+              <li style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }}/>
+                <span><strong>Pristine PDF Compilation.</strong> We don't use sketchy HTML-to-PDF generators. Your documents are compiled via pdflatex on our servers, generating flawless, crisp PDFs every time.</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div className={styles.resumePreview}>
+            <div className={styles.resumeHeader}>
+              <div className={styles.resumeName}>John Doe</div>
+              <div className={styles.resumeContact}>San Francisco, CA • (123) 456-7890 • john.doe@email.com • github.com/johndoe</div>
+            </div>
+            
+            <div className={styles.resumeSectionTitle}>Experience</div>
+            <div className={styles.resumeItem}>
+              <span>Senior Software Engineer | TechCorp</span>
+              <span>Jan 2021 - Present</span>
+            </div>
+            <ul className={styles.resumeBullets}>
+              <li>Architected and deployed a highly scalable microservices architecture...</li>
+              <li>Led a team of 5 engineers to deliver the flagship product, increasing revenue by 15%...</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <section className={styles.section} style={{ textAlign: 'center', marginTop: '64px' }}>
         <h2 className={styles.sectionTitle} style={{ fontSize: '2.5rem', marginBottom: '32px' }}>Stop tweaking templates. Start winning interviews.</h2>
         <Show when="signed-out">
@@ -125,12 +172,26 @@ export default function Home() {
         </Show>
       </section>
 
-      <footer className={styles.footer}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', justifyContent: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: '1.25rem', fontFamily: 'var(--font-plus-jakarta)' }}>C<span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>ursiva</span></div>
+      <footer className={styles.footer} style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '48px', paddingBottom: '48px', marginTop: '64px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontWeight: 800, fontSize: '1.5rem', fontFamily: 'var(--font-plus-jakarta)' }}>C<span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>ursiva</span></div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '24px', color: 'var(--text-secondary)' }}>
+            <a href="https://github.com/Heishigan/Cursiva" target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
+              <FaGithub size={24} />
+            </a>
+            <a href="mailto:hej@heishi.se" className={styles.socialLinkEmail}>
+              <Mail size={24} />
+            </a>
+          </div>
+
+          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6' }}>
+            <p>Designed and built by <a href="https://heishi.se" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-1)', textDecoration: 'none' }}>Heishigan Pathmaraj</a>.</p>
+            <p style={{ marginTop: '16px', fontSize: '0.85rem', opacity: 0.7 }}>&copy; {new Date().getFullYear()} Cursiva. All rights reserved.</p>
+          </div>
         </div>
-        <p>Open-source tool by <a href="https://github.com/Heishigan" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-1)' }}>Heishigan Pathmaraj</a>.</p>
-        <p style={{ marginTop: '8px' }}>Not a SaaS. No subscriptions. Bring your own key.</p>
       </footer>
     </main>
   );
