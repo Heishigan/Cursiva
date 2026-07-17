@@ -178,7 +178,7 @@ def _escape_data(obj):
     return obj
 
 @app.post("/api/compile_cv")
-def compile_cv(req: FullCVData):
+def compile_cv(req: FullCVData, user_id: str = Depends(get_current_user_id)):
     data = req.model_dump()
     # Apply escaping to prevent LaTeX compilation errors
     safe_data = _escape_data(data)
@@ -232,7 +232,7 @@ class CompileCLRequest(BaseModel):
     cover_letter_paragraphs: list
 
 @app.post("/api/compile_cl")
-def compile_cl(req: CompileCLRequest):
+def compile_cl(req: CompileCLRequest, user_id: str = Depends(get_current_user_id)):
     template_dir = os.path.join(os.path.dirname(__file__), 'templates')
     try:
         jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
