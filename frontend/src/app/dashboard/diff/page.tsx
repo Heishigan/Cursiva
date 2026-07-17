@@ -22,14 +22,16 @@ export default function DiffViewer() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   useEffect(() => {
-    const tailoredStr = localStorage.getItem('diff_tailored_cv');
-    const clStr = localStorage.getItem('diff_cover_letter');
-    const c = localStorage.getItem('diff_company') || 'Company';
-    const r = localStorage.getItem('diff_role') || 'Role';
+    if (!user?.id) return;
+    
+    const tailoredStr = localStorage.getItem(`diff_tailored_cv_${user.id}`);
+    const clStr = localStorage.getItem(`diff_cover_letter_${user.id}`);
+    const c = localStorage.getItem(`diff_company_${user.id}`) || 'Company';
+    const r = localStorage.getItem(`diff_role_${user.id}`) || 'Role';
 
     if (tailoredStr) {
       const tailoredData = JSON.parse(tailoredStr);
-      const genericStr = localStorage.getItem('generic_cv_json');
+      const genericStr = localStorage.getItem(`generic_cv_json_${user.id}`);
       if (genericStr) {
         const genericData = JSON.parse(genericStr);
         tailoredData.personal_info = genericData.personal_info;
@@ -39,7 +41,7 @@ export default function DiffViewer() {
     if (clStr) setClData(JSON.parse(clStr));
     setCompany(c);
     setRole(r);
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (cvData && !cvPdfUrl) {

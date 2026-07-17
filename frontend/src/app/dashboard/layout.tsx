@@ -19,6 +19,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const token = await getToken();
         if (!token) return;
+
+        // Auto-purge legacy cross-account keys immediately
+        localStorage.removeItem('generic_cv_json');
+        localStorage.removeItem('openai_api_key');
+        localStorage.removeItem('job_description');
+        localStorage.removeItem('diff_tailored_cv');
+
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(`${apiUrl}/api/user/profile`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -46,10 +53,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             setApiKeyStatus("Missing");
           }
           
-          if (data.data.cv_data) {
-             localStorage.setItem('generic_cv_json', JSON.stringify(data.data.cv_data));
-          } else {
-             localStorage.removeItem('generic_cv_json');
+          if (data.data.cv_data && user?.id) {
+             localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(data.data.cv_data));
+          } else if (user?.id) {
+             localStorage.removeItem(`generic_cv_json_${user.id}`);
           }
         }
       } catch(e) { console.error(e) }

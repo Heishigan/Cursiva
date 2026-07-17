@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import confetti from 'canvas-confetti';
 import styles from './page.module.css';
 import profileStyles from '../dashboard/profile/profile.module.css';
@@ -24,6 +24,7 @@ const DEFAULT_CV = {
 export default function Onboarding() {
   const router = useRouter();
   const { getToken, isLoaded } = useAuth();
+  const { user } = useUser();
   
   // High-level state machine
   // 1: Auth, 2: Baseline (select/parse/manual), 3: Launch
@@ -55,7 +56,7 @@ export default function Onboarding() {
   
   // Check profile status and auto-redirect if already set up
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !user) return;
     
     getToken().then(token => {
       if (!token) {
@@ -74,9 +75,9 @@ export default function Onboarding() {
           setIsRedirecting(false);
           
           // Fallback check localStorage for UI state
-          const savedKey = localStorage.getItem('openai_api_key');
+          const savedKey = localStorage.getItem(`openai_api_key_${user.id}`);
           if (savedKey) setApiKey(savedKey);
-          const savedCv = localStorage.getItem('generic_cv_json');
+          const savedCv = localStorage.getItem(`generic_cv_json_${user.id}`);
           if (savedCv) {
             try {
               const parsed = JSON.parse(savedCv);
@@ -140,7 +141,7 @@ export default function Onboarding() {
         body: JSON.stringify({ openai_api_key: apiKey })
       });
       
-      localStorage.setItem('openai_api_key', apiKey);
+      if (user?.id) localStorage.setItem(`openai_api_key_${user.id}`, apiKey);
       setStep(2);
     } catch (e: any) {
       setAuthError(e.message);
@@ -177,7 +178,7 @@ export default function Onboarding() {
       
       if (data.status === 'success') {
         setCvData(data.parsed_data);
-        localStorage.setItem('generic_cv_json', JSON.stringify(data.parsed_data));
+        if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(data.parsed_data));
         setMode('manual');
       } else {
         setParseError("Failed to parse PDF: " + (data.reason || "Unknown error"));
@@ -196,7 +197,7 @@ export default function Onboarding() {
   };
 
   const handleSaveCV = () => {
-    localStorage.setItem('generic_cv_json', JSON.stringify(cvData));
+    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(cvData));
     setStep(3);
     setTimeout(() => {
       confetti({
