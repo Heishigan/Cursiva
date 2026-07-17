@@ -164,7 +164,7 @@ export default function Onboarding() {
       if (data.status === 'success') {
         setCvData(data.parsed_data);
         localStorage.setItem('generic_cv_json', JSON.stringify(data.parsed_data));
-        setStep(3);
+        setMode('manual');
       } else {
         setParseError("Failed to parse PDF: " + (data.reason || "Unknown error"));
       }
@@ -227,20 +227,9 @@ export default function Onboarding() {
     sections[sIdx].items[iIdx] = { ...sections[sIdx].items[iIdx], [field]: value };
     setCvData((prev: any) => ({ ...prev, sections }));
   };
-  const addBullet = (sIdx: number, iIdx: number) => {
+  const updateBulletsText = (sIdx: number, iIdx: number, text: string) => {
     const sections = [...cvData.sections];
-    if (!sections[sIdx].items[iIdx].bullets) sections[sIdx].items[iIdx].bullets = [];
-    sections[sIdx].items[iIdx].bullets.push("");
-    setCvData((prev: any) => ({ ...prev, sections }));
-  };
-  const updateBullet = (sIdx: number, iIdx: number, bIdx: number, value: string) => {
-    const sections = [...cvData.sections];
-    sections[sIdx].items[iIdx].bullets[bIdx] = value;
-    setCvData((prev: any) => ({ ...prev, sections }));
-  };
-  const removeBullet = (sIdx: number, iIdx: number, bIdx: number) => {
-    const sections = [...cvData.sections];
-    sections[sIdx].items[iIdx].bullets.splice(bIdx, 1);
+    sections[sIdx].items[iIdx].bullets = text.split('\n').filter(b => b.trim() !== '');
     setCvData((prev: any) => ({ ...prev, sections }));
   };
 
@@ -384,7 +373,7 @@ export default function Onboarding() {
                 <div className={styles.bannerIcon}>⚠️</div>
                 <div className={styles.bannerText}>
                   <p><strong>Review Required</strong></p>
-                  <p>Please review all extracted fields carefully. The red fields indicate missing information. This only needs to be done once to serve as your Ground Truth for all future applications.</p>
+                  <p>Please verify your extracted CV carefully. Fix any wrongly parsed or missed data here. <strong>You ONLY have to do this ONCE!</strong> This serves as your Ground Truth for all future applications.</p>
                 </div>
               </div>
               
@@ -477,16 +466,13 @@ export default function Onboarding() {
                           </div>
                           
                           <div className={styles.formGroup}>
-                            <label className={styles.label}>Bullets</label>
-                            <div className={styles.bulletList}>
-                              {item.bullets && item.bullets.map((bullet: string, bIdx: number) => (
-                                <div key={bIdx} className={styles.bulletRow}>
-                                  <textarea className={getInputClass(bullet)} value={bullet} onChange={e => updateBullet(sIdx, iIdx, bIdx, e.target.value)} rows={2} />
-                                  <button className={styles.btnIcon} onClick={() => removeBullet(sIdx, iIdx, bIdx)} title="Remove bullet">✕</button>
-                                </div>
-                              ))}
-                              <button className={styles.btnGhost} style={{ marginTop: '8px' }} onClick={() => addBullet(sIdx, iIdx)}>+ Add Bullet</button>
-                            </div>
+                            <label className={styles.label}>Bullets <span style={{color:'var(--text-secondary)',fontWeight:400}}>(One bullet per line)</span></label>
+                            <textarea 
+                              className={styles.input} 
+                              value={item.bullets ? item.bullets.join('\n') : ''} 
+                              onChange={e => updateBulletsText(sIdx, iIdx, e.target.value)} 
+                              rows={5} 
+                            />
                           </div>
                         </div>
                       ))}

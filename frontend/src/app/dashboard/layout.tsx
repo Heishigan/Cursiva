@@ -19,7 +19,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const token = await getToken();
         if (!token) return;
-        const res = await fetch("/api/user/profile", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiUrl}/api/user/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -32,7 +33,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           
           if (data.data.has_api_key) {
             // Test the key
-            const testRes = await fetch("/api/user/test_key", {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const testRes = await fetch(`${apiUrl}/api/user/test_key`, {
               headers: { Authorization: `Bearer ${token}` }
             });
             if (testRes.ok) {
