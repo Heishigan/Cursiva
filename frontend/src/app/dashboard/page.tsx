@@ -180,7 +180,7 @@ export default function DashboardPage() {
             <Key size={16} color="#10b981" />
             OpenAI API Key
           </div>
-          <div className={`${styles.metricValue} ${apiStatus === "Active" ? styles.statusActive : styles.statusError}`}>
+          <div className={`${styles.metricValue} ${apiStatus === "Active" ? styles.statusActive : styles.statusError}`} style={{ fontSize: apiStatus === "Active" ? undefined : '1.75rem', lineHeight: '1.2' }}>
             {apiStatus}
           </div>
         </div>
