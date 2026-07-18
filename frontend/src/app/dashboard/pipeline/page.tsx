@@ -54,6 +54,7 @@ export default function PipelinePage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
+        cache: "no-store",
         body: JSON.stringify({
           job_description: text,
           generic_cv_raw: genericCv,
@@ -124,6 +125,7 @@ export default function PipelinePage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
+        cache: "no-store",
         body: JSON.stringify({
           job_description: jdText,
           generic_cv_raw: genericCv,
@@ -214,6 +216,7 @@ export default function PipelinePage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
+        cache: "no-store",
         body: JSON.stringify({
           company_name: jobMetadata?.company_name || "Unknown Company",
           role_name: jobMetadata?.role_name || "Unknown Role",
