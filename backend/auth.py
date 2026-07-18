@@ -19,7 +19,8 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
             token,
             signing_key.key,
             algorithms=["RS256"],
-            options={"verify_aud": False} # Accept standard Clerk audience
+            options={"verify_aud": False}, # Accept standard Clerk audience
+            leeway=60 # Add leeway to account for clock skew between Clerk and Google Cloud Run
         )
         user_id = payload.get("sub")
         if not user_id:

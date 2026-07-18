@@ -11,10 +11,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [missingBaseline, setMissingBaseline] = useState<boolean | null>(null);
   const [apiKeyStatus, setApiKeyStatus] = useState("Checking...");
-  const { getToken } = useAuth();
-  const { user } = useUser();
+  const { getToken, isLoaded: authLoaded } = useAuth();
+  const { user, isLoaded: userLoaded } = useUser();
 
   useEffect(() => {
+    if (!authLoaded || !userLoaded) return;
+    
     const fetchProfile = async () => {
       try {
         const token = await getToken();
@@ -75,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     
     fetchProfile();
-  }, [getToken, pathname]);
+  }, [getToken, pathname, authLoaded, userLoaded, user?.id]);
 
   const getStatusText = () => {
     if (apiKeyStatus === "Checking..." || missingBaseline === null) return "Checking...";
