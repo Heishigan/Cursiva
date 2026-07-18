@@ -104,7 +104,7 @@ export default function PipelinePage() {
     }
   };
 
-  const submitStrategy = async (userAnswers: string) => {
+  const submitStrategy = async (userAnswers: string, feedback: string = "") => {
     setIsProcessing(true);
     setLogs([]);
     
@@ -126,6 +126,7 @@ export default function PipelinePage() {
           role_name: jobMetadata?.role_name || "",
           strategy_plan: strategyResult?.strategy_plan || "",
           user_strategy_answers: userAnswers,
+          user_feedback: feedback,
           thread_id: threadId
         })
       });
@@ -158,6 +159,16 @@ export default function PipelinePage() {
                     ...data.tailored_cv,
                     personal_info: genericData.personal_info
                   };
+                  
+                  if (user?.id) {
+                    localStorage.setItem(`diff_tailored_cv_${user.id}`, JSON.stringify(data.tailored_cv));
+                    localStorage.setItem(`diff_job_role_${user.id}`, jobMetadata?.role_name || "");
+                    localStorage.setItem(`diff_company_${user.id}`, jobMetadata?.company_name || "");
+                    localStorage.setItem(`diff_cl_${user.id}`, JSON.stringify(data.cover_letter_parts));
+                    localStorage.setItem(`diff_jd_${user.id}`, jdText);
+                    localStorage.setItem(`diff_strategy_${user.id}`, strategyResult?.strategy_plan || "");
+                    localStorage.setItem(`diff_user_answers_${user.id}`, userAnswers);
+                  }
                   
                   setTailoredData({
                     cv: completeTailoredCv,
@@ -250,8 +261,8 @@ export default function PipelinePage() {
           <>
             {step === 1 && <PasteJdStep onSubmit={submitJd} />}
             {step === 2 && <StrategyStep result={strategyResult} jobMetadata={jobMetadata} onSubmit={submitStrategy} />}
-            {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} />}
-            {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); }} />}
+            {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
+            {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); }} />}
           </>
         )}
       </main>

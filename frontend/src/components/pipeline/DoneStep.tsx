@@ -1,6 +1,14 @@
 import styles from '@/app/dashboard/pipeline/pipeline.module.css';
 
-export default function DoneStep({ cvPdfUrl, clPdfUrl, onReset }: { cvPdfUrl: string, clPdfUrl: string, onReset: () => void }) {
+export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, onReset }: { cvPdfUrl: string, clPdfUrl: string, jobMetadata?: any, userName?: string, onReset: () => void }) {
+  const cleanStr = (s?: string) => (s || "").replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  const namePart = cleanStr(userName) || "User";
+  const rolePart = cleanStr(jobMetadata?.role_name) || "Role";
+  const companyPart = cleanStr(jobMetadata?.company_name) || "Company";
+  
+  const cvFilename = `${namePart}_${rolePart}_${companyPart}_CV.pdf`;
+  const clFilename = `${namePart}_${rolePart}_${companyPart}_CoverLetter.pdf`;
+
   return (
     <div className={styles.animateFadeIn} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       
@@ -25,7 +33,7 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, onReset }: { cvPdfUrl: st
           {cvPdfUrl ? (
             <>
               <iframe src={`${cvPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-              <a href={cvPdfUrl} download="Tailored_CV.pdf" style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
+              <a href={cvPdfUrl} download={cvFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
             </>
           ) : (
             <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>No CV generated.</div>
@@ -39,7 +47,7 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, onReset }: { cvPdfUrl: st
           {clPdfUrl ? (
             <>
               <iframe src={`${clPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-              <a href={clPdfUrl} download="Cover_Letter.pdf" style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
+              <a href={clPdfUrl} download={clFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
             </>
           ) : (
             <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>No Cover Letter generated.</div>

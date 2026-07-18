@@ -20,7 +20,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const token = await getToken();
         if (!token) return;
 
-        // Auto-purge legacy cross-account keys immediately
+        // Migrate legacy cross-account keys before purging
+        const legacyCv = localStorage.getItem('generic_cv_json');
+        const legacyKey = localStorage.getItem('openai_api_key');
+        
+        if (legacyCv && user?.id) {
+          localStorage.setItem(`generic_cv_json_${user.id}`, legacyCv);
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ cv_data_json: legacyCv })
+          }).catch(() => {});
+        }
+        
+        if (legacyKey && user?.id) {
+          localStorage.setItem(`openai_api_key_${user.id}`, legacyKey);
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ openai_api_key: legacyKey })
+          }).catch(() => {});
+        }
+
         localStorage.removeItem('generic_cv_json');
         localStorage.removeItem('openai_api_key');
         localStorage.removeItem('job_description');
@@ -39,16 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setMissingBaseline(!data.data.has_baseline);
           
           if (data.data.has_api_key) {
-            // Test the key
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-            const testRes = await fetch(`${apiUrl}/api/user/test_key`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (testRes.ok) {
-              setApiKeyStatus("Valid");
-            } else {
-              setApiKeyStatus("Invalid");
-            }
+            setApiKeyStatus("Valid");
           } else {
             setApiKeyStatus("Missing");
           }
@@ -63,9 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     
     fetchProfile();
-    const interval = setInterval(fetchProfile, 5000);
-    return () => clearInterval(interval);
-  }, [getToken]);
+  }, [getToken, pathname]);
 
   const getStatusText = () => {
     if (apiKeyStatus === "Checking..." || missingBaseline === null) return "Checking...";

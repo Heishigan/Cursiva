@@ -116,7 +116,7 @@ def strategist_node(state: AgentState):
 def tailor_node(state: AgentState):
     rules = """
     STRICT RULES:
-    1. DO NOT invent or hallucinate any skills, metrics, or technologies not present in the generic CV. This STRICTLY APPLIES to the Professional Summary as well; you cannot claim the candidate has experience in a specific domain if it is absent from the generic CV.
+    1. DO NOT invent or hallucinate any skills, metrics, or technologies not present in the generic CV OR the Supplemental Candidate Context. You MUST incorporate any facts, projects, or tools explicitly mentioned in the Supplemental Context.
     2. NEVER use em dashes (---) in paragraph text.
     3. CV ORDERING: The final `sections` array MUST be strictly ordered as follows: "Work Experience", then "Education", then "Projects", then "Skills". Do NOT deviate from this order.
     4. For the 'projects' section ONLY: You MUST select exactly 5 projects (always including the Master's Thesis and BSc Final-Year Project). You MUST reorder the 5 selected projects so that the most relevant projects for this specific role appear at the top.
@@ -143,14 +143,16 @@ def tailor_node(state: AgentState):
     user_feedback = state.get('user_feedback', '')
     
     cv_context = state.get("generic_cv_raw", "")
+    
+    supplemental_prompt = ""
     if user_strategy or user_feedback:
-        cv_context += "\n\n--- SUPPLEMENTAL CANDIDATE CONTEXT (From User's Custom Instructions & Feedback) ---\n"
-        cv_context += "The following information is strictly factual candidate data provided by the user and MUST be treated as if it were part of the Generic CV.\n"
-        cv_context += "CRITICAL INSTRUCTION: You MUST explicitly integrate the facts from this Supplemental Context directly into the CV content (e.g., within the Professional Summary, Project Context, or Bullets). Do NOT ignore this data.\n"
+        supplemental_prompt = "\n\n--- SUPPLEMENTAL CANDIDATE CONTEXT (From User's Custom Instructions & Feedback) ---\n"
+        supplemental_prompt += "The following information is strictly factual candidate data provided by the user and MUST be treated as if it were part of the Generic CV. This is your highest priority.\n"
+        supplemental_prompt += "CRITICAL INSTRUCTION: You MUST explicitly integrate the facts from this Supplemental Context directly into the CV content (e.g., within the Professional Summary, Project Context, or Bullets). Do NOT ignore this data.\n"
         if user_strategy:
-            cv_context += f"\nUser Strategy Answers (MUST INTEGRATE):\n{user_strategy}\n"
+            supplemental_prompt += f"\nUser Strategy Answers (MUST INTEGRATE):\n{user_strategy}\n"
         if user_feedback:
-            cv_context += f"\nUser Feedback on Previous Draft (CRITICAL TO APPLY):\n{user_feedback}\n"
+            supplemental_prompt += f"\nUser Feedback on Previous Draft (CRITICAL TO APPLY):\n{user_feedback}\n"
     
     user_id = state.get("user_id", "")
     lessons = get_lessons(user_id, ["CV", "General"])
@@ -160,8 +162,8 @@ def tailor_node(state: AgentState):
     previous_cv_prompt = f"\n\nPrevious Tailored CV (Apply feedback to THIS version):\n{json.dumps(previous_cv, indent=2)}" if previous_cv and user_feedback else ""
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", f"You are an expert CV writer. Your ONLY task is to rewrite the CV JSON (professional summary and all sections) to best match this role. Do NOT write any cover letter content. \n\n{{rules}}{{lessons_prompt}}"),
-        ("user", "Job Description:\n{job_description}\n\nStrategist's Plan:\n{strategy_plan}\n\nGeneric CV JSON (Including Supplemental Data):\n{generic_cv}{previous_cv_prompt}")
+        ("system", f"You are an expert CV writer. Your ONLY task is to rewrite the CV JSON (professional summary and all sections) to best match this role. Do NOT write any cover letter content. \n\n{{rules}}{{supplemental_prompt}}{{lessons_prompt}}"),
+        ("user", "Job Description:\n{job_description}\n\nStrategist's Plan:\n{strategy_plan}\n\nGeneric CV JSON:\n{generic_cv}{previous_cv_prompt}")
     ])
     
     chain = prompt | get_llm_json(state["api_key"])
@@ -171,6 +173,7 @@ def tailor_node(state: AgentState):
         "generic_cv": cv_context,
         "previous_cv_prompt": previous_cv_prompt,
         "rules": rules,
+        "supplemental_prompt": supplemental_prompt,
         "lessons_prompt": lessons_prompt
     })
     
@@ -222,7 +225,12 @@ def cover_letter_node(state: AgentState):
         pass
 
     user_strategy = state.get("user_strategy_answers", "")
-    strategy_prompt = f"\n\nUSER'S CUSTOM INSTRUCTIONS:\n{user_strategy}" if user_strategy else ""
+    strategy_prompt = ""
+    if user_strategy:
+        strategy_prompt = "\n\n--- SUPPLEMENTAL CANDIDATE CONTEXT (From User's Custom Instructions) ---\n"
+        strategy_prompt += "The following information is strictly factual candidate data provided by the user and MUST be treated as if it were part of the Candidate's CV. This is your highest priority.\n"
+        strategy_prompt += "CRITICAL INSTRUCTION: You MUST explicitly integrate the facts from this Supplemental Context into your letter. Do NOT invent a limitation or gap that contradicts these facts!\n"
+        strategy_prompt += f"User Strategy Answers:\n{user_strategy}\n"
     
     user_feedback = state.get("user_feedback", "")
     feedback_prompt = f"\n\nUSER FEEDBACK FROM PREVIOUS DRAFT (CRITICAL: You MUST explicitly address and apply EVERY SINGLE point mentioned in the user feedback below. Do not ignore any part of the request.):\n{user_feedback}\n(If this feedback applies only to the CV, ignore it and write a standard cover letter.)" if user_feedback else ""

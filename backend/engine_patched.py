@@ -192,10 +192,11 @@ def strategist_node(state: AgentState):
 def tailor_node(state: AgentState):
     rules = """
     STRICT RULES:
+    0. USER OVERRIDE: If the user's Supplemental Candidate Context (custom instructions or strategy answers) or Feedback explicitly contradicts any of the strict rules below (e.g., asking to delete an item, add a specific skill, or restructure a section), the user's instructions take ABSOLUTE PRECEDENCE. You must obey the user's override.
     1. DO NOT invent or hallucinate any skills, metrics, or technologies not present in the generic CV. This STRICTLY APPLIES to the Professional Summary as well; you cannot claim the candidate has experience in a specific domain if it is absent from the generic CV.
     2. NEVER use em dashes (---) in paragraph text.
     3. For the 'projects' section ONLY: You MUST select exactly 5 projects (always including the Master's Thesis and BSc Final-Year Project). You MUST reorder the 5 selected projects so that the most relevant projects for this specific role appear at the top.
-    4. For ALL OTHER sections: You MUST include every single item from the generic CV exactly as they appear (do not delete or add items). Only rewrite their bullet points to inject ATS keywords if naturally possible.
+    4. For ALL OTHER sections: You MUST include every single item from the generic CV exactly as they appear (do not delete or add items) UNLESS explicitly instructed otherwise by the user. Only rewrite their bullet points to inject ATS keywords if naturally possible.
     5. ATS KEYWORD STRATEGY: You may only inject ATS keywords if they logically fit into the existing narrative of the item. Do NOT fundamentally change the story, scope, or technical achievements of any item. 
     6. The original item's authenticity must never be compromised. 
     7. NEVER change the 'Tools Used' or similar context line (e.g., "ReactJS, Firebase, Agile, Git" MUST remain identical). Only weave keywords into the bullet points.

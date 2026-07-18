@@ -241,9 +241,9 @@ export default function DashboardPage() {
                         <option value="Interviewing">Interviewing</option>
                         <option value="Rejected">Rejected</option>
                       </select>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button onClick={() => handleSaveEdit(app.id)} style={{ padding: '6px 16px', background: 'var(--accent-1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Save</button>
-                        <button onClick={() => setEditingId(null)} style={{ padding: '6px 12px', background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                        <button onClick={() => handleSaveEdit(app.id)} style={{ padding: '8px 16px', background: 'var(--accent-1)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', lineHeight: '1', display: 'flex', alignItems: 'center' }}>Save</button>
+                        <button onClick={() => setEditingId(null)} style={{ padding: '7px 15px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', lineHeight: '1', display: 'flex', alignItems: 'center' }}>Cancel</button>
                       </div>
                     </>
                   ) : (
