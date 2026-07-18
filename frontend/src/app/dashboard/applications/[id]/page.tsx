@@ -29,7 +29,7 @@ export default function ApplicationDetailPage() {
         if (res.ok) {
           const result = await res.json();
           setAppData(result.data);
-          compilePdfs(result.data);
+          compilePdfs(result.data, token);
         } else {
           router.push('/dashboard');
         }
@@ -44,14 +44,17 @@ export default function ApplicationDetailPage() {
     fetchApplication();
   }, [id]);
 
-  const compilePdfs = async (data: any) => {
+  const compilePdfs = async (data: any, token: string | null) => {
     setIsCompiling(true);
     try {
       // Compile CV
       const cvPayload = JSON.parse(data.cv_data_json);
       const cvRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cv`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(cvPayload)
       });
       if (cvRes.ok) {
@@ -72,7 +75,10 @@ export default function ApplicationDetailPage() {
 
       const clRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cl`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           personal_info: cvPayload.personal_info,
           company_name: data.company_name,
