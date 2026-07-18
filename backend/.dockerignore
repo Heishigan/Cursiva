@@ -1,28 +1,48 @@
-# Environments
+# ── Virtual environments ──────────────────────────────────────────────────────
 .venv/
 venv/
 ENV/
 env/
 
-# Python cache
+# ── Python cache ──────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pdb
 
-# Local Databases
+# ── Local databases ───────────────────────────────────────────────────────────
 *.db
 cursiva.db
 app.db
 database.db
 
-# PDFs and outputs
+# ── Build outputs & logs ──────────────────────────────────────────────────────
 *.pdf
 outputs/
+*.log
+logs/
 
-# Environment variables
+# ── Test artifacts ────────────────────────────────────────────────────────────
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── IDE / OS metadata ─────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+
+# ── Environment & secrets ─────────────────────────────────────────────────────
 .env
+.env.*
+*.pem
+*.key
 
-# Git
+# ── Git ───────────────────────────────────────────────────────────────────────
 .git/
 .gitignore
