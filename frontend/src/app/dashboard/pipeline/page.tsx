@@ -61,6 +61,11 @@ export default function PipelinePage() {
         })
       });
 
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Server Error: ${response.status} ${errText}`);
+      }
+
       if (!response.body) throw new Error("No response body");
 
       const reader = response.body.getReader();
@@ -131,6 +136,11 @@ export default function PipelinePage() {
         })
       });
 
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Server Error: ${response.status} ${errText}`);
+      }
+
       if (!response.body) throw new Error("No response body");
 
       const reader = response.body.getReader();
@@ -177,6 +187,8 @@ export default function PipelinePage() {
                     role: jobMetadata?.role_name || "Role"
                   });
                   setStep(3);
+                } else if (data.status === 'error') {
+                  throw new Error(data.message);
                 }
               }
             } catch (e) {
