@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const data = await res.json();
         if (data.status === 'success') {
           if (!data.data.has_baseline) {
-            router.push('/onboarding');
+            window.location.href = '/onboarding';
             return;
           }
           setMissingBaseline(!data.data.has_baseline);
