@@ -1,13 +1,30 @@
-fastapi
-uvicorn
-pydantic
-langgraph
-langchain-openai
-PyMuPDF
-python-multipart
-SQLAlchemy>=2.0.0
+# Requirements are pinned to exact versions for reproducible builds.
+# To upgrade: update versions here, test locally, then commit.
+# Generated from: pip freeze (2026-07-18)
+
+fastapi==0.116.1
+uvicorn==0.35.0
+pydantic==2.13.4
+
+# LangChain / LangGraph ecosystem
+langgraph==1.2.6
+langchain-openai==1.3.3
+langchain-core==1.4.8
+
+# PDF parsing
+PyMuPDF==1.27.2.3
+
+# HTTP / forms
+python-multipart==0.0.32
+requests>=2.32.0
+
+# Database
+SQLAlchemy==2.0.51
 psycopg2-binary>=2.9.9
-cryptography
-PyJWT
-requests
-jinja2
+
+# Security
+cryptography>=43.0.0
+PyJWT==2.13.0
+
+# Templating
+jinja2==3.1.5
