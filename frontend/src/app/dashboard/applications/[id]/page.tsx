@@ -97,6 +97,14 @@ export default function ApplicationDetailPage() {
 
   if (!appData) return null;
 
+  const cvDataJson = JSON.parse(appData.cv_data_json || "{}");
+  const cleanStr = (s?: string) => (s || "").replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  const namePart = cleanStr(cvDataJson?.personal_info?.name) || "User";
+  const rolePart = cleanStr(appData.role_name) || "Role";
+  const companyPart = cleanStr(appData.company_name) || "Company";
+  const cvFilename = `${namePart}_${rolePart}_${companyPart}_CV.pdf`;
+  const clFilename = `${namePart}_${rolePart}_${companyPart}_CoverLetter.pdf`;
+
   return (
     <div className={styles.container} style={{ height: '100vh', overflowY: 'auto' }}>
       <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -145,7 +153,7 @@ export default function ApplicationDetailPage() {
             {cvPdfUrl ? (
               <>
                 <iframe src={`${cvPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-                <a href={cvPdfUrl} download="Tailored_CV.pdf" style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
+                <a href={cvPdfUrl} download={cvFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
               </>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>
@@ -162,7 +170,7 @@ export default function ApplicationDetailPage() {
             {clPdfUrl ? (
               <>
                 <iframe src={`${clPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-                <a href={clPdfUrl} download="Cover_Letter.pdf" style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
+                <a href={clPdfUrl} download={clFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
               </>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>

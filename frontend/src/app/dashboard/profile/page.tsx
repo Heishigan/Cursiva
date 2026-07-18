@@ -292,7 +292,9 @@ export default function ProfilePage() {
     if (!pdfUrl || !cvData) return;
     const a = document.createElement('a');
     a.href = pdfUrl;
-    a.download = `${cvData.personal_info.name.replace(/\s+/g, '_')}_CV.pdf`;
+    const cleanStr = (s?: string) => (s || "").replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    const namePart = cleanStr(cvData.personal_info.name) || "User";
+    a.download = `${namePart}_Generic_CV.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -368,7 +368,8 @@
   transition: opacity 0.2s, color 0.2s;
 }
 
-.itemCard:hover .iconBtnSmall {
+.itemCard:hover .iconBtnSmall,
+.sectionHeader:hover .iconBtnSmall {
   opacity: 1;
 }
 

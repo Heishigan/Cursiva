@@ -242,7 +242,7 @@ def compile_cl(req: CompileCLRequest, user_id: str = Depends(get_current_user_id
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {str(e)}")
 
-    safe_paragraphs = [_escape_data(p).replace('\r\n', '\n').replace('\n\n', ' \\newline\\mbox{}\\newline ').replace('\n', ' \\newline ') for p in req.cover_letter_paragraphs]
+    safe_paragraphs = [_escape_data(p).replace('\r\n', '\n').replace('\n\n', ' \\\\ \\mbox{} \\\\ ').replace('\n', ' \\\\ ') for p in req.cover_letter_paragraphs]
     tex_content = template.render(
         personal_info=_escape_data(req.personal_info),
         company_name=_escape_data(req.company_name),
