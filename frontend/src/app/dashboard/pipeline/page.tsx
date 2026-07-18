@@ -31,7 +31,7 @@ export default function PipelinePage() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (step > 1 && step < 4) {
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = 'Are you sure you want to leave? All pipeline progress will be lost.';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);

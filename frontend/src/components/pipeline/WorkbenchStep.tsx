@@ -1,7 +1,7 @@
 import styles from '@/app/dashboard/pipeline/pipeline.module.css';
 import profileStyles from '@/app/dashboard/profile/profile.module.css';
 import { useState, useEffect, useRef } from "react";
-import { Pencil, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 
 export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback }: { data: any, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: any, clData: any) => void, onSubmitFeedback?: (feedback: string) => void }) {
@@ -107,21 +107,6 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
     setCvData(newCv);
     if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
     compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
-  };
-
-  const [editingItem, setEditingItem] = useState<{sIdx: number, iIdx: number} | null>(null);
-
-  const updateItem = (sectionIdx: number, itemIdx: number, field: string, value: any) => {
-    const newCv = { ...cvData };
-    newCv.sections[sectionIdx].items[itemIdx][field] = value;
-    setCvData(newCv);
-    if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
-    compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
-  };
-
-  const updateBulletsText = (sectionIdx: number, itemIdx: number, text: string) => {
-    const bullets = text.split('\n');
-    updateItem(sectionIdx, itemIdx, 'bullets', bullets);
   };
 
   const moveSection = (idx: number, direction: 'up' | 'down') => {
@@ -269,7 +254,6 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
 
                   <div className={profileStyles.cardGroup} style={{ marginTop: '16px' }}>
                     {sec.items.map((item: any, iIdx: number) => {
-                      const isEditing = editingItem?.sIdx === sIdx && editingItem?.iIdx === iIdx;
                       const isSkills = sec.type === 'skills';
                       
                       let skillsList: string[] = [];
@@ -283,58 +267,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                         }
                       }
                       
-                      return isEditing ? (
-                        <div key={iIdx} className={styles.card} style={{ padding: '24px', marginBottom: '16px' }}>
-                          <div className={styles.itemHeader} style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Editing {item.title || 'Item'}</h3>
-                            <button className={styles.secondaryBtn} style={{ width: 'auto', padding: '4px 12px' }} onClick={() => setEditingItem(null)}>Done</button>
-                          </div>
-                          
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', gridColumn: isSkills ? '1 / -1' : 'auto' }}>
-                              <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Title / Role</label>
-                              <input className={styles.editorInput} value={item.title || ''} onChange={e => updateItem(sIdx, iIdx, 'title', e.target.value)} />
-                            </div>
-                            {!isSkills && (
-                              <>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Subtitle / Company</label>
-                                  <input className={styles.editorInput} value={item.subtitle || ''} onChange={e => updateItem(sIdx, iIdx, 'subtitle', e.target.value)} />
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Date / Duration</label>
-                                  <input className={styles.editorInput} value={item.date || ''} onChange={e => updateItem(sIdx, iIdx, 'date', e.target.value)} />
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>URL</label>
-                                  <input className={styles.editorInput} value={item.url || ''} onChange={e => updateItem(sIdx, iIdx, 'url', e.target.value)} placeholder="https://..." />
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', gridColumn: '1 / -1' }}>
-                                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Context</label>
-                                  <input className={styles.editorInput} value={item.context || ''} onChange={e => updateItem(sIdx, iIdx, 'context', e.target.value)} />
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
-                              {isSkills ? "Skills (Comma-separated or line-separated)" : "Bullets (One per line)"}
-                            </label>
-                            <textarea 
-                              className={styles.editorInput} 
-                              value={isSkills ? skillsList.join('\n') : (item.bullets ? item.bullets.join('\n') : '')} 
-                              onChange={e => {
-                                if (isSkills) {
-                                  updateItem(sIdx, iIdx, 'context', '');
-                                }
-                                updateBulletsText(sIdx, iIdx, e.target.value);
-                              }} 
-                              rows={5} 
-                            />
-                          </div>
-                        </div>
-                      ) : (
+                      return (
                         <div key={iIdx} className={profileStyles.itemCard}>
                           <div className={profileStyles.itemLayout}>
                             <div className={profileStyles.itemContent}>
@@ -350,7 +283,6 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                                   )}
                                 </div>
                                 <div style={{ display: 'flex', gap: '4px' }}>
-                                  <button className={profileStyles.iconBtnSmall} onClick={() => setEditingItem({ sIdx, iIdx })} title="Edit Item"><Pencil size={14}/></button>
                                   <button className={profileStyles.iconBtnSmall} onClick={() => moveItem(sIdx, iIdx, 'up')} disabled={iIdx === 0} title="Move Up"><ArrowUp size={14}/></button>
                                   <button className={profileStyles.iconBtnSmall} onClick={() => moveItem(sIdx, iIdx, 'down')} disabled={iIdx === sec.items.length - 1} title="Move Down"><ArrowDown size={14}/></button>
                                   <button className={profileStyles.iconBtnSmall} onClick={() => deleteItem(sIdx, iIdx)} title="Delete Item"><Trash2 size={14} color="#ef4444"/></button>
@@ -380,18 +312,6 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                         </div>
                       );
                     })}
-                    <button 
-                      onClick={() => {
-                        const newCv = { ...cvData };
-                        newCv.sections[sIdx].items.push({ title: 'New Item', bullets: [] });
-                        setCvData(newCv);
-                        setEditingItem({ sIdx, iIdx: newCv.sections[sIdx].items.length - 1 });
-                      }}
-                      className={styles.btnGhost} 
-                      style={{ width: '100%', padding: '12px', marginTop: '8px', border: '1px dashed rgba(255,255,255,0.2)', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
-                    >
-                      + Add Item
-                    </button>
                   </div>
                 </div>
               ))}
