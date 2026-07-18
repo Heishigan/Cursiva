@@ -1,6 +1,6 @@
 # cloudbuild.yaml — Google Cloud Build CI/CD pipeline for the Cursiva backend
 #
-# Triggers on every push to `main` that touches files under:
+# Triggers on every push to `main` that touches:
 #   - backend/**
 #   - cloudbuild.yaml
 #
@@ -13,21 +13,18 @@ substitutions:
   _REGION: europe-north1
   _SERVICE: cursiva-backend
   _REPO: cursiva-backend
-  _IMAGE: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}
 
 timeout: 1800s  # 30-minute hard cap for the entire pipeline
 
 steps:
   # ── Step 1: Pull the previous image to use as a layer cache ───────────────
-  # Allows Docker to reuse unchanged layers (e.g. apt packages, pip deps),
-  # dramatically reducing build times after the first run.
   - id: pull-cache
     name: 'gcr.io/cloud-builders/docker'
     entrypoint: bash
     args:
       - '-c'
       - |
-        docker pull ${_IMAGE}:latest || echo "No cache image found, building from scratch."
+        docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest || echo "No cache image found, building from scratch."
     timeout: 120s
 
   # ── Step 2: Build the Docker image ────────────────────────────────────────
@@ -36,11 +33,11 @@ steps:
     args:
       - 'build'
       - '--cache-from'
-      - '${_IMAGE}:latest'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest'
       - '-t'
-      - '${_IMAGE}:$COMMIT_SHA'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA'
       - '-t'
-      - '${_IMAGE}:latest'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest'
       - '--label'
       - 'commit=$COMMIT_SHA'
       - '--label'
@@ -55,13 +52,11 @@ steps:
     args:
       - 'push'
       - '--all-tags'
-      - '${_IMAGE}'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}'
     timeout: 300s
     waitFor: ['build']
 
   # ── Step 4: Deploy to Cloud Run ───────────────────────────────────────────
-  # Uses the immutable commit-SHA tag (not :latest) so every deployment is
-  # fully traceable and rollbacks are a single gcloud command.
   - id: deploy
     name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
@@ -70,7 +65,7 @@ steps:
       - 'deploy'
       - '${_SERVICE}'
       - '--image'
-      - '${_IMAGE}:$COMMIT_SHA'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -100,9 +95,9 @@ steps:
     waitFor: ['deploy']
 
 images:
-  - '${_IMAGE}:$COMMIT_SHA'
-  - '${_IMAGE}:latest'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  machineType: 'E2_HIGHCPU_8'  # Faster builds — LaTeX install is CPU-intensive
+  machineType: 'E2_HIGHCPU_8'
