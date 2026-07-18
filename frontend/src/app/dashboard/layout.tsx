@@ -76,8 +76,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           } else if (user?.id) {
              localStorage.removeItem(`generic_cv_json_${user.id}`);
           }
+        } else {
+          // Non-success response from backend (401, 500, etc.) — treat as new user and redirect to onboarding
+          console.warn('[layout] Profile fetch returned non-success:', data);
+          window.location.href = '/onboarding';
         }
-      } catch(e) { console.error(e) }
+      } catch(e) {
+        // Network error or cold-start timeout — treat as new user and redirect to onboarding
+        console.error('[layout] Profile fetch failed:', e);
+        window.location.href = '/onboarding';
+      }
     };
     
     fetchProfile();
