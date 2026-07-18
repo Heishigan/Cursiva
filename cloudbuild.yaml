@@ -86,16 +86,16 @@ steps:
     args:
       - '-c'
       - |
-        SERVICE_URL=$(gcloud run services describe ${_SERVICE} \
+        SERVICE_URL=$$(gcloud run services describe ${_SERVICE} \
           --region ${_REGION} \
           --format 'value(status.url)')
-        echo "Smoke-testing ${SERVICE_URL}..."
-        HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" "${SERVICE_URL}/")
-        if [ "$HTTP_CODE" -ne 200 ]; then
-          echo "Health check failed! HTTP ${HTTP_CODE}"
+        echo "Smoke-testing $$SERVICE_URL..."
+        HTTP_CODE=$$(curl --silent --output /dev/null --write-out "%{http_code}" "$$SERVICE_URL/")
+        if [ "$$HTTP_CODE" -ne 200 ]; then
+          echo "Health check failed! HTTP $$HTTP_CODE"
           exit 1
         fi
-        echo "Health check passed (HTTP ${HTTP_CODE})."
+        echo "Health check passed (HTTP $$HTTP_CODE)."
     timeout: 60s
     waitFor: ['deploy']
 
