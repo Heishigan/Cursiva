@@ -49,6 +49,7 @@ class TailorRequest(BaseModel):
     role_name: str
     strategy_plan: str
     user_strategy_answers: Optional[str] = ""
+    user_feedback: Optional[str] = ""
     thread_id: str
 
 from fastapi.responses import StreamingResponse
@@ -82,6 +83,7 @@ def run_tailor(req: TailorRequest, api_key: str = Depends(get_user_api_key), use
             "role_name": req.role_name,
             "strategy_plan": req.strategy_plan,
             "user_strategy_answers": req.user_strategy_answers,
+            "user_feedback": req.user_feedback,
             "revision_count": 0,
             "generate_cover_letter": True
         }
@@ -240,7 +242,7 @@ def compile_cl(req: CompileCLRequest, user_id: str = Depends(get_current_user_id
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {str(e)}")
 
-    safe_paragraphs = [_escape_data(p).replace('\r\n', '\n').replace('\n', ' \\newline ') for p in req.cover_letter_paragraphs]
+    safe_paragraphs = [_escape_data(p).replace('\r\n', '\n').replace('\n\n', ' \\newline\\mbox{}\\newline ').replace('\n', ' \\newline ') for p in req.cover_letter_paragraphs]
     tex_content = template.render(
         personal_info=_escape_data(req.personal_info),
         company_name=_escape_data(req.company_name),

@@ -6,7 +6,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import confetti from 'canvas-confetti';
 import styles from './page.module.css';
 import profileStyles from '../dashboard/profile/profile.module.css';
-import { Briefcase, GraduationCap, Code, Globe, User, Pencil, Plus } from "lucide-react";
+import { Briefcase, GraduationCap, Code, Globe, User, Pencil, Plus, Trash2 } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 
 // Default Schema — matches gui_v2.py FullCVData exactly
@@ -246,6 +246,13 @@ export default function Onboarding() {
     const sections = [...cvData.sections];
     sections[sIdx].items[iIdx].bullets = text.split('\n').filter(b => b.trim() !== '');
     setCvData((prev: any) => ({ ...prev, sections }));
+  };
+  const deleteItem = (sIdx: number, iIdx: number) => {
+    if (confirm("Are you sure you want to delete this item?")) {
+      const sections = [...cvData.sections];
+      sections[sIdx].items.splice(iIdx, 1);
+      setCvData((prev: any) => ({ ...prev, sections }));
+    }
   };
 
   // Validate class
@@ -515,9 +522,14 @@ export default function Onboarding() {
                             <div className={profileStyles.itemContent}>
                               <div className={profileStyles.itemHeader}>
                                 <h3 className={profileStyles.itemTitle}>{item.title || 'Untitled'}</h3>
-                                <button className={profileStyles.iconBtnSmall} onClick={() => setEditingItem({ sIdx, iIdx })}>
-                                  <Pencil size={14}/>
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button className={profileStyles.iconBtnSmall} onClick={() => setEditingItem({ sIdx, iIdx })}>
+                                    <Pencil size={14}/>
+                                  </button>
+                                  <button className={profileStyles.iconBtnSmall} style={{ color: 'var(--error)' }} onClick={() => deleteItem(sIdx, iIdx)}>
+                                    <Trash2 size={14}/>
+                                  </button>
+                                </div>
                               </div>
                               
                               {(item.subtitle || item.date) && (

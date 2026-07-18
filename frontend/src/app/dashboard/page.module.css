@@ -148,7 +148,7 @@
 /* Card-Based Table Styling */
 .tableHeader {
   display: grid;
-  grid-template-columns: 150px 2fr 2fr 150px 120px;
+  grid-template-columns: 150px 2fr 2fr 150px 180px;
   gap: 16px;
   padding: 0 24px 12px;
   color: var(--text-secondary);
@@ -162,7 +162,7 @@
 
 .appCard {
   display: grid;
-  grid-template-columns: 150px 2fr 2fr 150px 120px;
+  grid-template-columns: 150px 2fr 2fr 150px 180px;
   gap: 16px;
   align-items: center;
   padding: 20px 24px;

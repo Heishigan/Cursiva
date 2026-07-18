@@ -71,7 +71,7 @@
 {% if section.type == 'skills' %}
 \begin{tabular}{@{}p{3.4cm}p{13.0cm}}
 {% for item in section['items'] %}
-    \textbf{ {{- item.title -}} :} & {{ item.bullets | join(', ') }} \\[5pt]
+    \textbf{ {{- item.title -}} :} & {% if item.bullets %}{{ item.bullets | join(', ') }}{% elif item.context %}{{ item.context }}{% endif %} \\[5pt]
 {% endfor %}
 \end{tabular}
 

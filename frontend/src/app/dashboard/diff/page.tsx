@@ -98,7 +98,10 @@ export default function DiffViewer() {
     if (!url) return;
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${cvData?.personal_info?.name?.replace(/\s+/g, '_')}_${type}_${company}.pdf`;
+    const cleanName = cvData?.personal_info?.name?.replace(/\s+/g, '_') || 'Candidate';
+    const cleanCompany = company.replace(/\s+/g, '_') || 'Company';
+    const cleanRole = role.replace(/\s+/g, '_') || 'Role';
+    a.download = `${cleanName}_${type}_${cleanCompany}_${cleanRole}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -109,19 +112,77 @@ export default function DiffViewer() {
     setIsSubmittingFeedback(true);
     try {
       const token = await getToken();
+      // 1. Save lesson
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/feedback`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ user_feedback: feedback })
       });
-      alert("Feedback extracted as a persistent lesson! It will be applied to your future iterations.");
+
+      // 2. Regenerate CV
+      const jdText = localStorage.getItem(`diff_jd_${user?.id}`);
+      const strategyStr = localStorage.getItem(`diff_strategy_${user?.id}`);
+      const genericStr = localStorage.getItem(`generic_cv_json_${user?.id}`);
+      const userAnswers = localStorage.getItem(`diff_user_answers_${user?.id}`) || "";
+
+      if (jdText && strategyStr && genericStr) {
+        const threadId = "thread_" + Math.random().toString(36).substring(7);
+        const resTailor = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/tailor`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({
+            job_description: jdText,
+            generic_cv_raw: genericStr,
+            company_name: company,
+            role_name: role,
+            strategy_plan: strategyStr,
+            user_strategy_answers: userAnswers,
+            user_feedback: feedback,
+            thread_id: threadId
+          })
+        });
+
+        if (resTailor.body) {
+          const reader = resTailor.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let buffer = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.substring(6));
+                  if (data.type === 'result' && data.status === 'success') {
+                    const genericData = JSON.parse(genericStr);
+                    const completeTailoredCv = {
+                      ...data.tailored_cv,
+                      personal_info: genericData.personal_info
+                    };
+                    setCvData(completeTailoredCv);
+                    setClData(data.cover_letter_parts);
+                    if (user?.id) {
+                      localStorage.setItem(`diff_tailored_cv_${user.id}`, JSON.stringify(data.tailored_cv));
+                      localStorage.setItem(`diff_cl_${user.id}`, JSON.stringify(data.cover_letter_parts));
+                    }
+                  }
+                } catch (e) {
+                  // ignore parse error
+                }
+              }
+            }
+          }
+        }
+      }
+
+      alert("Feedback applied! The CV has been regenerated.");
       setFeedback("");
     } catch (e) {
       console.error(e);
-      alert("Failed to submit feedback.");
+      alert("Failed to submit feedback and regenerate.");
     }
     setIsSubmittingFeedback(false);
   };
