@@ -108,8 +108,8 @@ export default function ApplicationDetailPage() {
   const namePart = cleanStr(cvDataJson?.personal_info?.name) || "User";
   const rolePart = cleanStr(appData.role_name) || "Role";
   const companyPart = cleanStr(appData.company_name) || "Company";
-  const cvFilename = `${namePart}_${rolePart}_${companyPart}_CV.pdf`;
-  const clFilename = `${namePart}_${rolePart}_${companyPart}_CoverLetter.pdf`;
+  const cvFilename = `${namePart}_CV_${companyPart}_${rolePart}.pdf`;
+  const clFilename = `${namePart}_CoverLetter_${companyPart}_${rolePart}.pdf`;
 
   return (
     <div className={styles.container} style={{ height: '100vh', overflowY: 'auto' }}>
