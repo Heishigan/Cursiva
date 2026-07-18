@@ -197,6 +197,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   };
 
   const proceedWithSave = async () => {
+    if (!cvPdfUrl || !clPdfUrl) return;
     setShowDisclaimer(false);
     setIsSaving(true);
     try {
