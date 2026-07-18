@@ -55,9 +55,13 @@ export default function ProfilePage() {
   const compilePdf = async (data: any) => {
     setIsCompiling(true);
     try {
+      const token = await getToken();
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cv`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(data)
       });
       const result = await res.json();
