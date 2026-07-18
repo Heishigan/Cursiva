@@ -22,51 +22,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const token = await getToken();
         if (!token) return;
 
-        // Migrate legacy cross-account keys before purging
-        const legacyCv = localStorage.getItem('generic_cv_json');
-        const legacyKey = localStorage.getItem('openai_api_key');
-        
-        if (legacyCv && user?.id) {
-          localStorage.setItem(`generic_cv_json_${user.id}`, legacyCv);
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ cv_data_json: legacyCv })
-          }).catch(() => {});
-        }
-        
-        if (legacyKey && user?.id) {
-          localStorage.setItem(`openai_api_key_${user.id}`, legacyKey);
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ openai_api_key: legacyKey })
-          }).catch(() => {});
-        }
-
-        localStorage.removeItem('generic_cv_json');
-        localStorage.removeItem('openai_api_key');
-        localStorage.removeItem('job_description');
-        localStorage.removeItem('diff_tailored_cv');
-
+        // 1. Check profile FIRST before any migration logic
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(`${apiUrl}/api/user/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
+
         if (data.status === 'success') {
+          // 2. New user — redirect immediately, do NOT migrate stale localStorage data
           if (!data.data.has_baseline) {
             window.location.href = '/onboarding';
             return;
           }
+
+          // 3. Existing user — safe to run legacy key migration now
+          const legacyCv = localStorage.getItem('generic_cv_json');
+          const legacyKey = localStorage.getItem('openai_api_key');
+
+          if (legacyCv && user?.id) {
+            localStorage.setItem(`generic_cv_json_${user.id}`, legacyCv);
+            fetch(`${apiUrl}/api/user/profile`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ cv_data_json: legacyCv })
+            }).catch(() => {});
+          }
+
+          if (legacyKey && user?.id) {
+            localStorage.setItem(`openai_api_key_${user.id}`, legacyKey);
+            fetch(`${apiUrl}/api/user/profile`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ openai_api_key: legacyKey })
+            }).catch(() => {});
+          }
+
+          localStorage.removeItem('generic_cv_json');
+          localStorage.removeItem('openai_api_key');
+          localStorage.removeItem('job_description');
+          localStorage.removeItem('diff_tailored_cv');
+
           setMissingBaseline(!data.data.has_baseline);
-          
+
           if (data.data.has_api_key) {
             setApiKeyStatus("Valid");
           } else {
             setApiKeyStatus("Missing");
           }
-          
+
           if (data.data.cv_data && user?.id) {
              localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(data.data.cv_data));
           } else if (user?.id) {
