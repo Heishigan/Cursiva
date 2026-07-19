@@ -108,6 +108,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname.startsWith('/dashboard/pipeline') || pathname.startsWith('/dashboard/diff')) {
+      if (!window.confirm("Are you sure you want to leave? All pipeline progress will be lost.")) {
+        e.preventDefault();
+      }
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Mobile Header */}
@@ -129,19 +137,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className={styles.nav}>
-          <Link href="/dashboard" className={`${styles.navItem} ${pathname === '/dashboard' ? styles.active : ''}`}>
+          <Link href="/dashboard" onClick={handleNavClick} className={`${styles.navItem} ${pathname === '/dashboard' ? styles.active : ''}`}>
             <LayoutGrid size={22} />
             <span className={styles.navLabel}>Dashboard</span>
           </Link>
-          <Link href="/dashboard/pipeline" className={`${styles.navItem} ${pathname.startsWith('/dashboard/pipeline') ? styles.active : ''}`}>
+          <Link href="/dashboard/pipeline" onClick={handleNavClick} className={`${styles.navItem} ${pathname.startsWith('/dashboard/pipeline') ? styles.active : ''}`}>
             <PlusCircle size={22} />
             <span className={styles.navLabel}>New Application</span>
           </Link>
-          <Link href="/dashboard/profile" className={`${styles.navItem} ${pathname.startsWith('/dashboard/profile') ? styles.active : ''}`}>
+          <Link href="/dashboard/profile" onClick={handleNavClick} className={`${styles.navItem} ${pathname.startsWith('/dashboard/profile') ? styles.active : ''}`}>
             <User size={22} />
             <span className={styles.navLabel}>Profile</span>
           </Link>
-          <Link href="/dashboard/settings" className={`${styles.navItem} ${pathname.startsWith('/dashboard/settings') ? styles.active : ''}`}>
+          <Link href="/dashboard/settings" onClick={handleNavClick} className={`${styles.navItem} ${pathname.startsWith('/dashboard/settings') ? styles.active : ''}`}>
             <Settings size={22} />
             <span className={styles.navLabel}>Settings</span>
           </Link>
