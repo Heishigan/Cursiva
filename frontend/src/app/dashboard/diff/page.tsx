@@ -103,17 +103,37 @@ export default function DiffViewer() {
     setIsCompiling(false);
   };
 
-  const handleDownload = (url: string | null, type: string) => {
-    if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
+  const handleDownload = (dataUrl: string | null, type: string) => {
+    if (!dataUrl) return;
     const cleanName = cvData?.personal_info?.name?.replace(/\s+/g, '_') || 'Candidate';
     const cleanCompany = company.replace(/\s+/g, '_') || 'Company';
     const cleanRole = role.replace(/\s+/g, '_') || 'Role';
-    a.download = `${cleanName}_${type}_${cleanCompany}_${cleanRole}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const filename = `${cleanName}_${type}_${cleanCompany}_${cleanRole}.pdf`;
+    
+    try {
+      const base64 = dataUrl.split(',')[1];
+      const binaryString = window.atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   const submitFeedback = async () => {

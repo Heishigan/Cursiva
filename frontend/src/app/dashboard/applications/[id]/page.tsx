@@ -108,8 +108,36 @@ export default function ApplicationDetailPage() {
   const namePart = cleanStr(cvDataJson?.personal_info?.name) || "User";
   const rolePart = cleanStr(appData.role_name) || "Role";
   const companyPart = cleanStr(appData.company_name) || "Company";
-  const cvFilename = `${namePart}_CV_${companyPart}_${rolePart}.pdf`;
-  const clFilename = `${namePart}_CoverLetter_${companyPart}_${rolePart}.pdf`;
+  const cvFilename = `${namePart}_${companyPart}_${rolePart}_CV.pdf`;
+  const clFilename = `${namePart}_${companyPart}_${rolePart}_CoverLetter.pdf`;
+
+  const handleDownload = (dataUrl: string | null, filename: string) => {
+    if (!dataUrl) return;
+    try {
+      const base64 = dataUrl.split(',')[1];
+      const binaryString = window.atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
 
   return (
     <div className={styles.container} style={{ height: '100vh', overflowY: 'auto' }}>
@@ -158,8 +186,8 @@ export default function ApplicationDetailPage() {
             </div>
             {cvPdfUrl ? (
               <>
-                <iframe src={`${cvPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-                <a href={cvPdfUrl} download={cvFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
+                <iframe src={`${cvPdfUrl}#toolbar=0&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
+                <button onClick={() => handleDownload(cvPdfUrl, cvFilename)} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</button>
               </>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>
@@ -175,8 +203,8 @@ export default function ApplicationDetailPage() {
             </div>
             {clPdfUrl ? (
               <>
-                <iframe src={`${clPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-                <a href={clPdfUrl} download={clFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
+                <iframe src={`${clPdfUrl}#toolbar=0&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
+                <button onClick={() => handleDownload(clPdfUrl, clFilename)} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</button>
               </>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>
