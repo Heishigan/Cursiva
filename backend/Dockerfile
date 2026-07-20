@@ -34,6 +34,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # ── Application code ──────────────────────────────────────────────────────────
 COPY . .
+RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
 
 # ── Non-root user (security best practice) ───────────────────────────────────
 # Running as root inside a container is a security risk. Create a dedicated
@@ -54,8 +55,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 EXPOSE 8000
 
 # ── Entrypoint ───────────────────────────────────────────────────────────────
-COPY start.sh .
-RUN chmod +x start.sh
 
 # workers=1 is correct for Cloud Run — scale-out is handled by spinning up
 # additional container instances, not threads within one container.
