@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [missingBaseline, setMissingBaseline] = useState<boolean | null>(null);
-  const [apiKeyStatus, setApiKeyStatus] = useState("Checking...");
+  const [credits, setCredits] = useState<number | null>(null);
   const { getToken, isLoaded: authLoaded } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
 
@@ -65,11 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           setMissingBaseline(!data.data.has_baseline);
 
-          if (data.data.has_api_key) {
-            setApiKeyStatus("Valid");
-          } else {
-            setApiKeyStatus("Missing");
-          }
+          setCredits(data.data.credits !== undefined ? data.data.credits : null);
 
           if (data.data.cv_data && user?.id) {
              localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(data.data.cv_data));
@@ -92,15 +88,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [getToken, pathname, authLoaded, userLoaded, user?.id]);
 
   const getStatusText = () => {
-    if (apiKeyStatus === "Checking..." || missingBaseline === null) return "Checking...";
-    if (apiKeyStatus === "Missing" && missingBaseline) return "Not Configured";
-    if (apiKeyStatus === "Missing") return "Missing API Key";
-    if (apiKeyStatus === "Invalid") return "API Key Invalid";
+    if (missingBaseline === null) return "Checking...";
     if (missingBaseline) return "Missing CV";
-    return "Status: Ready";
+    if (credits === null) return "Status: Ready";
+    return `${credits} Credit${credits !== 1 ? 's' : ''}`;
   };
 
-  const isError = apiKeyStatus === "Missing" || apiKeyStatus === "Invalid" || missingBaseline === true;
+  const isError = missingBaseline === true || credits === 0;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu when route changes
@@ -110,6 +104,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (pathname.startsWith('/dashboard/pipeline') || pathname.startsWith('/dashboard/diff')) {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('safeToLeave') === 'true') {
+        return;
+      }
       if (!window.confirm("Are you sure you want to leave? All pipeline progress will be lost.")) {
         e.preventDefault();
       }
@@ -167,8 +164,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className={styles.navLabel} style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
               {user ? (user.firstName || (user.primaryEmailAddress ? user.primaryEmailAddress.emailAddress.split('@')[0] : "Account")) : "Account"}
             </div>
-            <div className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
-              {getStatusText()}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <div className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
+                {getStatusText()}
+              </div>
+              {credits !== null && credits <= 5 && (
+                <Link href="/dashboard/settings" style={{ fontSize: '11px', color: '#6366f1', textDecoration: 'none', fontWeight: 600 }}>Top Up</Link>
+              )}
             </div>
           </div>
         </div>

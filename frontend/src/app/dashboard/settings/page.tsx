@@ -1,15 +1,27 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import styles from "./settings.module.css";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { ArrowDown } from "lucide-react";
+import { CreditCard, Zap } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
-  const [apiKey, setApiKey] = useState("");
+  const [credits, setCredits] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState("");
-  const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("success")) {
+      setStatus("Payment successful! 15 credits have been added to your account.");
+      setTimeout(() => setStatus(""), 5000);
+    } else if (searchParams.get("canceled")) {
+      setStatus("Payment was canceled.");
+      setTimeout(() => setStatus(""), 5000);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -19,16 +31,8 @@ export default function SettingsPage() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
-        if (data.status === "success" && data.data.has_api_key) {
-          const savedKey = localStorage.getItem(`openai_api_key_${user?.id}`);
-          if (!savedKey) {
-            setApiKey("sk-••••••••••••••••••••");
-          } else {
-            setApiKey(savedKey);
-          }
-        } else {
-          const savedKey = localStorage.getItem(`openai_api_key_${user?.id}`);
-          if (savedKey) setApiKey(savedKey);
+        if (data.status === "success") {
+          setCredits(data.data.credits !== undefined ? data.data.credits : null);
         }
       } catch (e) {
         console.error("Failed to check profile", e);
@@ -37,27 +41,31 @@ export default function SettingsPage() {
     if (isLoaded && user) {
       fetchStatus();
     }
-  }, [isLoaded, user]);
+  }, [isLoaded, user, getToken]);
 
-  const handleSave = async () => {
-    if (apiKey.trim() && apiKey.trim() !== "sk-••••••••••••••••••••") {
-      try {
-        const token = await getToken();
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
-          method: "POST",
-          headers: { 
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ openai_api_key: apiKey.trim() })
-        });
-        localStorage.setItem(`openai_api_key_${user?.id}`, apiKey.trim());
-        setStatus("Settings saved and encrypted in the database successfully!");
-        setTimeout(() => setStatus(""), 3000);
-      } catch (e) {
-        setStatus("Failed to save to database.");
+  const handleTopUp = async () => {
+    setIsLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/create-checkout-session`, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setStatus("Failed to initiate checkout.");
         setTimeout(() => setStatus(""), 3000);
       }
+    } catch (e) {
+      setStatus("Error connecting to server.");
+      setTimeout(() => setStatus(""), 3000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,86 +75,47 @@ export default function SettingsPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Settings</h1>
-        <p className={styles.subtitle}>Manage your API keys and application preferences.</p>
+        <p className={styles.subtitle}>Manage your account, billing, and preferences.</p>
       </header>
 
+      {status && <div className={`${styles.statusMsg} ${status.includes('successful') ? styles.success : styles.error}`} style={{marginBottom: '24px', padding: '16px', borderRadius: '8px', background: status.includes('successful') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: status.includes('successful') ? '#4ade80' : '#f87171', border: status.includes('successful') ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(239,68,68,0.2)'}}>{status}</div>}
+
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Bring Your Own Key (BYOK)</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <Zap size={24} color="#f59e0b" />
+          <h2 className={styles.cardTitle} style={{ margin: 0 }}>Billing & Credits</h2>
+        </div>
         <p className={styles.cardDesc}>
-          Cursiva runs entirely on your own OpenAI API key. Your key is securely encrypted using symmetric encryption and stored in our database, so you can access your profile from any device without re-entering it.
+          Cursiva uses a simple Pay-As-You-Go model. You pay a flat rate of $5.00 for 15 tailored application credits. Generating a complete tailored CV and Cover Letter costs exactly 1 credit.
         </p>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label}>OpenAI API Key</label>
-          <input 
-            type="password" 
-            className={styles.input} 
-            placeholder="sk-..." 
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-          />
-          <button className={styles.helpBtn} onClick={() => setShowHelp(true)}>How to obtain an API key?</button>
-        </div>
-
-        <button className={styles.saveBtn} onClick={handleSave}>Save Changes</button>
-        {status && <div className={`${styles.statusMsg} ${styles.success}`}>{status}</div>}
-      </div>
-
-      {showHelp && (
-        <div className={styles.modalOverlay} onClick={() => setShowHelp(false)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '24px' }}>How to obtain an OpenAI API Key</h2>
-            <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '48px' }}>
-              <li>
-                <strong>Create an OpenAI Account</strong>
-                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Go to <a href="https://platform.openai.com/signup" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', textDecoration: 'underline' }}>platform.openai.com/signup</a>. You can sign up using your email, Google, Microsoft, or Apple account. You will need to verify your phone number during this process.</p>
-                <div style={{ marginTop: '16px' }}>
-                  <img src="/tutorial/sign up.png" alt="Sign Up" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                </div>
-              </li>
-              <li>
-                <strong>Set up Billing & Add Credits</strong>
-                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>OpenAI requires a prepaid balance to use the API. In the left sidebar, click the gear icon (Settings) and select <strong>Billing</strong>. Click "Add payment details", enter your card info, and add an initial credit balance (e.g., $5 to $10). <em>Note: ChatGPT Plus subscription does NOT cover API usage.</em></p>
-                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                  <img src="/tutorial/billing.png" alt="Billing settings" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                  <ArrowDown size={24} color="var(--accent-1)" />
-                  <img src="/tutorial/payment methods.png" alt="Payment methods" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                  <ArrowDown size={24} color="var(--accent-1)" />
-                  <img src="/tutorial/add to credit balance.png" alt="Add to credit balance" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                </div>
-              </li>
-              <li>
-                <strong>Navigate to API Keys</strong>
-                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>In the left sidebar, find the "API keys" section under your project dashboard.</p>
-                <div style={{ marginTop: '16px' }}>
-                  <img src="/tutorial/create new key page.png" alt="API keys page" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                </div>
-              </li>
-              <li>
-                <strong>Create a new secret key</strong>
-                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Click the "Create new secret key" button. Give it a memorable name like "Cursiva".</p>
-                <div style={{ marginTop: '16px' }}>
-                  <img src="/tutorial/create new key.png" alt="Create new key modal" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                </div>
-              </li>
-              <li>
-                <strong>Copy your API Key</strong>
-                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Copy the generated key immediately (it will start with <code>sk-...</code>). <strong>You will not be able to view it again</strong> once you close the window. Keep it secure.</p>
-                <div style={{ marginTop: '16px' }}>
-                  <img src="/tutorial/save your key.png" alt="Save your key" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                </div>
-              </li>
-              <li>
-                <strong>Paste it in Cursiva</strong>
-                <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Return to this page, paste the key into the input field, and click "Save Changes".</p>
-              </li>
-            </ol>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
-              <button className={styles.saveBtn} onClick={() => setShowHelp(false)}>Got it!</button>
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div>
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Current Balance</div>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {credits !== null ? credits : '...'} <span style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text-secondary)' }}>credits</span>
             </div>
           </div>
+          {credits !== null && credits <= 5 && (
+            <div style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600 }}>
+              Low Balance
+            </div>
+          )}
         </div>
-      )}
+
+        <button className={styles.saveBtn} onClick={handleTopUp} disabled={isLoading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#6366f1' }}>
+          <CreditCard size={18} />
+          {isLoading ? "Redirecting to Stripe..." : "Top Up 15 Credits - $5.00"}
+        </button>
+      </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '24px', color: 'var(--text-secondary)' }}>Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }

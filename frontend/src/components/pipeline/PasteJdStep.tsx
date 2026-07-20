@@ -7,6 +7,12 @@ export default function PasteJdStep({ onSubmit }: { onSubmit: (text: string) => 
   const [text, setText] = useState("");
 
   useEffect(() => {
+    if (text.trim().length > 0) {
+      sessionStorage.setItem('safeToLeave', 'false');
+    } else {
+      sessionStorage.setItem('safeToLeave', 'true');
+    }
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (text.trim().length > 0) {
         e.preventDefault();
@@ -39,7 +45,7 @@ export default function PasteJdStep({ onSubmit }: { onSubmit: (text: string) => 
           onClick={() => onSubmit(text)}
           disabled={!text.trim()}
         >
-          Analyze JD &rarr;
+          Start Pipeline &rarr;
         </button>
       </div>
     </div>

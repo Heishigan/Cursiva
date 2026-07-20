@@ -7,6 +7,7 @@ class UserProfile(Base):
     clerk_id = Column(String, primary_key=True, index=True)
     encrypted_api_key = Column(String, nullable=True)
     cv_data_json = Column(Text, nullable=True)
+    credits = Column(Integer, default=1)
 
 class UserLesson(Base):
     __tablename__ = "user_lessons"

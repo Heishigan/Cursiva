@@ -22,10 +22,10 @@ export default function PipelinePage() {
   const [tailoredData, setTailoredData] = useState<any>(null);
   const [finalPdfs, setFinalPdfs] = useState({ cvUrl: "", clUrl: "" });
   
-  // Agent logs
   const [logs, setLogs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -37,6 +37,16 @@ export default function PipelinePage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step]);
+
+  useEffect(() => {
+    if (step === 1 && jdText.trim() === "") {
+      sessionStorage.setItem("safeToLeave", "true");
+    } else if (step === 4) {
+      sessionStorage.setItem("safeToLeave", "true");
+    } else {
+      sessionStorage.removeItem("safeToLeave");
+    }
+  }, [step, jdText]);
 
   const submitJd = async (text: string, override = false) => {
     setJdText(text);
@@ -137,6 +147,12 @@ export default function PipelinePage() {
           thread_id: threadId
         })
       });
+
+      if (response.status === 402) {
+        setShowTopUpModal(true);
+        setIsProcessing(false);
+        return;
+      }
 
       if (!response.ok) {
         const errText = await response.text();
@@ -300,6 +316,22 @@ export default function PipelinePage() {
               <button onClick={() => { setEligibilityWarning(null); submitJd(jdText, true); }} style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: '#f59e0b', color: '#111827', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor='#fbbf24'} onMouseOut={(e) => e.currentTarget.style.backgroundColor='#f59e0b'}>
                 Override & Proceed
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTopUpModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowTopUpModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ background: '#1f2937', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px' }}>Out of Credits</h2>
+            <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px', lineHeight: '1.5' }}>
+              You don't have enough credits to generate this application. Please top up your account to continue.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className={styles.btnGhost} onClick={() => setShowTopUpModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={() => window.location.href = '/dashboard/settings'}>Go to Billing</button>
             </div>
           </div>
         </div>
