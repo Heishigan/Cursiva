@@ -5,17 +5,22 @@ from typing import Optional
 import uvicorn
 import uuid
 import os
+from dotenv import load_dotenv
+load_dotenv()
+from svix.webhooks import Webhook, WebhookVerificationError
 import fitz
 import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from sqlalchemy.orm import Session
+import stripe
+from fastapi import Request
 
 from core.models import FullCVData
 from core.agent import setup_node, strategist_node, tailor_app
 
 from database import engine, get_db
-from models import Base, UserProfile, JobApplication
+from models import Base, UserProfile, JobApplication, UserLesson
 from security import encrypt_key, decrypt_key
 from auth import get_current_user_id
 
@@ -31,11 +36,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_user_api_key(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)) -> str:
-    profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
-    if not profile or not profile.encrypted_api_key:
-        raise HTTPException(status_code=401, detail="OpenAI API Key not configured. Please add it in settings.")
-    return decrypt_key(profile.encrypted_api_key)
+# BYOK has been removed
 
 class IntakeRequest(BaseModel):
     job_description: str
@@ -55,27 +56,35 @@ class TailorRequest(BaseModel):
 from fastapi.responses import StreamingResponse
 
 @app.post("/api/intake")
-def run_intake(req: IntakeRequest, api_key: str = Depends(get_user_api_key), user_id: str = Depends(get_current_user_id)):
+def run_intake(req: IntakeRequest, user_id: str = Depends(get_current_user_id)):
     async def event_generator():
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
-        setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": api_key, "user_id": user_id})
+        setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
         if not setup_result.get("eligibility_passed", True) and not req.override_eligibility:
             yield f"data: {json.dumps({'type': 'result', 'status': 'ineligible', 'reason': setup_result.get('eligibility_reason')})}\n\n"
             return
             
         yield f"data: {json.dumps({'type': 'status', 'message': 'Strategist analyzing fit and formulating plan...'})}\n\n"
-        strategy_result = strategist_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": api_key, "user_id": user_id})
+        strategy_result = strategist_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
         yield f"data: {json.dumps({'type': 'result', 'status': 'success', 'metadata': setup_result, 'strategy': strategy_result})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.post("/api/tailor")
-def run_tailor(req: TailorRequest, api_key: str = Depends(get_user_api_key), user_id: str = Depends(get_current_user_id)):
+def run_tailor(req: TailorRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+    if not profile or profile.credits < 1:
+        raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+        
+    # Deduct credit immediately upon pipeline start
+    profile.credits -= 1
+    db.commit()
+        
     async def event_generator():
         initial_state = {
-            "api_key": api_key,
+            "api_key": os.environ.get("OPENAI_API_KEY"),
             "user_id": user_id,
             "job_description": req.job_description,
             "generic_cv_raw": req.generic_cv_raw,
@@ -117,7 +126,6 @@ def run_tailor(req: TailorRequest, api_key: str = Depends(get_user_api_key), use
 @app.post("/api/parse_pdf")
 async def parse_pdf(
     file: UploadFile = File(...), 
-    api_key: str = Depends(get_user_api_key), 
     user_id: str = Depends(get_current_user_id), 
     db: Session = Depends(get_db)
 ):
@@ -129,7 +137,7 @@ async def parse_pdf(
         doc = fitz.open(stream=content, filetype="pdf")
         text = "".join(page.get_text() for page in doc)
         
-        setup_llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=api_key)
+        setup_llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.environ.get("OPENAI_API_KEY"))
         structured_llm = setup_llm.with_structured_output(FullCVData)
         prompt = ChatPromptTemplate.from_messages([
             ("system", "Extract the candidate's information from the unstructured text and map it precisely to the provided schema. For the 'type' field in sections, map them correctly to 'skills', 'education', 'projects', 'work_experience' or 'custom' depending on content. Do not hallucinate. Leave fields empty if not present in the text."),
@@ -224,8 +232,8 @@ class FeedbackRequest(BaseModel):
     user_feedback: str
 
 @app.post("/api/feedback")
-def submit_feedback(req: FeedbackRequest, api_key: str = Depends(get_user_api_key), user_id: str = Depends(get_current_user_id)):
-    extract_lesson(api_key, user_id, req.user_feedback)
+def submit_feedback(req: FeedbackRequest, user_id: str = Depends(get_current_user_id)):
+    extract_lesson(os.environ.get("OPENAI_API_KEY"), user_id, req.user_feedback)
     return {"status": "success"}
 
 class CompileCLRequest(BaseModel):
@@ -307,17 +315,9 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
     
     cv_data = json.loads(profile.cv_data_json) if profile.cv_data_json else None
     has_api_key = bool(profile.encrypted_api_key)
-    return {"status": "success", "data": {"has_baseline": bool(cv_data), "has_api_key": has_api_key, "cv_data": cv_data}}
+    return {"status": "success", "data": {"has_baseline": bool(cv_data), "has_api_key": has_api_key, "cv_data": cv_data, "credits": profile.credits}}
 
-@app.get("/api/user/test_key")
-def test_key(api_key: str = Depends(get_user_api_key)):
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        client.models.list()
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="Invalid API Key or exhausted credits")
+
 
 @app.post("/api/user/profile")
 def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
@@ -432,6 +432,102 @@ def delete_application(app_id: str, user_id: str = Depends(get_current_user_id),
         
     db.delete(app)
     db.commit()
+    return {"status": "success"}
+
+# --- STRIPE INTEGRATION ---
+
+@app.post("/api/create-checkout-session")
+async def create_checkout_session(user_id: str = Depends(get_current_user_id)):
+    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+    stripe_price_id = os.environ.get("STRIPE_PRICE_ID")
+    
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price': stripe_price_id,
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000") + '/dashboard/settings?success=true',
+            cancel_url=os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000") + '/dashboard/settings?canceled=true',
+            client_reference_id=user_id,
+        )
+        return {"url": session.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/clerk/webhook")
+async def clerk_webhook(request: Request, db: Session = Depends(get_db)):
+    secret = os.environ.get("CLERK_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500, detail="Missing Clerk webhook secret")
+        
+    payload = await request.body()
+    headers = request.headers
+    
+    svix_id = headers.get("svix-id")
+    svix_timestamp = headers.get("svix-timestamp")
+    svix_signature = headers.get("svix-signature")
+    
+    if not svix_id or not svix_timestamp or not svix_signature:
+        raise HTTPException(status_code=400, detail="Missing svix headers")
+        
+    wh = Webhook(secret)
+    try:
+        event = wh.verify(payload, {
+            "svix-id": svix_id,
+            "svix-timestamp": svix_timestamp,
+            "svix-signature": svix_signature
+        })
+    except WebhookVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+        
+    if event.get("type") == "user.deleted":
+        user_id = event["data"].get("id")
+        if user_id:
+            db.query(UserProfile).filter(UserProfile.clerk_id == user_id).delete()
+            db.query(UserLesson).filter(UserLesson.clerk_id == user_id).delete()
+            db.query(JobApplication).filter(JobApplication.clerk_id == user_id).delete()
+            db.commit()
+            
+    return {"status": "success"}
+
+@app.post("/api/webhook")
+async def stripe_webhook(request: Request):
+    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+    endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    try:
+        if endpoint_secret:
+            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        else:
+            # Fallback for local testing without webhook secret
+            event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError as e:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        user_id = getattr(session, 'client_reference_id', None)
+        if user_id:
+            # We need a new db session here since it's a webhook
+            db = next(get_db())
+            try:
+                profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+                if profile:
+                    profile.credits += 15
+                else:
+                    profile = UserProfile(clerk_id=user_id, credits=16)
+                    db.add(profile)
+                db.commit()
+            finally:
+                db.close()
+
     return {"status": "success"}
 
 if __name__ == "__main__":

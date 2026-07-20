@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const today = format(new Date(), "EEEE, MMMM d, yyyy");
-  const [apiStatus, setApiStatus] = useState<string>("Checking...");
+  const [credits, setCredits] = useState<number | null>(null);
 
   const [applications, setApplications] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -26,12 +26,10 @@ export default function DashboardPage() {
         });
         const data = await res.json();
         if (data.status === "success") {
-          setApiStatus(data.data.has_api_key ? "Active" : "Not Configured");
-        } else {
-          setApiStatus("Backend Offline");
+          setCredits(data.data.credits || 0);
         }
       } catch (e) {
-        setApiStatus("Backend Offline");
+        console.error("Failed to fetch status", e);
       }
     };
     
@@ -178,10 +176,10 @@ export default function DashboardPage() {
         <div className={styles.metricCard} style={{ animationDelay: '0.4s' }}>
           <div className={styles.metricTitle}>
             <Key size={16} color="#10b981" />
-            OpenAI API Key
+            Credits
           </div>
-          <div className={`${styles.metricValue} ${apiStatus === "Active" ? styles.statusActive : styles.statusError}`} style={{ fontSize: apiStatus === "Active" ? undefined : '1.75rem', lineHeight: '1.2' }}>
-            {apiStatus}
+          <div className={`${styles.metricValue} ${credits !== null && credits > 0 ? styles.statusActive : styles.statusError}`} style={{ fontSize: credits !== null && credits > 0 ? undefined : '1.75rem', lineHeight: '1.2' }}>
+            {credits !== null ? credits : "..."}
           </div>
         </div>
       </div>

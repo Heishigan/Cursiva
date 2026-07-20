@@ -27,15 +27,9 @@ export default function Onboarding() {
   const { user } = useUser();
   
   // High-level state machine
-  // 1: Auth, 2: Baseline (select/parse/manual), 3: Launch
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // 2: Baseline (select/parse/manual), 3: Launch
+  const [step, setStep] = useState<2 | 3>(2);
   const [isRedirecting, setIsRedirecting] = useState(true);
-  
-  // Auth State
-  const [apiKey, setApiKey] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
-  const [authError, setAuthError] = useState('');
-  const [showHelp, setShowHelp] = useState(false);
 
   // Baseline State
   const [mode, setMode] = useState<'select' | 'upload' | 'manual'>('select');
@@ -70,14 +64,12 @@ export default function Onboarding() {
       })
       .then(res => res.json())
       .then(data => {
-        if (data.status === 'success' && data.data.has_api_key && data.data.has_baseline) {
+        if (data.status === 'success' && data.data.has_baseline) {
           router.push('/dashboard');
         } else {
           setIsRedirecting(false);
           
           // Fallback check localStorage for UI state
-          const savedKey = localStorage.getItem(`openai_api_key_${user.id}`);
-          if (savedKey) setApiKey(savedKey);
           const savedCv = localStorage.getItem(`generic_cv_json_${user.id}`);
           if (savedCv) {
             try {
@@ -108,48 +100,6 @@ export default function Onboarding() {
       </div>
     );
   }
-
-  // --- Step 1: Auth Handlers ---
-  const handleValidateAuth = async () => {
-    if (!apiKey.trim()) {
-      setAuthError('API Key cannot be empty.');
-      return;
-    }
-    setIsValidating(true);
-    setAuthError('');
-    
-    try {
-      // Validate via our Next.js backend to avoid CORS issues
-      const res = await fetch('/api/validate_key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey })
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Invalid API Key. Please check and try again.');
-      }
-      
-      // Save the API key securely to the backend database
-      const token = await getToken();
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ openai_api_key: apiKey })
-      });
-      
-      if (user?.id) localStorage.setItem(`openai_api_key_${user.id}`, apiKey);
-      setStep(2);
-    } catch (e: any) {
-      setAuthError(e.message);
-    } finally {
-      setIsValidating(false);
-    }
-  };
 
   // --- Step 2: Baseline Handlers ---
   const handleFileUpload = async (file: File) => {
@@ -263,128 +213,23 @@ export default function Onboarding() {
   return (
     <div className={styles.wrapper}>
       <header className={styles.header}>
-        <h1 className={styles.title}>C<span>ursiva</span></h1>
-        
-        {/* Stepper UI */}
-        <div className={styles.stepper}>
-          <div className={styles.stepWrap}>
-            <div className={`${styles.stepNode} ${step > 1 ? styles.sDone : (isValidating ? styles.sLoading : styles.sActive)}`}>
-              <div className={styles.stepCircle}>1</div>
-              <span className={styles.stepLabel}>{isValidating ? 'Validating API Key' : 'API Key'}</span>
+        <nav className={styles.nav}>
+          <div className={styles.logo}>C<span>ursiva</span></div>
+          <div className={styles.stepper}>
+            <div className={styles.stepWrap}>
+              <div className={`${styles.stepNode} ${step >= 2 ? styles.sActive : styles.sPend}`}>
+                <div className={styles.stepCircle}>1</div>
+                <span className={styles.stepLabel}>Baseline CV</span>
+              </div>
+              <div className={`${styles.stepLine} ${step >= 3 ? styles.done : ''}`}></div>
+              <div className={`${styles.stepNode} ${step >= 3 ? styles.sActive : styles.sPend}`}>
+                <div className={styles.stepCircle}>2</div>
+                <span className={styles.stepLabel}>Ready</span>
+              </div>
             </div>
           </div>
-          <div className={`${styles.stepLine} ${step > 1 ? styles.done : ''}`}></div>
-          <div className={styles.stepWrap}>
-            <div className={`${styles.stepNode} ${step > 2 ? styles.sDone : (step === 2 ? (isParsing ? styles.sLoading : styles.sActive) : styles.sPend)}`}>
-              <div className={styles.stepCircle}>2</div>
-              <span className={styles.stepLabel}>{isParsing ? 'Extracting & Parsing...' : 'Baseline CV'}</span>
-            </div>
-          </div>
-          <div className={`${styles.stepLine} ${step > 2 ? styles.done : ''}`}></div>
-          <div className={styles.stepWrap}>
-            <div className={`${styles.stepNode} ${step === 3 ? styles.sActive : styles.sPend}`}>
-              <div className={styles.stepCircle}>3</div>
-              <span className={styles.stepLabel}>Launch</span>
-            </div>
-          </div>
-        </div>
+        </nav>
       </header>
-
-      {/* STEP 1: AUTH */}
-      {step === 1 && (
-        <div className={styles.stepSection}>
-          <h2 className={styles.stepTitle}>Step 1: Connect OpenAI</h2>
-          <p className={styles.stepDesc}>
-            Cursiva uses GPT-4o to tailor your CVs and Cover Letters. We need your OpenAI API key to proceed. Your key is stored locally in your browser and never leaves your machine.
-          </p>
-          <div className={styles.card}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>OpenAI API Key</label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="password" 
-                  className={styles.input}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-proj-..."
-                />
-              </div>
-              <button className={styles.btnGhost} style={{ marginTop: '8px', padding: '4px 8px', fontSize: '13px', width: 'auto' }} onClick={() => setShowHelp(true)}>How to obtain an API key?</button>
-            </div>
-            
-            {authError && (
-              <div className={`${styles.statusMsg} ${styles.statusError}`}>
-                {authError}
-              </div>
-            )}
-
-            <button 
-              className="btn-primary" 
-              onClick={handleValidateAuth}
-              disabled={isValidating}
-              style={{ marginTop: '16px' }}
-            >
-              Save & Continue
-            </button>
-          </div>
-
-          {showHelp && (
-            <div className={styles.modalOverlay} onClick={() => setShowHelp(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-              <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ background: '#1f2937', padding: '32px', borderRadius: '16px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '24px' }}>How to obtain an OpenAI API Key</h2>
-                <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '48px' }}>
-                  <li>
-                    <strong>Create an OpenAI Account</strong>
-                    <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Go to <a href="https://platform.openai.com/signup" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', textDecoration: 'underline' }}>platform.openai.com/signup</a>. You can sign up using your email, Google, Microsoft, or Apple account. You will need to verify your phone number during this process.</p>
-                    <div style={{ marginTop: '16px' }}>
-                      <img src="/tutorial/sign up.png" alt="Sign Up" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                    </div>
-                  </li>
-                  <li>
-                    <strong>Set up Billing & Add Credits</strong>
-                    <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>OpenAI requires a prepaid balance to use the API. In the left sidebar, click the gear icon (Settings) and select <strong>Billing</strong>. Click "Add payment details", enter your card info, and add an initial credit balance (e.g., $5 to $10). <em>Note: ChatGPT Plus subscription does NOT cover API usage.</em></p>
-                    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                      <img src="/tutorial/billing.png" alt="Billing settings" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                      <ArrowDown size={24} color="var(--accent-1)" />
-                      <img src="/tutorial/payment methods.png" alt="Payment methods" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                      <ArrowDown size={24} color="var(--accent-1)" />
-                      <img src="/tutorial/add to credit balance.png" alt="Add to credit balance" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                    </div>
-                  </li>
-                  <li>
-                    <strong>Navigate to API Keys</strong>
-                    <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>In the left sidebar, find the "API keys" section under your project dashboard.</p>
-                    <div style={{ marginTop: '16px' }}>
-                      <img src="/tutorial/create new key page.png" alt="API keys page" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                    </div>
-                  </li>
-                  <li>
-                    <strong>Create a new secret key</strong>
-                    <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Click the "Create new secret key" button. Give it a memorable name like "Cursiva".</p>
-                    <div style={{ marginTop: '16px' }}>
-                      <img src="/tutorial/create new key.png" alt="Create new key modal" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                    </div>
-                  </li>
-                  <li>
-                    <strong>Copy your API Key</strong>
-                    <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Copy the generated key immediately (it will start with <code>sk-...</code>). <strong>You will not be able to view it again</strong> once you close the window. Keep it secure.</p>
-                    <div style={{ marginTop: '16px' }}>
-                      <img src="/tutorial/save your key.png" alt="Save your key" style={{ width: '100%', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                    </div>
-                  </li>
-                  <li>
-                    <strong>Paste it in Cursiva</strong>
-                    <p style={{ marginTop: '8px', color: 'rgba(255,255,255,0.7)' }}>Return to this page, paste the key into the input field, and click "Save & Continue".</p>
-                  </li>
-                </ol>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
-                  <button className="btn-primary" onClick={() => setShowHelp(false)}>Got it!</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* STEP 2: BASELINE CV */}
       {step === 2 && (

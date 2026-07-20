@@ -97,8 +97,8 @@ export default function Home() {
           </div>
           <div className={styles.glassCard}>
             <div className={styles.cardIcon}><Zap size={28} /></div>
-            <h3 className={styles.cardTitle}>Insanely Cost-Effective</h3>
-            <p className={styles.cardDesc}>Bring your own OpenAI API key. A complete application including strategy, multiple resume drafts, and a cover letter costs roughly $0.05 per job.</p>
+            <h3 className={styles.cardTitle}>Pay-As-You-Go Credits</h3>
+            <p className={styles.cardDesc}>No expensive monthly subscriptions. Pay a flat rate of $5.00 for 15 tailored application credits. Generating a complete tailored CV and Cover Letter costs exactly 1 credit.</p>
           </div>
           <div className={styles.glassCard}>
             <div className={styles.cardIcon}><FileText size={28} /></div>
