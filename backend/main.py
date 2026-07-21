@@ -147,13 +147,6 @@ async def parse_pdf(
         res = (prompt | structured_llm).invoke({"text": text})
         parsed_data = res.model_dump()
         
-        profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
-        if not profile:
-            profile = UserProfile(clerk_id=user_id)
-            db.add(profile)
-        profile.cv_data_json = json.dumps(parsed_data)
-        db.commit()
-        
         return {"status": "success", "parsed_data": parsed_data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -305,25 +298,35 @@ def read_root():
 
 class ProfileUpdate(BaseModel):
     cv_data_json: Optional[str] = None
-    openai_api_key: Optional[str] = None
+    email: Optional[str] = None  # Used only on first profile creation to detect cycling
 
 @app.get("/api/user/profile")
 def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     if not profile:
-        return {"status": "success", "data": {"has_baseline": False, "has_api_key": False, "cv_data": None}}
+        return {"status": "success", "data": {"has_baseline": False, "cv_data": None}}
     
     cv_data = json.loads(profile.cv_data_json) if profile.cv_data_json else None
-    has_api_key = bool(profile.encrypted_api_key)
-    return {"status": "success", "data": {"has_baseline": bool(cv_data), "has_api_key": has_api_key, "cv_data": cv_data, "credits": profile.credits}}
+    return {"status": "success", "data": {"has_baseline": bool(cv_data), "cv_data": cv_data, "credits": profile.credits}}
 
 
 
 @app.post("/api/user/profile")
 def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    from models import UsedTrialEmail
+    import hashlib
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     if not profile:
-        profile = UserProfile(clerk_id=user_id)
+        # Check if this email has been used for a free trial before
+        starting_credits = 1  # default trial credit
+        if req.email:
+            email_hash = hashlib.sha256(req.email.lower().strip().encode()).hexdigest()
+            used = db.query(UsedTrialEmail).filter(UsedTrialEmail.email_hash == email_hash).first()
+            if used:
+                starting_credits = 0  # cycling detected — no free trial
+            else:
+                db.add(UsedTrialEmail(email_hash=email_hash))  # record it now
+        profile = UserProfile(clerk_id=user_id, credits=starting_credits)
         db.add(profile)
     
     if req.cv_data_json is not None:
@@ -332,12 +335,6 @@ def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_u
         else:
              profile.cv_data_json = req.cv_data_json
              
-    if req.openai_api_key is not None:
-        if req.openai_api_key.strip() == "":
-            profile.encrypted_api_key = None
-        else:
-            profile.encrypted_api_key = encrypt_key(req.openai_api_key)
-            
     db.commit()
     return {"status": "success"}
 

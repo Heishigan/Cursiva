@@ -82,7 +82,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
         },
         body: JSON.stringify({
           personal_info: cvData.personal_info,
-          company_name: data.company_name || "Company",
+          company_name: data.company || "",
           cover_letter_paragraphs: paragraphs
         })
       });

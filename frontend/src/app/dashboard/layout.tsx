@@ -10,7 +10,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [missingBaseline, setMissingBaseline] = useState<boolean | null>(null);
-  const [credits, setCredits] = useState<number | null>(null);
+  const [credits, setCredits] = useState<number | null>(() => {
+    // Show cached credits immediately to avoid blank "..." on cold start
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cursiva_credits_cache');
+      return cached !== null ? parseInt(cached, 10) : null;
+    }
+    return null;
+  });
   const { getToken, isLoaded: authLoaded } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
 
@@ -66,6 +73,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setMissingBaseline(!data.data.has_baseline);
 
           setCredits(data.data.credits !== undefined ? data.data.credits : null);
+          if (data.data.credits !== undefined) {
+            localStorage.setItem('cursiva_credits_cache', String(data.data.credits));
+          }
 
           if (data.data.cv_data && user?.id) {
              localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(data.data.cv_data));
