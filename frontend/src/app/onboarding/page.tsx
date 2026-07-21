@@ -302,7 +302,7 @@ export default function Onboarding() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '48px 24px', background: 'rgba(99,102,241,0.06)', borderRadius: '16px', border: '1px solid rgba(99,102,241,0.2)' }}>
               <div style={{ width: '52px', height: '52px', borderRadius: '50%', border: '3px solid rgba(99,102,241,0.2)', borderTopColor: 'var(--accent-1)', borderRightColor: 'var(--accent-1)', animation: 'spin 0.8s linear infinite' }} />
               <div style={{ textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1.05rem', margin: '0 0 6px' }}>🤖 Cursiva AI is reading your CV...</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1.05rem', margin: '0 0 6px' }}><span className={styles.inlineLogo}>C<span>ursiva</span></span> AI is reading your CV...</p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>Extracting and structuring your experience. This takes about 15–30 seconds.</p>
               </div>
             </div>
