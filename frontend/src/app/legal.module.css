@@ -1,0 +1,86 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 80px 24px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  margin-bottom: 48px;
+}
+
+.logo {
+  font-family: var(--font-plus-jakarta);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 32px;
+}
+
+.logo span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.lastUpdated {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.content {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
+.content h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 48px;
+  margin-bottom: 24px;
+}
+
+.content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+
+.content p {
+  margin-bottom: 24px;
+}
+
+.content ul {
+  margin-bottom: 24px;
+  padding-left: 24px;
+}
+
+.content li {
+  margin-bottom: 12px;
+}
+
+.content a {
+  color: var(--accent-1);
+  text-decoration: none;
+}
+
+.content a:hover {
+  text-decoration: underline;
+}
