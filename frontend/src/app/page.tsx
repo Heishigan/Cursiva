@@ -3,11 +3,13 @@ import { Show, UserButton } from "@clerk/nextjs";
 import { Search, Brain, FileText, CheckCircle, Zap, Mail, LayoutDashboard } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import styles from "./page.module.css";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main className={styles.container}>
-      <div style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 100 }}>
+    <>
+      <main className={styles.container}>
+        <div style={{ position: 'absolute', top: '24px', right: '24px', zIndex: 100 }}>
         <Show when="signed-in">
           <UserButton />
         </Show>
@@ -172,27 +174,8 @@ export default function Home() {
         </Show>
       </section>
 
-      <footer className={styles.footer} style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '48px', paddingBottom: '48px', marginTop: '64px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ fontWeight: 800, fontSize: '1.5rem', fontFamily: 'var(--font-plus-jakarta)' }}>C<span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>ursiva</span></div>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '24px', color: 'var(--text-secondary)' }}>
-            <a href="https://github.com/Heishigan/Cursiva" target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
-              <FaGithub size={24} />
-            </a>
-            <a href="mailto:hej@heishi.se" className={styles.socialLinkEmail}>
-              <Mail size={24} />
-            </a>
-          </div>
-
-          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-            <p>Designed and built by <a href="https://heishi.se" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-1)', textDecoration: 'none' }}>Heishigan Pathmaraj</a>.</p>
-            <p style={{ marginTop: '16px', fontSize: '0.85rem', opacity: 0.7 }}>&copy; {new Date().getFullYear()} Cursiva. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </main>
+      </main>
+      <Footer />
+    </>
   );
 }
