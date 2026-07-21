@@ -72,17 +72,17 @@ def extract_lesson(api_key: str, user_id: str, user_feedback: str):
 
 def setup_node(state: AgentState):
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "Read the Job Description and the Generic CV provided below. Extract the company name, role name, job summary, and key requirements. Finally, evaluate the candidate's Eligibility (checking for hard mismatches in visa/location/languages). Output strictly the requested JSON."),
+        ("system", "Read the Job Description and the Generic CV provided below. Extract the company name, role name, job summary, and key requirements. Finally, evaluate the candidate's Eligibility (checking for hard mismatches in visa/location/languages). Output strictly the requested JSON. IMPORTANT: If you cannot determine the company name or role name with confidence from the text, return an empty string for that field — do NOT use placeholder values like 'Company' or 'Unknown'."),
         ("user", "Job Description:\n{job_description}\n\nGeneric CV:\n{generic_cv}")
     ])
     chain = prompt | get_llm_setup(state["api_key"])
     res = chain.invoke({"job_description": state["job_description"], "generic_cv": state["generic_cv_raw"]})
     
-    company = "Unknown_Company"
-    role = "Unknown_Role"
+    company = ""
+    role = ""
     if res:
-        company = res.company_name.strip() if res.company_name and res.company_name.strip() else "Unknown_Company"
-        role = res.role_name.strip() if res.role_name and res.role_name.strip() else "Unknown_Role"
+        company = res.company_name.strip() if res.company_name and res.company_name.strip() else ""
+        role = res.role_name.strip() if res.role_name and res.role_name.strip() else ""
     
     return {
         "company_name": company, 

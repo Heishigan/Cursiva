@@ -26,6 +26,23 @@ export default function PipelinePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [credits, setCredits] = useState<number | null>(null);
+
+  // Fetch credits at mount so we can gate the pipeline start
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/user/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.status === 'success') setCredits(data.data.credits ?? 0);
+      } catch {}
+    };
+    fetchCredits();
+  }, [getToken]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -49,6 +66,11 @@ export default function PipelinePage() {
   }, [step, jdText]);
 
   const submitJd = async (text: string, override = false) => {
+    // Credit gate — block before calling the API
+    if (credits !== null && credits < 1) {
+      setShowTopUpModal(true);
+      return;
+    }
     setJdText(text);
     setIsProcessing(true);
     setLogs([]);
@@ -323,15 +345,15 @@ export default function PipelinePage() {
 
       {showTopUpModal && (
         <div className={styles.modalOverlay} onClick={() => setShowTopUpModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ background: '#1f2937', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ position: 'relative', background: '#1f2937', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <button onClick={() => setShowTopUpModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '24px', lineHeight: '1', padding: '4px' }}>&times;</button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
-            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px' }}>Out of Credits</h2>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>Out of Credits</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px', lineHeight: '1.5' }}>
               You don't have enough credits to generate this application. Please top up your account to continue.
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button className={styles.btnGhost} onClick={() => setShowTopUpModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={() => window.location.href = '/dashboard/settings'}>Go to Billing</button>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '16px', fontWeight: 600, borderRadius: '8px' }} onClick={() => window.location.href = '/dashboard/settings'}>Go to Settings</button>
             </div>
           </div>
         </div>
