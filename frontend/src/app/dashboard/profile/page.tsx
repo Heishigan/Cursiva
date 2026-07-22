@@ -82,6 +82,22 @@ export default function ProfilePage() {
     setIsCompiling(false);
   };
 
+  const syncProfileToBackend = async (data: any) => {
+    try {
+      const token = await getToken();
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ cv_data_json: data ? JSON.stringify(data) : "" })
+      });
+    } catch (e) {
+      console.error("Failed to sync profile to backend", e);
+    }
+  };
+
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [headerForm, setHeaderForm] = useState<any>(null);
   const [editingItem, setEditingItem] = useState<{ sIdx: number, iIdx: number } | null>(null);
@@ -114,6 +130,7 @@ export default function ProfilePage() {
       if (data.status === 'success') {
         setCvData(data.parsed_data);
         if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(data.parsed_data));
+        await syncProfileToBackend(data.parsed_data);
         setHasBaseline(true);
         setUploadFile(null);
       } else {
@@ -213,6 +230,7 @@ export default function ProfilePage() {
     newData.professional_summary = headerForm.professional_summary;
     setCvData(newData);
     if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
+    syncProfileToBackend(newData);
     compilePdf(newData);
     setIsEditingHeader(false);
   };
@@ -251,6 +269,7 @@ export default function ProfilePage() {
     
     setCvData(newData);
     if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
+    syncProfileToBackend(newData);
     compilePdf(newData);
     setEditingItem(null);
     setItemForm(null);
@@ -264,6 +283,7 @@ export default function ProfilePage() {
       newData.sections[editingItem.sIdx].items.splice(editingItem.iIdx, 1);
       setCvData(newData);
       if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
+      syncProfileToBackend(newData);
       compilePdf(newData);
       setEditingItem(null);
       setItemForm(null);
@@ -288,6 +308,7 @@ export default function ProfilePage() {
     });
     setCvData(newData);
     if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
+    syncProfileToBackend(newData);
     compilePdf(newData);
     setIsAddingSection(false);
   };
@@ -320,6 +341,7 @@ export default function ProfilePage() {
     setCvData(null);
     setPdfUrl(null);
     setHasBaseline(false);
+    syncProfileToBackend(null);
     setShowWipeConfirm(false);
   };
 
