@@ -26,7 +26,9 @@ export default function PipelinePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [showBaselineModal, setShowBaselineModal] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
+  const [hasBaseline, setHasBaseline] = useState<boolean>(true);
 
   // Fetch credits at mount so we can gate the pipeline start
   useEffect(() => {
@@ -38,7 +40,10 @@ export default function PipelinePage() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
-        if (data.status === 'success') setCredits(data.data.credits ?? 0);
+        if (data.status === 'success') {
+          setCredits(data.data.credits ?? 0);
+          setHasBaseline(data.data.has_baseline);
+        }
       } catch {}
     };
     fetchCredits();
@@ -69,6 +74,11 @@ export default function PipelinePage() {
     // Credit gate — block before calling the API
     if (credits !== null && credits < 1) {
       setShowTopUpModal(true);
+      return;
+    }
+    // Baseline gate — block before calling the API
+    if (!hasBaseline) {
+      setShowBaselineModal(true);
       return;
     }
     setJdText(text);
@@ -354,6 +364,22 @@ export default function PipelinePage() {
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '16px', fontWeight: 600, borderRadius: '8px' }} onClick={() => window.location.href = '/dashboard/settings'}>Go to Settings</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBaselineModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowBaselineModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ position: 'relative', background: '#1f2937', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <button onClick={() => setShowBaselineModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '24px', lineHeight: '1', padding: '4px' }}>&times;</button>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>No Baseline CV</h2>
+            <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px', lineHeight: '1.5' }}>
+              You haven't set up a baseline CV yet. Please upload a baseline resume to continue.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '16px', fontWeight: 600, borderRadius: '8px' }} onClick={() => window.location.href = '/dashboard/profile'}>Go to Profile</button>
             </div>
           </div>
         </div>

@@ -454,6 +454,15 @@ export default function ProfilePage() {
               <button className={styles.iconBtn} onClick={() => openItemEdit(sIdx, -1)}><Plus size={18}/></button>
             </div>
 
+            {section.type === 'projects' && (
+              <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Info size={16} style={{ color: '#60a5fa', flexShrink: 0 }} />
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', margin: 0, lineHeight: 1.4 }}>
+                  <strong>Pro Tip:</strong> Click the edit icon to add `https://` links to your projects. The compiled PDF natively supports clickable hyperlinks!
+                </p>
+              </div>
+            )}
+
             <div className={styles.cardGroup}>
               {section.items.map((item: any, iIdx: number) => (
                 <div key={iIdx} className={styles.itemCard}>
