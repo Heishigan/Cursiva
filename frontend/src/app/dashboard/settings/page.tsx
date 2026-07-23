@@ -29,7 +29,8 @@ function SettingsContent() {
       try {
         const token = await getToken();
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: "no-store"
         });
         const data = await res.json();
         if (data.status === "success") {
