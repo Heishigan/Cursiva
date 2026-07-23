@@ -17,7 +17,7 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
           Application Ready
         </h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Your documents have been compiled and saved.
+          Your documents have been compiled and saved. You can always view or edit this application later from your Dashboard.
         </p>
       </div>
 
@@ -32,7 +32,10 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
           </div>
           {cvPdfUrl ? (
             <>
-              <iframe src={`${cvPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
+              <iframe src={`${cvPdfUrl}#toolbar=1&view=FitH`} className={styles.pdfFrame} />
+              <div className={styles.mobilePdfFallback}>
+                <p>Mobile browsers cannot preview PDFs.</p>
+              </div>
               <a href={cvPdfUrl} download={cvFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
             </>
           ) : (
@@ -46,7 +49,10 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
           </div>
           {clPdfUrl ? (
             <>
-              <iframe src={`${clPdfUrl}#toolbar=1&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
+              <iframe src={`${clPdfUrl}#toolbar=1&view=FitH`} className={styles.pdfFrame} />
+              <div className={styles.mobilePdfFallback}>
+                <p>Mobile browsers cannot preview PDFs.</p>
+              </div>
               <a href={clPdfUrl} download={clFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
             </>
           ) : (

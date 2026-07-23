@@ -291,3 +291,22 @@
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.tableWrapper {
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .tableWrapper {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+  }
+  
+  .tableHeader, .appCard {
+    min-width: 800px;
+  }
+  
+  .colActions {
+    opacity: 1;
+  }
+}

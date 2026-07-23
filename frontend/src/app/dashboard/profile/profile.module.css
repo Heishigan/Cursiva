@@ -607,3 +607,27 @@
     box-sizing: border-box;
   }
 }
+
+.mobilePdfFallback {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .pdfFrame {
+    display: none;
+  }
+  .mobilePdfFallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    padding: 2rem;
+    gap: 1rem;
+    color: var(--text-secondary);
+  }
+  .downloadFab {
+    display: none;
+  }
+}

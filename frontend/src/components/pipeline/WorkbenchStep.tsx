@@ -340,10 +340,10 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
               </div>
               <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>Global Feedback</h3>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <input
                     type="text"
-                    style={{ flex: 1, background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 16px', fontSize: '14px' }}
+                    style={{ flex: '1 1 200px', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 16px', fontSize: '14px' }}
                     placeholder="Require a structural rewrite? Tell the agent what to fix..."
                     value={globalFeedback}
                     onChange={(e) => setGlobalFeedback(e.target.value)}
@@ -352,7 +352,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                     onClick={submitFeedback}
                     disabled={isSubmittingFeedback || !globalFeedback.trim()}
                     className={styles.secondaryBtn}
-                    style={{ padding: '8px 16px' }}
+                    style={{ padding: '8px 16px', flex: '1 1 auto' }}
                   >
                     {isSubmittingFeedback ? "Applying..." : "Apply Feedback"}
                   </button>

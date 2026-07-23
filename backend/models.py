@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, JSON
+from sqlalchemy import Column, String, Text, Integer, JSON, Boolean
 from database import Base
 
 class UserProfile(Base):
@@ -7,6 +7,7 @@ class UserProfile(Base):
     clerk_id = Column(String, primary_key=True, index=True)
     cv_data_json = Column(Text, nullable=True)
     credits = Column(Integer, default=1)
+    strict_eligibility = Column(Boolean, default=True)
 
 class UsedTrialEmail(Base):
     __tablename__ = "used_trial_emails"
