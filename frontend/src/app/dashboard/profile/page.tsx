@@ -447,6 +447,13 @@ export default function ProfilePage() {
         </div>
 
         {/* Dynamic Sections */}
+        <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.1)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <Info size={16} color="#818cf8" style={{ marginTop: '2px', flexShrink: 0 }} />
+          <div>
+            <strong>Customize Your CV:</strong> You can freely edit, reorder, or add custom sections below to best represent your experience. The AI will use this baseline to tailor your applications.
+          </div>
+        </div>
+
         {sections.map((section: any, sIdx: number) => (
           <div key={sIdx} className={styles.sectionGroup}>
             <div className={styles.sectionHeader}>
@@ -548,6 +555,17 @@ export default function ProfilePage() {
                 <Download size={18} />
                 Download PDF
               </button>
+              <div className={styles.mobilePdfFallback}>
+                <FileText size={48} color="rgba(255,255,255,0.2)" />
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--text-primary)', margin: 0 }}>PDF Ready</h3>
+                <p style={{ margin: 0 }}>Mobile browsers cannot preview PDFs directly.</p>
+                <button 
+                  onClick={handleDownload} 
+                  style={{ padding: '10px 20px', background: 'var(--accent-gradient)', color: 'white', border: 'none', borderRadius: '99px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}
+                >
+                  <Download size={18} /> Download PDF
+                </button>
+              </div>
             </>
           ) : (
             <div className={styles.loading}>Generating Preview...</div>

@@ -238,6 +238,13 @@
 }
 
 /* Strategy Step */
+.strategyLayout {
+  display: flex;
+  gap: 32px;
+  text-align: left;
+  margin-top: 32px;
+}
+
 .strategyTitle {
   font-size: 30px;
   font-weight: 700;
@@ -497,3 +504,46 @@
   100% { background-position: 0% 50%; }
 }
 
+@media (max-width: 1024px) {
+  .strategyLayout {
+    flex-direction: column;
+  }
+  .workbenchLayout {
+    flex-direction: column;
+  }
+  .tabs {
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .terminalContainer {
+    padding: 16px;
+  }
+  .workflowContainer {
+    padding: 16px;
+  }
+  .pdfFrame {
+    display: none;
+  }
+  .mobilePdfFallback {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    gap: 1rem;
+    color: var(--text-secondary);
+  }
+}
+
+.pdfFrame {
+  width: 100%;
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+}
+
+.mobilePdfFallback {
+  display: none;
+}

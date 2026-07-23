@@ -56,12 +56,15 @@ class TailorRequest(BaseModel):
 from fastapi.responses import StreamingResponse
 
 @app.post("/api/intake")
-def run_intake(req: IntakeRequest, user_id: str = Depends(get_current_user_id)):
+def run_intake(req: IntakeRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+    strict_eligibility = profile.strict_eligibility if profile is not None else True
+
     async def event_generator():
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
         setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
-        if not setup_result.get("eligibility_passed", True) and not req.override_eligibility:
+        if not setup_result.get("eligibility_passed", True) and not req.override_eligibility and strict_eligibility:
             yield f"data: {json.dumps({'type': 'result', 'status': 'ineligible', 'reason': setup_result.get('eligibility_reason')})}\n\n"
             return
             
@@ -299,6 +302,7 @@ def read_root():
 class ProfileUpdate(BaseModel):
     cv_data_json: Optional[str] = None
     email: Optional[str] = None  # Used only on first profile creation to detect cycling
+    strict_eligibility: Optional[bool] = None
 
 @app.get("/api/user/profile")
 def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
@@ -307,7 +311,7 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
         return {"status": "success", "data": {"has_baseline": False, "cv_data": None}}
     
     cv_data = json.loads(profile.cv_data_json) if profile.cv_data_json else None
-    return {"status": "success", "data": {"has_baseline": bool(cv_data), "cv_data": cv_data, "credits": profile.credits}}
+    return {"status": "success", "data": {"has_baseline": bool(cv_data), "cv_data": cv_data, "credits": profile.credits, "strict_eligibility": profile.strict_eligibility}}
 
 
 
@@ -335,6 +339,9 @@ def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_u
         else:
              profile.cv_data_json = req.cv_data_json
              
+    if req.strict_eligibility is not None:
+        profile.strict_eligibility = req.strict_eligibility
+
     db.commit()
     return {"status": "success"}
 

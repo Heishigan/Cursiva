@@ -42,7 +42,7 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
   })();
 
   return (
-    <div className={`${styles.stepContainer} ${styles.animateFadeIn}`} style={{ maxWidth: '1200px', marginBottom: '48px', display: 'flex', gap: '32px', textAlign: 'left', marginTop: '32px' }}>
+    <div className={`${styles.stepContainer} ${styles.animateFadeIn} ${styles.strategyLayout}`} style={{ maxWidth: '1200px', marginBottom: '48px' }}>
       
       {/* Left Column: Assessment and Strategy */}
       <div style={{ flex: '2' }}>
