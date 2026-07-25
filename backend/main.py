@@ -26,6 +26,17 @@ from auth import get_current_user_id
 
 Base.metadata.create_all(bind=engine)
 
+# Auto-migration to ensure strict_eligibility column exists on production DB
+try:
+    with engine.begin() as conn:
+        from sqlalchemy import text
+        if engine.name == 'postgresql':
+            conn.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS strict_eligibility BOOLEAN DEFAULT TRUE"))
+        else:
+            conn.execute(text("ALTER TABLE user_profiles ADD COLUMN strict_eligibility BOOLEAN DEFAULT 1"))
+except Exception:
+    pass
+
 app = FastAPI(title="Cursiva API", description="Backend engine for the Cursiva Agentic Job Hunter")
 
 app.add_middleware(
