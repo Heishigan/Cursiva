@@ -12,6 +12,10 @@ export default function PasteJdStep({ onSubmit, initialText = "" }: PasteJdStepP
   const [text, setText] = useState(initialText);
 
   useEffect(() => {
+    setText(initialText);
+  }, [initialText]);
+
+  useEffect(() => {
     if (text.trim().length > 0) {
       sessionStorage.setItem('safeToLeave', 'false');
     } else {
