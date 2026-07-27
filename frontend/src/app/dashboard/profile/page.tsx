@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import styles from "./profile.module.css";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { ExternalLink, FileText, Pencil, Plus, Briefcase, GraduationCap, Award, FolderGit2, Code2, Info, Globe, Download } from "lucide-react";
+import { ExternalLink, FileText, Pencil, Plus, Briefcase, GraduationCap, Award, FolderGit2, Code2, Info, Globe, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 
 export default function ProfilePage() {
@@ -29,13 +29,6 @@ export default function ProfilePage() {
         
         if (data.status === "success" && data.data.has_baseline) {
           const parsed = data.data.cv_data;
-          
-          // Reorder work experience to top for display
-          const workIdx = parsed.sections.findIndex((s: any) => s.type === 'work_experience');
-          if (workIdx > 0) {
-            const workSec = parsed.sections.splice(workIdx, 1)[0];
-            parsed.sections.unshift(workSec);
-          }
           
           setCvData(parsed);
           setHasBaseline(true);
@@ -314,6 +307,25 @@ export default function ProfilePage() {
     setIsAddingSection(false);
   };
 
+  const moveSection = (index: number, direction: 'up' | 'down') => {
+    const newData = { ...cvData };
+    const sections = [...newData.sections];
+    
+    if (direction === 'up' && index > 0) {
+      [sections[index - 1], sections[index]] = [sections[index], sections[index - 1]];
+    } else if (direction === 'down' && index < sections.length - 1) {
+      [sections[index], sections[index + 1]] = [sections[index + 1], sections[index]];
+    } else {
+      return;
+    }
+    
+    newData.sections = sections;
+    setCvData(newData);
+    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(newData));
+    syncProfileToBackend(newData);
+    compilePdf(newData);
+  };
+
   const handleDownload = () => {
     if (!pdfUrl || !cvData) return;
     const a = document.createElement('a');
@@ -457,9 +469,19 @@ export default function ProfilePage() {
 
         {sections.map((section: any, sIdx: number) => (
           <div key={sIdx} className={styles.sectionGroup}>
-            <div className={styles.sectionHeader}>
+            <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 className={styles.sectionTitle}>{section.title}</h2>
-              <button className={styles.iconBtn} onClick={() => openItemEdit(sIdx, -1)}><Plus size={18}/></button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className={styles.iconBtnSmall} onClick={() => moveSection(sIdx, 'up')} disabled={sIdx === 0} title="Move Section Up">
+                  <ChevronUp size={16}/>
+                </button>
+                <button className={styles.iconBtnSmall} onClick={() => moveSection(sIdx, 'down')} disabled={sIdx === sections.length - 1} title="Move Section Down">
+                  <ChevronDown size={16}/>
+                </button>
+                <button className={styles.iconBtn} onClick={() => openItemEdit(sIdx, -1)} title="Add Item">
+                  <Plus size={18}/>
+                </button>
+              </div>
             </div>
 
             {section.type === 'projects' && (

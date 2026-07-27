@@ -49,7 +49,7 @@ export default function MatchesPage() {
     if (!window.confirm("Are you sure you want to delete this job match?")) return;
     try {
       const token = await getToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/jobs/${jobId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/jobs/saved/${jobId}`, {
         method: "DELETE",
         headers: { 'Authorization': `Bearer ${token}` }
       });
