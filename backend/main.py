@@ -20,7 +20,7 @@ from core.models import FullCVData
 from core.agent import setup_node, strategist_node, tailor_app
 
 from database import engine, get_db
-from models import Base, UserProfile, JobApplication, UserLesson
+from models import Base, UserProfile, JobApplication, UserLesson, SavedJob
 from security import encrypt_key, decrypt_key
 from auth import get_current_user_id
 
@@ -390,6 +390,42 @@ def get_applications(user_id: str = Depends(get_current_user_id), db: Session = 
             "role_name": app.role_name,
             "status": app.status or "Applied",
             "created_at": app.created_at.isoformat()
+        })
+    return {"status": "success", "data": result}
+
+class SaveJobRequest(BaseModel):
+    company_name: str
+    role_name: str
+    job_description: str
+    url: Optional[str] = None
+
+@app.post("/api/jobs/save")
+def save_job(req: SaveJobRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    job_id = str(uuid.uuid4())
+    new_job = SavedJob(
+        id=job_id,
+        clerk_id=user_id,
+        company_name=req.company_name,
+        role_name=req.role_name,
+        job_description=req.job_description,
+        url=req.url
+    )
+    db.add(new_job)
+    db.commit()
+    return {"status": "success", "id": job_id}
+
+@app.get("/api/jobs/saved")
+def get_saved_jobs(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    jobs = db.query(SavedJob).filter(SavedJob.clerk_id == user_id).order_by(SavedJob.created_at.desc()).all()
+    result = []
+    for job in jobs:
+        result.append({
+            "id": job.id,
+            "company_name": job.company_name,
+            "role_name": job.role_name,
+            "job_description": job.job_description,
+            "url": job.url,
+            "created_at": job.created_at.isoformat()
         })
     return {"status": "success", "data": result}
 

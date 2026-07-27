@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Cursiva Bookmarker",
+  "version": "1.0",
+  "description": "Bookmark jobs for Cursiva matchmaking",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://localhost/*",
+    "*://*.cursiva.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Save to Cursiva"
+  }
+}

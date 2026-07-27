@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { UserButton, useAuth, useUser } from "@clerk/nextjs";
-import { LayoutGrid, PlusCircle, User, Settings } from "lucide-react";
+import { LayoutGrid, PlusCircle, User, Settings, Target } from "lucide-react";
 import styles from "./layout.module.css";
 import React, { useEffect, useState } from "react";
 
@@ -10,6 +10,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [missingBaseline, setMissingBaseline] = useState<boolean | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [credits, setCredits] = useState<number | null>(() => {
     // Show cached credits immediately to avoid blank "..." on cold start
     if (typeof window !== 'undefined') {
@@ -20,6 +21,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
   const { getToken, isLoaded: authLoaded } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!authLoaded || !userLoaded) return;
@@ -148,6 +153,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <LayoutGrid size={22} />
             <span className={styles.navLabel}>Dashboard</span>
           </Link>
+          <Link href="/dashboard/matches" onClick={handleNavClick} className={`${styles.navItem} ${pathname.startsWith('/dashboard/matches') ? styles.active : ''}`}>
+            <Target size={22} />
+            <span className={styles.navLabel}>Job Matches</span>
+          </Link>
           <Link href="/dashboard/pipeline" onClick={handleNavClick} className={`${styles.navItem} ${pathname.startsWith('/dashboard/pipeline') ? styles.active : ''}`}>
             <PlusCircle size={22} />
             <span className={styles.navLabel}>New Application</span>
@@ -174,14 +183,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className={styles.navLabel} style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
               {user ? (user.firstName || (user.primaryEmailAddress ? user.primaryEmailAddress.emailAddress.split('@')[0] : "Account")) : "Account"}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <div className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
-                {getStatusText()}
+            {mounted ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div className={`${styles.userStatus} ${isError ? styles.userStatusError : styles.userStatusOnline}`}>
+                  {getStatusText()}
+                </div>
+                {credits !== null && credits <= 5 && (
+                  <Link href="/dashboard/settings" style={{ fontSize: '11px', color: '#6366f1', textDecoration: 'none', fontWeight: 600 }}>Top Up</Link>
+                )}
               </div>
-              {credits !== null && credits <= 5 && (
-                <Link href="/dashboard/settings" style={{ fontSize: '11px', color: '#6366f1', textDecoration: 'none', fontWeight: 600 }}>Top Up</Link>
-              )}
-            </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div className={`${styles.userStatus} ${styles.userStatusOnline}`}>
+                  Checking...
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </aside>

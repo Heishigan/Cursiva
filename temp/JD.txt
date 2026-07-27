@@ -1,0 +1,92 @@
+Development · GÖTEBORG · Hybrid
+AI Engineer
+
+Apply for this job
+
+At Stratsys, we offer a SaaS platform that helps organizations bring structure and clarity to business-critical areas such as GRC, ESG and Quality Business Management. Our solutions are used by both private and public organizations to manage regulatory requirements, streamline processes, and turn strategies and policies into everyday work.
+
+We are now looking for an AI Engineer to join our team in Gothenburg. In this role, you will help strengthen and scale our AI initiatives by building AI-driven services and supporting teams across the organization in developing AI-powered features and solutions.
+
+WHAT’S IN IT FOR YOU? 💡
+
+Opportunity to join a growing AI initiative where you will have significant influence on both technical direction and ways of working
+
+Work hands-on with modern AI technologies and AI-driven system development in a pragmatic and product-focused environment
+
+Collaborate closely with experienced developers and contribute to shaping how AI is applied across the organization
+
+Build solutions that create tangible business impact and help scale AI capabilities across multiple teams
+
+Join a high-energy, close-knit team where successes are shared and celebrated together. Take a look at our Instagram to get an insight into our culture.
+
+Work from our modern and centrally located office at Kungsportplatsen in Gothenburg
+
+Join a company with great benefits – read more about our benefits here!
+
+ABOUT THE ROLE 📌
+
+As an AI Engineer, you play a key role in strengthening and scaling Stratsys’ AI capabilities. The role combines software engineering with practical AI development, focusing on building systems and services around modern AI technologies rather than developing models from scratch.
+
+You will be part of a small AI-focused team working closely together across several ongoing initiatives. Collaboration, experimentation, and shared ownership are central parts of how the team works, with a strong focus on continuously evolving AI capabilities across the organization.
+
+The role includes both hands-on development and a more exploratory way of working where you test and evaluate new AI-related approaches, explore what works in practice and collaborate closely with stakeholders to identify relevant use cases and solutions.
+
+You will also support other development teams within the organization as a technical sounding board around AI features and AI-related initiatives. This can include discussions around implementation approaches, technical feasibility, and how AI capabilities can be integrated in a sustainable and scalable way.
+
+Key parts of the role include:
+
+Developing and maintaining AI-driven services and solutions, primarily in Python
+
+Building systems and functionality around AI models
+
+Collaborating closely with other development teams around AI-related initiatives and features
+
+Acting as a technical advisor and sounding board around AI solutions and implementations
+
+Exploring and evaluating new technologies, methods, use cases and contributing to scaling Stratsys AI initiatives
+
+Collaborating with stakeholders across the business to identify opportunities where AI can create value
+
+THE TEAM 👥
+
+You will be part of a small and growing AI-focused team working closely together across several ongoing initiatives. Since the team operates in an area where both technology and ways of working evolve rapidly, collaboration, curiosity, and knowledge sharing are key parts of the culture.
+
+The team works closely with both the business and other development teams across the organization, supporting AI-related initiatives and helping translate ideas into practical solutions.
+
+YOUR BACKGROUND ✔️
+
+Experience with Python development
+
+Practical experience working with AI-related solutions or AI-driven development
+
+Experience within software or system development
+
+Bachelor’s or master’s degree within computer science, engineering, systems science, or a related technical field
+
+Fluent in Swedish and English, written and spoken
+
+Bonus qualifications
+
+Experience with LangChain or similar AI frameworks
+
+Experience with AI assistants, agent-based systems, or AI integrations
+
+Experience with architecture and system design
+
+Experience working in SaaS or product companies
+
+Experience collaborating closely with both technical and non-technical stakeholders
+
+ABOUT YOU 👀
+
+To thrive in this role, we believe you are a self-driven and pragmatic person who enjoys working in an environment where not everything is fully defined from the start.
+
+You are curious about new technologies, enjoy solving problems, and are comfortable exploring new approaches and ideas. Rather than waiting for detailed specifications, you take initiative and help drive work forward.
+
+We also believe you have strong collaboration skills and know how to balance technical ambition with pragmatism and business value. You are comfortable contributing with ideas and perspectives while still being humble and team-oriented. At Stratsys, we value people who create momentum and focus on building practical solutions that make a real difference.
+
+WHY STRATSYS? 🚀
+
+At Stratsys, you will join at an exciting stage where AI is becoming an increasingly important part of both our products and internal ways of working. You will have the opportunity to influence both technology choices and ways of working while contributing to the long-term development of our AI capabilities. As part of a small and growing team, your impact will be visible, meaningful, and long-term.
+
+Meet Gustav, AI Engineer at Stratsys
