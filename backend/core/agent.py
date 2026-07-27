@@ -76,7 +76,12 @@ def setup_node(state: AgentState):
         ("user", "Job Description:\n{job_description}\n\nGeneric CV:\n{generic_cv}")
     ])
     chain = prompt | get_llm_setup(state["api_key"])
-    res = chain.invoke({"job_description": state["job_description"], "generic_cv": state["generic_cv_raw"]})
+    
+    try:
+        res = chain.invoke({"job_description": state["job_description"], "generic_cv": state["generic_cv_raw"]})
+    except Exception as e:
+        print(f"Sanity Check LLM Exception: {e}")
+        res = None
     
     company = ""
     role = ""
@@ -90,7 +95,8 @@ def setup_node(state: AgentState):
         "job_summary": res.job_summary if res else "",
         "key_requirements": res.key_requirements if res else [],
         "eligibility_passed": res.eligibility_passed if res else True,
-        "eligibility_reason": res.eligibility_reason if res else ""
+        "eligibility_reason": res.eligibility_reason if res else "",
+        "is_valid_job_description": res.is_valid_job_description if res else False
     }
 
 def strategist_node(state: AgentState):
@@ -120,8 +126,8 @@ def tailor_node(state: AgentState):
     2. NEVER use em dashes (---) in paragraph text.
     3. CV ORDERING: The final `sections` array MUST be strictly ordered as follows: "Work Experience", then "Education", then "Projects", then "Skills". Do NOT deviate from this order.
     4. For the 'projects' section ONLY: You MUST select exactly 5 projects (always including the Master's Thesis and BSc Final-Year Project). You MUST reorder the 5 selected projects so that the most relevant projects for this specific role appear at the top.
-    5. For ALL OTHER sections: You MUST include every single item from the generic CV exactly as they appear (do not delete or add items). Only rewrite their bullet points to inject ATS keywords if naturally possible.
-    6. ATS KEYWORD STRATEGY: You may only inject ATS keywords if they logically fit into the existing narrative of the item. Do NOT fundamentally change the story, scope, or technical achievements of any item. 
+    5. For ALL OTHER sections: You MUST include every single item from the generic CV exactly as they appear (do not delete or add items). You are encouraged to carefully rephrase their bullet points to match the exact ATS keywords from the Job Description, but ONLY if the keywords logically align with the candidate's existing experience.
+    6. ATS KEYWORD STRATEGY: If the generic CV already demonstrates a related skill, you should adjust the phrasing to explicitly include the JD's exact keyword. You may only inject ATS keywords if they logically fit into the existing narrative of the item. Do NOT fundamentally change the story, scope, or technical achievements of any item. 
     7. The original item's authenticity must never be compromised. 
     8. NEVER change the 'Tools Used' or similar context line (e.g., "ReactJS, Firebase, Agile, Git" MUST remain identical). Only weave keywords into the bullet points.
     9. NO MARKDOWN FORMATTING: Do NOT use markdown bolding (e.g. **keyword**) or italics anywhere in your output. Output raw, plain text only.

@@ -3,8 +3,13 @@
 import styles from '@/app/dashboard/pipeline/pipeline.module.css';
 import { useState, useEffect } from 'react';
 
-export default function PasteJdStep({ onSubmit }: { onSubmit: (text: string) => void }) {
-  const [text, setText] = useState("");
+interface PasteJdStepProps {
+  onSubmit: (jdText: string) => void;
+  initialText?: string;
+}
+
+export default function PasteJdStep({ onSubmit, initialText = "" }: PasteJdStepProps) {
+  const [text, setText] = useState(initialText);
 
   useEffect(() => {
     if (text.trim().length > 0) {

@@ -18,6 +18,7 @@ class JobMetadata(BaseModel):
     key_requirements: List[str] = Field(description="A bulleted list of 3-5 key technical and soft requirements for the role.")
     eligibility_passed: bool = Field(description="True if the candidate meets absolute hard requirements (visa/location/language). False if there's a hard mismatch.")
     eligibility_reason: str = Field(description="If eligibility_passed is False, explain the exact hard requirement mismatch. If True, leave empty.")
+    is_valid_job_description: bool = Field(default=True, description="True if the provided text appears to be a real job description. False if it is garbage, gibberish, or completely unrelated text.")
 
 class StrategyResult(BaseModel):
     fit_assessment: str = Field(description="A clear assessment of how well the candidate fits the role (e.g., 'Strong Fit', 'Moderate Fit', 'Low Fit'), including a brief explanation so the candidate can save time if it's a massive stretch.")
