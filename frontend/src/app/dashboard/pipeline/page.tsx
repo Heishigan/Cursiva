@@ -61,6 +61,22 @@ export default function PipelinePage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step]);
 
+  // Check for pre-filled JD from matches page or backup
+  useEffect(() => {
+    const draftJd = localStorage.getItem("cursiva_draft_jd");
+    const backupJd = localStorage.getItem("cursiva_backup_jd");
+    
+    if (draftJd) {
+      setJdText(draftJd);
+      localStorage.removeItem("cursiva_draft_jd");
+      localStorage.removeItem("cursiva_draft_company");
+      localStorage.removeItem("cursiva_draft_role");
+      localStorage.setItem("cursiva_backup_jd", draftJd);
+    } else if (backupJd && !jdText) {
+      setJdText(backupJd);
+    }
+  }, []);
+
   useEffect(() => {
     if (step === 1 && jdText.trim() === "") {
       sessionStorage.setItem("safeToLeave", "true");
@@ -83,6 +99,7 @@ export default function PipelinePage() {
       return;
     }
     setJdText(text);
+    localStorage.setItem("cursiva_backup_jd", text);
     setIsProcessing(true);
     setLogs([]);
     setEligibilityWarning(null);
@@ -116,6 +133,7 @@ export default function PipelinePage() {
       const decoder = new TextDecoder("utf-8");
       
       let buffer = "";
+      let streamCompleted = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -131,6 +149,7 @@ export default function PipelinePage() {
               if (data.type === 'status') {
                 setLogs(prev => [...prev, data.message]);
               } else if (data.type === 'result') {
+                streamCompleted = true;
                 if (data.status === 'success') {
                   setJobMetadata(data.metadata);
                   setStrategyResult(data.strategy);
@@ -145,6 +164,11 @@ export default function PipelinePage() {
           }
         }
       }
+      
+      if (!streamCompleted) {
+        throw new Error("Connection lost or backend timed out before completing the process.");
+      }
+      
     } catch (error) {
       console.error(error);
       alert("Pipeline failed.");
@@ -323,7 +347,7 @@ export default function PipelinePage() {
           </div>
         ) : (
           <>
-            {step === 1 && <PasteJdStep onSubmit={submitJd} />}
+            {step === 1 && <PasteJdStep initialText={jdText} onSubmit={submitJd} />}
             {step === 2 && <StrategyStep result={strategyResult} jobMetadata={jobMetadata} onSubmit={submitStrategy} />}
             {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
             {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); }} />}
