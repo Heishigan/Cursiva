@@ -152,9 +152,9 @@ export default function MatchesPage() {
           <button onClick={() => setIsManualModalOpen(true)} style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
             <Plus size={16} /> Add Manually
           </button>
-          <a href="#" target="_blank" rel="noopener noreferrer" style={{ padding: '10px 16px', background: 'white', color: 'black', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', textDecoration: 'none' }}>
+          <button onClick={() => window.alert("The extension is currently awaiting approval by the Chrome Web Store. Check back soon!")} style={{ padding: '10px 16px', background: 'white', color: 'black', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
             <Download size={16} /> Get Extension
-          </a>
+          </button>
         </div>
       </header>
 
@@ -168,9 +168,9 @@ export default function MatchesPage() {
             <Target size={48} color="rgba(255,255,255,0.2)" />
             <p style={{ maxWidth: '400px', margin: '0 auto', lineHeight: 1.5 }}>You haven't saved any jobs yet. Use the Chrome Extension to bookmark jobs you like across the web, or add them manually.</p>
             <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-              <a href="#" target="_blank" rel="noopener noreferrer" style={{ padding: '12px 24px', background: 'white', color: 'black', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+              <button onClick={() => window.alert("The extension is currently awaiting approval by the Chrome Web Store. Check back soon!")} style={{ padding: '12px 24px', background: 'white', color: 'black', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Download size={18} /> Install Chrome Extension
-              </a>
+              </button>
               <button onClick={() => setIsManualModalOpen(true)} style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Plus size={18} /> Add Manually
               </button>
