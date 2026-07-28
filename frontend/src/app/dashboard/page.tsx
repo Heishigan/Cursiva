@@ -16,6 +16,9 @@ export default function DashboardPage() {
   const [editForm, setEditForm] = useState({ company_name: '', role_name: '', status: '', created_at: '' });
   const [appToDelete, setAppToDelete] = useState<string | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     if (!isLoaded || !user) return;
     const fetchStatus = async () => {
@@ -108,6 +111,9 @@ export default function DashboardPage() {
     interviewing: applications.filter(a => a.status === 'Interviewing').length,
     rejected: applications.filter(a => a.status === 'Rejected').length
   };
+
+  const totalPages = Math.ceil(applications.length / itemsPerPage);
+  const paginatedApplications = applications.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className={styles.container}>
@@ -208,7 +214,7 @@ export default function DashboardPage() {
             </div>
             
             <div className={styles.appList}>
-              {applications.map((app, index) => (
+              {paginatedApplications.map((app, index) => (
                 <div key={app.id} className={styles.appCard} style={{ animationDelay: `${0.5 + index * 0.1}s` }}>
                   {editingId === app.id ? (
                     <>
@@ -276,6 +282,22 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+            
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px', alignItems: 'center' }}>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                  disabled={currentPage === 1}
+                  style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: currentPage === 1 ? 'rgba(255,255,255,0.3)' : 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                >Previous</button>
+                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>Page {currentPage} of {totalPages}</span>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                  disabled={currentPage === totalPages}
+                  style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: currentPage === totalPages ? 'rgba(255,255,255,0.3)' : 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                >Next</button>
+              </div>
+            )}
           </div>
         )}
       </div>

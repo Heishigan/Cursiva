@@ -20,7 +20,7 @@ from core.models import FullCVData
 from core.agent import setup_node, strategist_node, tailor_app
 
 from database import engine, get_db
-from models import Base, UserProfile, JobApplication, UserLesson
+from models import Base, UserProfile, JobApplication, UserLesson, SavedJob
 from security import encrypt_key, decrypt_key
 from auth import get_current_user_id
 
@@ -154,7 +154,7 @@ async def parse_pdf(
         setup_llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.environ.get("OPENAI_API_KEY"))
         structured_llm = setup_llm.with_structured_output(FullCVData)
         prompt = ChatPromptTemplate.from_messages([
-            ("system", "Extract the candidate's information from the unstructured text and map it precisely to the provided schema. For the 'type' field in sections, map them correctly to 'skills', 'education', 'projects', 'work_experience' or 'custom' depending on content. Do not hallucinate. Leave fields empty if not present in the text."),
+            ("system", "Extract the candidate's information from the unstructured text and map it precisely to the provided schema. For the 'type' field in sections, map them correctly to 'skills', 'education', 'projects', 'work_experience' or 'custom' depending on content. Do not hallucinate. Leave fields empty if not present in the text.\n\nCRITICAL ORDERING RULE: You MUST order the extracted sections in the `sections` array strictly as follows: 'Work Experience', then 'Education', then 'Projects', then 'Skills'. Do NOT deviate from this order."),
             ("user",   "CV Text:\n{text}")
         ])
         
@@ -392,6 +392,76 @@ def get_applications(user_id: str = Depends(get_current_user_id), db: Session = 
             "created_at": app.created_at.isoformat()
         })
     return {"status": "success", "data": result}
+
+class SaveJobRequest(BaseModel):
+    job_description: str
+    url: Optional[str] = None
+
+class JobExtract(BaseModel):
+    company_name: str
+    role_name: str
+
+@app.post("/api/jobs/save")
+def save_job(req: SaveJobRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    
+    # Extract company and role
+    try:
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=os.environ.get("OPENAI_API_KEY"))
+        structured_llm = llm.with_structured_output(JobExtract)
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "Extract the company name and role name from the provided job description. If not explicitly stated, infer them or output 'Unknown'."),
+            ("user", "{text}")
+        ])
+        res = (prompt | structured_llm).invoke({"text": req.job_description})
+        company_name = res.company_name
+        role_name = res.role_name
+    except Exception as e:
+        company_name = "Unknown"
+        role_name = "Unknown"
+
+    job_id = str(uuid.uuid4())
+    new_job = SavedJob(
+        id=job_id,
+        clerk_id=user_id,
+        company_name=company_name,
+        role_name=role_name,
+        job_description=req.job_description,
+        url=req.url
+    )
+    db.add(new_job)
+    db.commit()
+    return {"status": "success", "id": job_id}
+
+import random
+
+@app.get("/api/jobs/matches")
+def get_saved_jobs(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    jobs = db.query(SavedJob).filter(SavedJob.clerk_id == user_id).order_by(SavedJob.created_at.desc()).all()
+    result = []
+    
+    # Using a deterministic pseudo-random score based on job ID for now (until embeddings are added)
+    for job in jobs:
+        score = 75 + (hash(job.id) % 20)
+        result.append({
+            "id": job.id,
+            "company_name": job.company_name,
+            "role_name": job.role_name,
+            "job_description": job.job_description,
+            "url": job.url,
+            "match_score": score,
+            "created_at": job.created_at.isoformat()
+        })
+    return {"status": "success", "data": result}
+
+@app.delete("/api/jobs/saved/{job_id}")
+def delete_saved_job(job_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    job = db.query(SavedJob).filter(SavedJob.id == job_id, SavedJob.clerk_id == user_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Saved job not found")
+        
+    db.delete(job)
+    db.commit()
+    return {"status": "success"}
 
 @app.get("/api/applications/{app_id}")
 def get_application(app_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
