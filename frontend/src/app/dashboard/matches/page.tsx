@@ -62,7 +62,7 @@ export default function MatchesPage() {
   };
 
   const handleAddManualSubmit = async () => {
-    if (!manualJd.trim()) return;
+    if (!manualJd.trim() || !manualUrl.trim()) return;
     setIsSubmittingManual(true);
     try {
       const token = await getToken();
@@ -113,7 +113,7 @@ export default function MatchesPage() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>Job URL (Optional)</label>
+                <label style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>Job URL *</label>
                 <input 
                   type="url" 
                   value={manualUrl} 
@@ -135,7 +135,7 @@ export default function MatchesPage() {
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button onClick={() => setIsManualModalOpen(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
-              <button onClick={handleAddManualSubmit} disabled={!manualJd.trim() || isSubmittingManual} style={{ padding: '10px 20px', background: 'var(--accent-1)', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 600, cursor: !manualJd.trim() || isSubmittingManual ? 'not-allowed' : 'pointer', opacity: !manualJd.trim() || isSubmittingManual ? 0.5 : 1 }}>
+              <button onClick={handleAddManualSubmit} disabled={!manualJd.trim() || !manualUrl.trim() || isSubmittingManual} style={{ padding: '10px 20px', background: 'var(--accent-1)', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 600, cursor: (!manualJd.trim() || !manualUrl.trim() || isSubmittingManual) ? 'not-allowed' : 'pointer', opacity: (!manualJd.trim() || !manualUrl.trim() || isSubmittingManual) ? 0.5 : 1 }}>
                 {isSubmittingManual ? "Analyzing & Saving..." : "Save Job Match"}
               </button>
             </div>
