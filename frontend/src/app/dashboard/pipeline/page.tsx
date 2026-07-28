@@ -73,7 +73,8 @@ export default function PipelinePage() {
       localStorage.removeItem("cursiva_draft_role");
       localStorage.setItem("cursiva_backup_jd", draftJd);
     } else if (backupJd && !jdText) {
-      setJdText(backupJd);
+      // Intentionally removed backupJd pre-fill to ensure New Application is empty unless coming from Draft
+      // setJdText(backupJd);
     }
   }, []);
 

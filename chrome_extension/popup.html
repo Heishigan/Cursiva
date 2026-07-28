@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 300px; padding: 10px; font-family: sans-serif; }
+    button { padding: 8px 12px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 10px; }
+    input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+    #status { margin-top: 10px; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <h3>Cursiva Bookmarker</h3>
+  <div id="setup-view">
+    <label>API Key (Clerk Token)</label>
+    <input type="password" id="api-key" placeholder="Enter token..." />
+    <button id="save-key">Save Token</button>
+  </div>
+  <div id="main-view" style="display: none;">
+    <p>Click below to extract the job description from this page and send it to Cursiva.</p>
+    <button id="bookmark-btn">Bookmark Job</button>
+  </div>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
