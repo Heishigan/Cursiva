@@ -296,7 +296,7 @@
   width: 100%;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1024px) and (min-width: 769px) {
   .tableWrapper {
     overflow-x: auto;
     padding-bottom: 1rem;
@@ -308,5 +308,53 @@
   
   .colActions {
     opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .tableHeader {
+    display: none;
+  }
+  
+  .appCard {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 20px;
+  }
+  
+  .appCard > div {
+    width: 100%;
+  }
+  
+  .colActions {
+    opacity: 1;
+    justify-content: flex-start !important; /* Override inline styles from React */
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .colDate {
+    order: -1; /* Put date at the top */
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+  }
+  
+  .colCompany {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+  
+  .colRole {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  
+  .colStatus {
+    display: flex;
+    justify-content: flex-start;
   }
 }
