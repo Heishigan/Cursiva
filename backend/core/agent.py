@@ -120,11 +120,25 @@ def strategist_node(state: AgentState):
     }
 
 def tailor_node(state: AgentState):
-    rules = """
+    cv_context = state.get("generic_cv_raw", "")
+    
+    order_str = '"Work Experience", then "Education", then "Projects", then "Skills"'
+    try:
+        if cv_context:
+            baseline_data = json.loads(cv_context)
+            sections = baseline_data.get("sections", [])
+            if sections:
+                section_order = [sec.get("title", "") for sec in sections if sec.get("title")]
+                if section_order:
+                    order_str = ", then ".join(f'"{title}"' for title in section_order)
+    except Exception:
+        pass
+
+    rules = f"""
     STRICT RULES:
     1. DO NOT invent or hallucinate any skills, metrics, or technologies not present in the generic CV OR the Supplemental Candidate Context. You MUST incorporate any facts, projects, or tools explicitly mentioned in the Supplemental Context.
     2. NEVER use em dashes (---) in paragraph text.
-    3. CV ORDERING: The final `sections` array MUST be strictly ordered as follows: "Work Experience", then "Education", then "Projects", then "Skills". Do NOT deviate from this order.
+    3. CV ORDERING: The final `sections` array MUST be strictly ordered as follows: {order_str}. Do NOT deviate from this order.
     4. For the 'projects' section ONLY: You MUST select exactly 5 projects (always including the Master's Thesis and BSc Final-Year Project). You MUST reorder the 5 selected projects so that the most relevant projects for this specific role appear at the top.
     5. For ALL OTHER sections: You MUST include every single item from the generic CV exactly as they appear (do not delete or add items). **CRITICAL:** You MUST preserve the exact original top-to-bottom order of the items, AND the exact original top-to-bottom order of the bullet points within each item, exactly as they appear in the generic CV. Do NOT reorder them. You are encouraged to carefully rephrase their bullet points to match the exact ATS keywords from the Job Description, but ONLY if the keywords logically align with the candidate's existing experience.
     6. ATS KEYWORD STRATEGY: If the generic CV already demonstrates a related skill, you should adjust the phrasing to explicitly include the JD's exact keyword. You may only inject ATS keywords if they logically fit into the existing narrative of the item. Do NOT fundamentally change the story, scope, or technical achievements of any item. 
