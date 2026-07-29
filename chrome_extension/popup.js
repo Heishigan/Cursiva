@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Find the Cursiva tab to get a fresh token dynamically
     let allTabs = await chrome.tabs.query({});
-    let cursivaTabs = allTabs.filter(t => t.url && (t.url.includes('localhost:3000') || t.url.includes('cursiva.com')));
+    let cursivaTabs = allTabs.filter(t => t.url && (t.url.includes('localhost:3000') || t.url.includes('cursiva.se')));
     
     if (cursivaTabs.length === 0) {
       statusDiv.innerText = "Error: Please keep Cursiva open in another tab to authenticate.";
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const jd = results[0].result;
           statusDiv.innerText = "Sending to Cursiva...";
           
-          fetch("http://localhost:8000/api/jobs/save", {
+          fetch("https://cursiva-backend-1045461593148.europe-north1.run.app/api/jobs/save", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
