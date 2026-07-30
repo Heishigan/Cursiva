@@ -250,6 +250,7 @@ export default function PipelinePage() {
                     localStorage.setItem(`diff_tailored_cv_${user.id}`, JSON.stringify(data.tailored_cv));
                     localStorage.setItem(`diff_job_role_${user.id}`, jobMetadata?.role_name || "");
                     localStorage.setItem(`diff_company_${user.id}`, jobMetadata?.company_name || "");
+                    localStorage.setItem(`diff_company_location_${user.id}`, jobMetadata?.company_location || "Sweden");
                     localStorage.setItem(`diff_cl_${user.id}`, JSON.stringify(data.cover_letter_parts));
                     localStorage.setItem(`diff_jd_${user.id}`, jdText);
                     localStorage.setItem(`diff_strategy_${user.id}`, strategyResult?.strategy_plan || "");

@@ -83,6 +83,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
         body: JSON.stringify({
           personal_info: cvData.personal_info,
           company_name: data.company || "",
+          company_location: clPayload.company_location || "Sweden",
           cover_letter_paragraphs: paragraphs
         })
       });

@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const { getToken } = useAuth();
   const today = format(new Date(), "EEEE, MMMM d, yyyy");
   const [credits, setCredits] = useState<number | null>(null);
+  const [parsedName, setParsedName] = useState<string | null>(null);
 
   const [applications, setApplications] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export default function DashboardPage() {
         const data = await res.json();
         if (data.status === "success") {
           setCredits(data.data.credits || 0);
+          setParsedName(data.data.cv_data?.personal_info?.name || null);
         }
       } catch (e) {
         console.error("Failed to fetch status", e);
@@ -147,10 +149,10 @@ export default function DashboardPage() {
       )}
 
       <header className={styles.header}>
-        <div className={styles.date}>{today}</div>
         <h1 className={styles.greeting}>
-          {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, {isLoaded && user ? user.firstName || "Heishigan" : "..."}
+          {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, {parsedName || (isLoaded && user ? user.firstName : null) || "Guest"}
         </h1>
+        <p className={styles.date}>{today}</p>
         <p className={styles.subtitle}>Streamlining your technical applications.</p>
       </header>
 

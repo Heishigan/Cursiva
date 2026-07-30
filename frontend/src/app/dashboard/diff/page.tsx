@@ -84,6 +84,7 @@ export default function DiffViewer() {
           body: JSON.stringify({
             personal_info: cvData.personal_info,
             company_name: company,
+            company_location: localStorage.getItem(`diff_company_location_${user?.id || 'default'}`) || "Sweden",
             cover_letter_paragraphs: clData
           })
         });

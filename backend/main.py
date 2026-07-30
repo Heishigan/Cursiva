@@ -246,6 +246,7 @@ def submit_feedback(req: FeedbackRequest, user_id: str = Depends(get_current_use
 class CompileCLRequest(BaseModel):
     personal_info: dict
     company_name: str
+    company_location: str = "Sweden"
     cover_letter_paragraphs: list
 
 @app.post("/api/compile_cl")
@@ -261,6 +262,7 @@ def compile_cl(req: CompileCLRequest, user_id: str = Depends(get_current_user_id
     tex_content = template.render(
         personal_info=_escape_data(req.personal_info),
         company_name=_escape_data(req.company_name),
+        company_location=_escape_data(req.company_location),
         cover_letter_paragraphs=safe_paragraphs
     )
     

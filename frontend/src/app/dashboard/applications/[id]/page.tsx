@@ -82,6 +82,7 @@ export default function ApplicationDetailPage() {
         body: JSON.stringify({
           personal_info: cvPayload.personal_info,
           company_name: data.company_name,
+          company_location: clPayload.company_location || "Sweden",
           cover_letter_paragraphs: paragraphs
         })
       });

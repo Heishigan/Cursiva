@@ -92,6 +92,7 @@ def setup_node(state: AgentState):
     return {
         "company_name": company, 
         "role_name": role,
+        "company_location": res.company_location if res else "Sweden",
         "job_summary": res.job_summary if res else "",
         "key_requirements": res.key_requirements if res else [],
         "eligibility_passed": res.eligibility_passed if res else True,
