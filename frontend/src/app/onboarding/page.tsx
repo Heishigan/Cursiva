@@ -372,9 +372,9 @@ export default function Onboarding() {
                       <p className={profileStyles.summary}>{cvData.professional_summary || 'Your professional summary'}</p>
                       <p className={profileStyles.location}>{cvData.personal_info.location}</p>
                       <div className={profileStyles.socials}>
-                        {cvData.personal_info.github && <a href={cvData.personal_info.github} target="_blank" rel="noreferrer"><FaGithub size={16}/> GitHub</a>}
-                        {cvData.personal_info.linkedin && <a href={cvData.personal_info.linkedin} target="_blank" rel="noreferrer"><FaLinkedin size={16}/> LinkedIn</a>}
-                        {cvData.personal_info.portfolio && <a href={cvData.personal_info.portfolio} target="_blank" rel="noreferrer"><Globe size={16}/> Portfolio</a>}
+                        {cvData.personal_info.github && <a href={cvData.personal_info.github.startsWith('http') ? cvData.personal_info.github : 'https://' + cvData.personal_info.github} target="_blank" rel="noreferrer"><FaGithub size={16}/> GitHub</a>}
+                        {cvData.personal_info.linkedin && <a href={cvData.personal_info.linkedin.startsWith('http') ? cvData.personal_info.linkedin : 'https://' + cvData.personal_info.linkedin} target="_blank" rel="noreferrer"><FaLinkedin size={16}/> LinkedIn</a>}
+                        {cvData.personal_info.portfolio && <a href={cvData.personal_info.portfolio.startsWith('http') ? cvData.personal_info.portfolio : 'https://' + cvData.personal_info.portfolio} target="_blank" rel="noreferrer"><Globe size={16}/> Portfolio</a>}
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

@@ -197,6 +197,14 @@ def _escape_data(obj):
 @app.post("/api/compile_cv")
 def compile_cv(req: FullCVData, user_id: str = Depends(get_current_user_id)):
     data = req.model_dump()
+    
+    # Ensure URLs have https:// prefix for valid LaTeX hyperlinks
+    if 'personal_info' in data and data['personal_info']:
+        for key in ['github', 'linkedin', 'portfolio']:
+            url = data['personal_info'].get(key, '')
+            if url and not url.startswith('http'):
+                data['personal_info'][key] = 'https://' + url
+
     # Apply escaping to prevent LaTeX compilation errors
     safe_data = _escape_data(data)
     
