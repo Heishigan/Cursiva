@@ -18,6 +18,7 @@ class JobMetadata(BaseModel):
     key_requirements: List[str] = Field(description="A bulleted list of 3-5 key technical and soft requirements for the role.")
     eligibility_passed: bool = Field(description="True if the candidate meets absolute hard requirements (visa/location/language). False if there's a hard mismatch.")
     eligibility_reason: str = Field(description="If eligibility_passed is False, explain the exact hard requirement mismatch. If True, leave empty.")
+    company_location: str = Field(default="", description="Location of the company. If not mentioned in the JD, leave blank.")
     is_valid_job_description: bool = Field(default=True, description="True if the provided text appears to be a real job description. False if it is garbage, gibberish, or completely unrelated text.")
 
 class StrategyResult(BaseModel):
@@ -65,6 +66,7 @@ class CoverLetterOutput(BaseModel):
     curiosity: str = Field(description="Paragraph showing genuine interest in the company's work.")
     fit: str = Field(description="Paragraph showing cultural or strategic alignment.")
     sign_off: str = Field(description="The sign-off and name.")
+    company_location: str = Field(default="Sweden", description="The location/address of the company hiring, if mentioned in the JD. Otherwise 'Sweden'.")
 
 # --- STATE DEFINITION ---
 class AgentState(TypedDict):
@@ -74,6 +76,7 @@ class AgentState(TypedDict):
     generic_cv_raw: str
     company_name: str
     role_name: str
+    company_location: str
     job_summary: str
     key_requirements: list
     eligibility_passed: bool

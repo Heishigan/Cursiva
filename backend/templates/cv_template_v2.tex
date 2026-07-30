@@ -37,16 +37,18 @@
 %----------------------------------------------------------------------------------------
 
 \begin{center}
-    {\LARGE\bfseries Heishigan Pathmaraj}\\[0.5em]
+    {\LARGE\bfseries {{ personal_info.get('name', '') }} }\\[0.5em]
     {\small
-        Stockholm, Sweden \quad$\cdot$\quad
-        +46 76 979 66 94 \quad$\cdot$\quad
-        \href{mailto:hej@heishi.se}{hej@heishi.se}\\[0.25em]
-        \href{https://github.com/Heishigan}{github.com/Heishigan}
+        {{ personal_info.get('location', '') }} \quad$\cdot$\quad
+        {{ personal_info.get('phone', '') }} \quad$\cdot$\quad
+        \href{mailto:{{ personal_info.get('email', '') }} }{ {{- personal_info.get('email', '') -}} }\\[0.25em]
+        \href{ {{- personal_info.get('github', '') -}} }{ {{- personal_info.get('github', '')|replace('https://', '') -}} }
         \quad$\cdot$\quad
-        \href{https://www.linkedin.com/in/heishigan/}{linkedin.com/in/heishigan}
+        \href{ {{- personal_info.get('linkedin', '') -}} }{ {{- personal_info.get('linkedin', '')|replace('https://', '')|replace('www.', '') -}} }
+        {%- if personal_info.get('portfolio', '') %}
         \quad$\cdot$\quad
-        \href{https://heishi.se}{heishi.se}
+        \href{ {{- personal_info.get('portfolio', '') -}} }{ {{- personal_info.get('portfolio', '')|replace('https://', '') -}} }
+        {%- endif %}
     }
 \end{center}
 
