@@ -363,7 +363,9 @@ export default function PipelinePage() {
           <div style={{ backgroundColor: '#422006', border: '1px solid #f59e0b', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(245, 158, 11, 0.25)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#fbbf24' }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
-              <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>Eligibility Warning</h2>
+              <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>
+                {eligibilityWarning.includes("Duplicate") || eligibilityWarning.includes("duplicate") ? "Duplicate Application Detected" : "Eligibility Warning"}
+              </h2>
             </div>
             <p style={{ color: '#fcd34d', fontSize: '15px', lineHeight: '1.5', marginBottom: '24px' }}>
               {eligibilityWarning}

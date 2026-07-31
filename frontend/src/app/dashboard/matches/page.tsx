@@ -11,6 +11,9 @@ export default function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemsToDelete, setItemsToDelete] = useState<string[]>([]);
 
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [manualUrl, setManualUrl] = useState("");
@@ -45,20 +48,46 @@ export default function MatchesPage() {
     window.location.href = "/dashboard/pipeline";
   };
 
-  const handleDelete = async (jobId: string) => {
-    if (!window.confirm("Are you sure you want to delete this job match?")) return;
+  const confirmDelete = (ids: string[]) => {
+    setItemsToDelete(ids);
+    setShowDeleteModal(true);
+  };
+
+  const executeDelete = async () => {
+    const ids = itemsToDelete;
+    if (ids.length === 0) return;
+    
     try {
       const token = await getToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/jobs/saved/${jobId}`, {
-        method: "DELETE",
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/jobs/saved/batch-delete`, {
+        method: "POST",
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids })
       });
       if (res.ok) {
-        setMatches(matches.filter(j => j.id !== jobId));
+        setMatches(matches.filter(j => !ids.includes(j.id)));
+        setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
+        setShowDeleteModal(false);
       }
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === paginatedMatches.length) {
+      setSelectedIds(prev => prev.filter(id => !paginatedMatches.map(j => j.id).includes(id)));
+    } else {
+      const newSelected = new Set([...selectedIds, ...paginatedMatches.map(j => j.id)]);
+      setSelectedIds(Array.from(newSelected));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
   const handleAddManualSubmit = async () => {
@@ -103,6 +132,36 @@ export default function MatchesPage() {
 
   return (
     <div className={styles.container}>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
+          <div style={{ background: '#0f111a', padding: '32px', borderRadius: '24px', width: '420px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 24px 48px -12px rgba(239, 68, 68, 0.2)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f87171', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trash2 size={24} /> {itemsToDelete.length > 1 ? `Delete ${itemsToDelete.length} Matches?` : 'Delete Match?'}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', lineHeight: 1.6 }}>
+              {itemsToDelete.length > 1 
+                ? `Are you absolutely sure you want to delete these ${itemsToDelete.length} job matches? This action cannot be undone.`
+                : `Are you absolutely sure you want to delete this job match? This action cannot be undone.`}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowDeleteModal(false)} 
+                style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeDelete} 
+                style={{ padding: '10px 20px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)' }}
+              >
+                Yes, delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isManualModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
           <div style={{ background: '#0f111a', padding: '32px', borderRadius: '24px', width: '600px', maxWidth: '90%', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.5)' }}>
@@ -149,6 +208,11 @@ export default function MatchesPage() {
           <p className={styles.subtitle}>Your saved jobs, ranked by semantic fit against your generic CV.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {selectedIds.length > 0 && (
+            <button onClick={() => confirmDelete(selectedIds)} style={{ padding: '10px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <Trash2 size={16} /> Delete Selected ({selectedIds.length})
+            </button>
+          )}
           <button onClick={() => setIsManualModalOpen(true)} style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
             <Plus size={16} /> Add Manually
           </button>
@@ -178,7 +242,10 @@ export default function MatchesPage() {
           </div>
         ) : (
           <div className={styles.tableWrapper}>
-            <div className={styles.tableHeader}>
+            <div className={styles.tableHeader} style={{ gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 100px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <input type="checkbox" checked={paginatedMatches.length > 0 && paginatedMatches.every(m => selectedIds.includes(m.id))} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+              </div>
               <div>Date Saved</div>
               <div>Company</div>
               <div>Role</div>
@@ -188,7 +255,10 @@ export default function MatchesPage() {
             
             <div className={styles.appList}>
               {paginatedMatches.map((job, index) => (
-                <div key={job.id} className={styles.appCard} style={{ animationDelay: `${index * 0.05}s` }}>
+                <div key={job.id} className={styles.appCard} style={{ gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 100px', animationDelay: `${index * 0.05}s` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <input type="checkbox" checked={selectedIds.includes(job.id)} onChange={() => toggleSelect(job.id)} style={{ cursor: 'pointer' }} />
+                  </div>
                   <div className={styles.colDate}>
                     {job.created_at ? format(new Date(job.created_at), "MMM d, yyyy") : "N/A"}
                   </div>
@@ -208,7 +278,7 @@ export default function MatchesPage() {
                     <button onClick={() => handleDraftApplication(job)} style={{ padding: '6px 12px', background: 'var(--accent-1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Play size={14} /> Draft
                     </button>
-                    <button onClick={() => handleDelete(job.id)} className={styles.actionBtn} style={{ color: '#ef4444' }} title="Delete match">
+                    <button onClick={() => confirmDelete([job.id])} className={styles.actionBtn} style={{ color: '#ef4444' }} title="Delete match">
                       <Trash2 size={18} />
                     </button>
                   </div>

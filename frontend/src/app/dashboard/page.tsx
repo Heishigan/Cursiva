@@ -15,7 +15,9 @@ export default function DashboardPage() {
   const [applications, setApplications] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ company_name: '', role_name: '', status: '', created_at: '' });
-  const [appToDelete, setAppToDelete] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemsToDelete, setItemsToDelete] = useState<string[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -91,21 +93,46 @@ export default function DashboardPage() {
     }
   };
 
+  const confirmDelete = (ids: string[]) => {
+    setItemsToDelete(ids);
+    setShowDeleteModal(true);
+  };
+
   const executeDelete = async () => {
-    if (!appToDelete) return;
+    const ids = itemsToDelete;
+    if (ids.length === 0) return;
+    
     try {
       const token = await getToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications/${appToDelete}`, {
-        method: "DELETE",
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications/batch-delete`, {
+        method: "POST",
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids })
       });
       if (res.ok) {
-        setApplications(prev => prev.filter(a => a.id !== appToDelete));
-        setAppToDelete(null);
+        setApplications(prev => prev.filter(a => !ids.includes(a.id)));
+        setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
+        setShowDeleteModal(false);
       }
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === paginatedApplications.length) {
+      setSelectedIds(prev => prev.filter(id => !paginatedApplications.map(a => a.id).includes(id)));
+    } else {
+      const newSelected = new Set([...selectedIds, ...paginatedApplications.map(a => a.id)]);
+      setSelectedIds(Array.from(newSelected));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
   const stats = {
@@ -121,18 +148,20 @@ export default function DashboardPage() {
     <div className={styles.container}>
       
       {/* Delete Confirmation Modal */}
-      {appToDelete && (
+      {showDeleteModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
           <div style={{ background: '#0f111a', padding: '32px', borderRadius: '24px', width: '420px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 24px 48px -12px rgba(239, 68, 68, 0.2)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f87171', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Trash2 size={24} /> Delete Application?
+              <Trash2 size={24} /> {itemsToDelete.length > 1 ? `Delete ${itemsToDelete.length} Applications?` : 'Delete Application?'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', lineHeight: 1.6 }}>
-              Are you absolutely sure you want to delete this job application? This action cannot be undone and you will lose the tailored CV and Cover Letter associated with it.
+              {itemsToDelete.length > 1 
+                ? `Are you absolutely sure you want to delete these ${itemsToDelete.length} job applications? This action cannot be undone.`
+                : `Are you absolutely sure you want to delete this job application? This action cannot be undone and you will lose the tailored CV and Cover Letter associated with it.`}
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button 
-                onClick={() => setAppToDelete(null)} 
+                onClick={() => setShowDeleteModal(false)} 
                 style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
               >
                 Cancel
@@ -141,7 +170,7 @@ export default function DashboardPage() {
                 onClick={executeDelete} 
                 style={{ padding: '10px 20px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)' }}
               >
-                Yes, delete it
+                Yes, delete
               </button>
             </div>
           </div>
@@ -195,9 +224,16 @@ export default function DashboardPage() {
       <div className={styles.recentSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Recent Applications</h2>
-          <a href="/dashboard/pipeline" className={styles.actionBtn} style={{ background: 'var(--accent-1)', padding: '8px', color: 'white', borderRadius: '8px' }} title="New Application">
-            <Plus size={20} />
-          </a>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {selectedIds.length > 0 && (
+              <button onClick={() => confirmDelete(selectedIds)} style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                <Trash2 size={16} /> Delete Selected ({selectedIds.length})
+              </button>
+            )}
+            <a href="/dashboard/pipeline" className={styles.actionBtn} style={{ background: 'var(--accent-1)', padding: '8px', color: 'white', borderRadius: '8px' }} title="New Application">
+              <Plus size={20} />
+            </a>
+          </div>
         </div>
 
         {applications.length === 0 ? (
@@ -207,7 +243,10 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className={styles.tableWrapper}>
-            <div className={styles.tableHeader}>
+            <div className={styles.tableHeader} style={{ gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 100px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <input type="checkbox" checked={paginatedApplications.length > 0 && paginatedApplications.every(a => selectedIds.includes(a.id))} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+              </div>
               <div>Date</div>
               <div>Company</div>
               <div>Role</div>
@@ -217,9 +256,10 @@ export default function DashboardPage() {
             
             <div className={styles.appList}>
               {paginatedApplications.map((app, index) => (
-                <div key={app.id} className={styles.appCard} style={{ animationDelay: `${0.5 + index * 0.1}s` }}>
+                <div key={app.id} className={styles.appCard} style={{ gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 100px', animationDelay: `${0.5 + index * 0.1}s` }}>
                   {editingId === app.id ? (
                     <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}></div>
                       <input 
                         type="date" 
                         value={editForm.created_at} 
@@ -254,6 +294,9 @@ export default function DashboardPage() {
                     </>
                   ) : (
                     <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <input type="checkbox" checked={selectedIds.includes(app.id)} onChange={() => toggleSelect(app.id)} style={{ cursor: 'pointer' }} />
+                      </div>
                       <div className={styles.colDate}>
                         {format(new Date(app.created_at), "MMM d, yyyy")}
                       </div>
@@ -275,7 +318,7 @@ export default function DashboardPage() {
                         <button onClick={() => handleEditClick(app)} className={styles.actionBtn} title="Edit">
                           <Edit2 size={18} />
                         </button>
-                        <button onClick={() => setAppToDelete(app.id)} className={`${styles.actionBtn} ${styles.deleteBtn}`} title="Delete">
+                        <button onClick={() => confirmDelete([app.id])} className={`${styles.actionBtn} ${styles.deleteBtn}`} title="Delete">
                           <Trash2 size={18} />
                         </button>
                       </div>
