@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import uvicorn
 import uuid
 import os
@@ -75,6 +75,19 @@ def run_intake(req: IntakeRequest, user_id: str = Depends(get_current_user_id), 
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
         setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
+        company_name = setup_result.get("company_name", "").strip()
+        role_name = setup_result.get("role_name", "").strip()
+        
+        if company_name and role_name and not req.override_eligibility:
+            duplicate = db.query(JobApplication).filter(
+                JobApplication.clerk_id == user_id,
+                JobApplication.company_name == company_name,
+                JobApplication.role_name == role_name
+            ).first()
+            if duplicate:
+                yield f"data: {json.dumps({'type': 'result', 'status': 'ineligible', 'reason': f'Duplicate detected! You have already started an application for {role_name} at {company_name}.'})}\n\n"
+                return
+
         if not setup_result.get("eligibility_passed", True) and not req.override_eligibility and strict_eligibility:
             yield f"data: {json.dumps({'type': 'result', 'status': 'ineligible', 'reason': setup_result.get('eligibility_reason')})}\n\n"
             return
@@ -357,9 +370,17 @@ def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_u
     if req.cv_data_json is not None:
         if req.cv_data_json.strip() == "":
              profile.cv_data_json = None
+             profile.cv_embedding_json = None
         else:
              profile.cv_data_json = req.cv_data_json
-             
+             try:
+                 from langchain_openai import OpenAIEmbeddings
+                 embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.environ.get("OPENAI_API_KEY"))
+                 embedding = embedder.embed_query(req.cv_data_json)
+                 profile.cv_embedding_json = json.dumps(embedding)
+             except Exception as e:
+                 print(f"Failed to generate CV embedding: {e}")
+                 profile.cv_embedding_json = None
     if req.strict_eligibility is not None:
         profile.strict_eligibility = req.strict_eligibility
 
@@ -430,13 +451,26 @@ def save_job(req: SaveJobRequest, user_id: str = Depends(get_current_user_id), d
         role_name = "Unknown"
 
     job_id = str(uuid.uuid4())
+    
+    # Compute job description embedding
+    embedding_json = None
+    try:
+        from langchain_openai import OpenAIEmbeddings
+        import json
+        embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.environ.get("OPENAI_API_KEY"))
+        embedding = embedder.embed_query(req.job_description)
+        embedding_json = json.dumps(embedding)
+    except Exception as e:
+        print(f"Failed to generate job embedding: {e}")
+
     new_job = SavedJob(
         id=job_id,
         clerk_id=user_id,
         company_name=company_name,
         role_name=role_name,
         job_description=req.job_description,
-        url=req.url
+        url=req.url,
+        embedding_json=embedding_json
     )
     db.add(new_job)
     db.commit()
@@ -444,14 +478,40 @@ def save_job(req: SaveJobRequest, user_id: str = Depends(get_current_user_id), d
 
 import random
 
+import numpy as np
+
 @app.get("/api/jobs/matches")
 def get_saved_jobs(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     jobs = db.query(SavedJob).filter(SavedJob.clerk_id == user_id).order_by(SavedJob.created_at.desc()).all()
+    profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+    cv_emb = None
+    if profile and profile.cv_embedding_json:
+        try:
+            cv_emb = np.array(json.loads(profile.cv_embedding_json))
+        except:
+            pass
+
     result = []
     
-    # Using a deterministic pseudo-random score based on job ID for now (until embeddings are added)
     for job in jobs:
-        score = 75 + (hash(job.id) % 20)
+        score = 0
+        if cv_emb is not None and job.embedding_json:
+            try:
+                job_emb = np.array(json.loads(job.embedding_json))
+                # Cosine similarity
+                cosine_sim = np.dot(cv_emb, job_emb) / (np.linalg.norm(cv_emb) * np.linalg.norm(job_emb))
+                # Convert from [-1, 1] to a realistic percentage [0, 100]
+                # Empirically, text-embedding-3-small similarities usually hover around 0.3 - 0.6 for related texts
+                # Let's map 0.25 -> 0% and 0.55 -> 100% roughly to spread out the scores
+                clamped_sim = max(0.25, min(0.55, cosine_sim))
+                score = int(((clamped_sim - 0.25) / 0.30) * 100)
+            except Exception as e:
+                print(f"Failed to compute similarity: {e}")
+                score = 75 + (hash(job.id) % 20)
+        else:
+            # Fallback to pseudo-random if embeddings are missing
+            score = 75 + (hash(job.id) % 20)
+
         result.append({
             "id": job.id,
             "company_name": job.company_name,
@@ -468,10 +528,21 @@ def delete_saved_job(job_id: str, user_id: str = Depends(get_current_user_id), d
     job = db.query(SavedJob).filter(SavedJob.id == job_id, SavedJob.clerk_id == user_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Saved job not found")
-        
+    
     db.delete(job)
     db.commit()
-    return {"status": "success"}
+    return {"status": "success", "message": "Saved job deleted"}
+
+class BatchDeleteRequest(BaseModel):
+    ids: List[str]
+
+@app.post("/api/jobs/saved/batch-delete")
+def batch_delete_saved_jobs(req: BatchDeleteRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    jobs = db.query(SavedJob).filter(SavedJob.id.in_(req.ids), SavedJob.clerk_id == user_id).all()
+    for job in jobs:
+        db.delete(job)
+    db.commit()
+    return {"status": "success", "deleted_count": len(jobs)}
 
 @app.get("/api/applications/{app_id}")
 def get_application(app_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
@@ -521,13 +592,21 @@ def update_application(app_id: str, req: JobApplicationUpdate, user_id: str = De
 
 @app.delete("/api/applications/{app_id}")
 def delete_application(app_id: str, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    app = db.query(JobApplication).filter(JobApplication.id == app_id, JobApplication.clerk_id == user_id).first()
-    if not app:
+    app_record = db.query(JobApplication).filter(JobApplication.id == app_id, JobApplication.clerk_id == user_id).first()
+    if not app_record:
         raise HTTPException(status_code=404, detail="Application not found")
-        
-    db.delete(app)
+    
+    db.delete(app_record)
     db.commit()
-    return {"status": "success"}
+    return {"status": "success", "message": "Application deleted"}
+
+@app.post("/api/applications/batch-delete")
+def batch_delete_applications(req: BatchDeleteRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    apps = db.query(JobApplication).filter(JobApplication.id.in_(req.ids), JobApplication.clerk_id == user_id).all()
+    for app_record in apps:
+        db.delete(app_record)
+    db.commit()
+    return {"status": "success", "deleted_count": len(apps)}
 
 # --- STRIPE INTEGRATION ---
 

@@ -107,6 +107,16 @@ export default function Home() {
             <h3 className={styles.cardTitle}>Native LaTeX Compilation</h3>
             <p className={styles.cardDesc}>No more struggling with MS Word formatting. Your tailored CV is natively compiled into a pristine, ATS-friendly LaTeX PDF directly on the server.</p>
           </div>
+          <div className={styles.glassCard}>
+            <div className={styles.cardIcon}><LayoutDashboard size={28} /></div>
+            <h3 className={styles.cardTitle}>Application Tracking Dashboard</h3>
+            <p className={styles.cardDesc}>Track the lifecycle of your applications in a centralized view. Manage saved jobs, batch delete, and review tailored CVs and cover letters all from one place.</p>
+          </div>
+          <div className={styles.glassCard}>
+            <div className={styles.cardIcon}><Zap size={28} /></div>
+            <h3 className={styles.cardTitle}>1-Click Chrome Extension</h3>
+            <p className={styles.cardDesc}>Instantly parse and save jobs from LinkedIn or Indeed directly to your dashboard. Our AI will automatically calculate a semantic match score against your baseline CV.</p>
+          </div>
         </div>
       </section>
 
