@@ -17,7 +17,7 @@ import stripe
 from fastapi import Request
 
 from core.models import FullCVData
-from core.agent import setup_node, strategist_node, tailor_app
+from core.agent import setup_node, strategist_node, tailor_app, extract_lesson
 
 from database import engine, get_db
 from models import Base, UserProfile, JobApplication, UserLesson, SavedJob
@@ -39,35 +39,53 @@ except Exception:
 
 app = FastAPI(title="Cursiva API", description="Backend engine for the Cursiva Agentic Job Hunter")
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,https://cursiva.se,https://www.cursiva.se"
+    ).split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # BYOK has been removed
 
+from pydantic import Field
+
 class IntakeRequest(BaseModel):
-    job_description: str
-    generic_cv_raw: str
+    job_description: str = Field(..., max_length=50_000)
+    generic_cv_raw: str = Field(..., max_length=100_000)
     override_eligibility: bool = False
 
 class TailorRequest(BaseModel):
-    job_description: str
-    generic_cv_raw: str
+    job_description: str = Field(..., max_length=50_000)
+    generic_cv_raw: str = Field(..., max_length=100_000)
     company_name: str
     role_name: str
     strategy_plan: str
-    user_strategy_answers: Optional[str] = ""
-    user_feedback: Optional[str] = ""
+    user_strategy_answers: Optional[str] = Field("", max_length=5_000)
+    user_feedback: Optional[str] = Field("", max_length=5_000)
     thread_id: str
 
 from fastapi.responses import StreamingResponse
 
 @app.post("/api/intake")
-def run_intake(req: IntakeRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     strict_eligibility = profile.strict_eligibility if profile is not None else True
 
@@ -99,15 +117,25 @@ def run_intake(req: IntakeRequest, user_id: str = Depends(get_current_user_id), 
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+from sqlalchemy import text
+
 @app.post("/api/tailor")
-def run_tailor(req: TailorRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
-    if not profile or profile.credits < 1:
-        raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
-        
-    # Deduct credit immediately upon pipeline start
-    profile.credits -= 1
-    db.commit()
+@limiter.limit("10/minute")
+def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    if db.bind.dialect.name == "postgresql":
+        result = db.execute(
+            text("UPDATE user_profiles SET credits = credits - 1 WHERE clerk_id = :uid AND credits >= 1"),
+            {"uid": user_id}
+        )
+        db.commit()
+        if result.rowcount == 0:
+            raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+    else:
+        profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+        if not profile or profile.credits < 1:
+            raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+        profile.credits -= 1
+        db.commit()
         
     async def event_generator():
         initial_state = {
@@ -150,8 +178,12 @@ def run_tailor(req: TailorRequest, user_id: str = Depends(get_current_user_id), 
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+
 @app.post("/api/parse_pdf")
+@limiter.limit("5/minute")
 async def parse_pdf(
+    request: Request,
     file: UploadFile = File(...), 
     user_id: str = Depends(get_current_user_id), 
     db: Session = Depends(get_db)
@@ -160,6 +192,8 @@ async def parse_pdf(
         raise HTTPException(status_code=400, detail="Must be a PDF file")
     
     content = await file.read()
+    if len(content) > MAX_PDF_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail="PDF file exceeds 5 MB limit.")
     try:
         doc = fitz.open(stream=content, filetype="pdf")
         text = "".join(page.get_text() for page in doc)
@@ -176,7 +210,8 @@ async def parse_pdf(
         
         return {"status": "success", "parsed_data": parsed_data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("PDF parse error for user %s: %s", user_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process the uploaded file.")
 
 import tempfile
 import subprocess
@@ -207,16 +242,39 @@ def _escape_data(obj):
     if isinstance(obj, list): return [_escape_data(v) for v in obj]
     return obj
 
+import re
+import logging
+
+logger = logging.getLogger(__name__)
+
+def sanitize_url(url: str) -> str:
+    """Validate and sanitize URLs for safe injection into LaTeX href commands."""
+    if not isinstance(url, str):
+        return ""
+    url = url.strip()
+    # Only allow http:// and https:// protocols
+    if not re.match(r'^https?://', url, re.IGNORECASE):
+        return ""
+    # Remove LaTeX control characters that could escape the href argument
+    url = re.sub(r'[\\{}\[\]]', '', url)
+    return url
+
 @app.post("/api/compile_cv")
 def compile_cv(req: FullCVData, user_id: str = Depends(get_current_user_id)):
     data = req.model_dump()
     
-    # Ensure URLs have https:// prefix for valid LaTeX hyperlinks
+    # Ensure URLs have https:// prefix for valid LaTeX hyperlinks and sanitize
     if 'personal_info' in data and data['personal_info']:
         for key in ['github', 'linkedin', 'portfolio']:
             url = data['personal_info'].get(key, '')
             if url and not url.startswith('http'):
-                data['personal_info'][key] = 'https://' + url
+                url = 'https://' + url
+            data['personal_info'][key] = sanitize_url(url)
+            
+    for section in data.get('sections', []):
+        for item in section.get('items', []):
+            if item.get('url'):
+                item['url'] = sanitize_url(item['url'])
 
     # Apply escaping to prevent LaTeX compilation errors
     safe_data = _escape_data(data)
@@ -238,11 +296,20 @@ def compile_cv(req: FullCVData, user_id: str = Depends(get_current_user_id)):
         
         # Run pdflatex twice for references
         try:
-            subprocess.run(['pdflatex', '-interaction=nonstopmode', 'cv.tex'], cwd=temp_dir, check=True, capture_output=True)
-            subprocess.run(['pdflatex', '-interaction=nonstopmode', 'cv.tex'], cwd=temp_dir, check=True, capture_output=True)
+            subprocess.run(
+                ['pdflatex', '-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', 'cv.tex'],
+                cwd=temp_dir, check=True, capture_output=True, timeout=60
+            )
+            subprocess.run(
+                ['pdflatex', '-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', 'cv.tex'],
+                cwd=temp_dir, check=True, capture_output=True, timeout=60
+            )
+        except subprocess.TimeoutExpired:
+            logger.error("LaTeX compilation timed out for user %s", user_id)
+            raise HTTPException(status_code=500, detail="PDF compilation timed out.")
         except subprocess.CalledProcessError as e:
-            # Fallback to returning the error
-            raise HTTPException(status_code=500, detail=f"LaTeX compilation failed: {e.stdout.decode('utf-8', errors='ignore')}")
+            logger.error("LaTeX failed for user %s: %s", user_id, e.stdout.decode('utf-8', errors='ignore'))
+            raise HTTPException(status_code=500, detail="PDF compilation failed. Check your CV data for unsupported characters.")
             
         pdf_path = os.path.join(temp_dir, 'cv.pdf')
         if not os.path.exists(pdf_path):
@@ -257,7 +324,7 @@ def compile_cv(req: FullCVData, user_id: str = Depends(get_current_user_id)):
     return JSONResponse(content={"status": "success", "pdf_base64": b64_pdf})
 
 class FeedbackRequest(BaseModel):
-    user_feedback: str
+    user_feedback: str = Field(..., max_length=5_000)
 
 @app.post("/api/feedback")
 def submit_feedback(req: FeedbackRequest, user_id: str = Depends(get_current_user_id)):
@@ -299,9 +366,16 @@ def compile_cl(req: CompileCLRequest, user_id: str = Depends(get_current_user_id
             shutil.copytree(os.path.join(template_dir, 'OpenFonts'), dest_fonts)
 
         try:
-            subprocess.run(['xelatex', '-interaction=nonstopmode', 'cl.tex'], cwd=temp_dir, check=True, capture_output=True)
+            subprocess.run(
+                ['xelatex', '-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', 'cl.tex'],
+                cwd=temp_dir, check=True, capture_output=True, timeout=60
+            )
+        except subprocess.TimeoutExpired:
+            logger.error("LaTeX compilation timed out for user %s (CL)", user_id)
+            raise HTTPException(status_code=500, detail="PDF compilation timed out.")
         except subprocess.CalledProcessError as e:
-            raise HTTPException(status_code=500, detail=f"LaTeX compilation failed: {e.stdout.decode('utf-8', errors='ignore')}")
+            logger.error("LaTeX failed for user %s (CL): %s", user_id, e.stdout.decode('utf-8', errors='ignore'))
+            raise HTTPException(status_code=500, detail="PDF compilation failed. Check your data for unsupported characters.")
             
         pdf_path = os.path.join(temp_dir, 'cl.pdf')
         if not os.path.exists(pdf_path):
@@ -425,15 +499,16 @@ def get_applications(user_id: str = Depends(get_current_user_id), db: Session = 
     return {"status": "success", "data": result}
 
 class SaveJobRequest(BaseModel):
-    job_description: str
-    url: Optional[str] = None
+    job_description: str = Field(..., max_length=50_000)
+    url: Optional[str] = Field(None, max_length=2048)
 
 class JobExtract(BaseModel):
     company_name: str
     role_name: str
 
 @app.post("/api/jobs/save")
-def save_job(req: SaveJobRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def save_job(request: Request, req: SaveJobRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     
     # Extract company and role
     try:
@@ -675,11 +750,9 @@ async def stripe_webhook(request: Request):
     sig_header = request.headers.get("stripe-signature", "")
 
     try:
-        if endpoint_secret:
-            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-        else:
-            # Fallback for local testing without webhook secret
-            event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
+        if not endpoint_secret:
+            raise HTTPException(status_code=500, detail="Stripe webhook secret is not configured.")
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError as e:
         raise HTTPException(status_code=400, detail="Invalid payload")
     except stripe.error.SignatureVerificationError as e:
