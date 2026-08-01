@@ -17,6 +17,7 @@ PyMuPDF==1.27.2.3
 # HTTP / forms
 python-multipart==0.0.32
 requests>=2.32.0
+slowapi==0.1.10
 
 # Database
 SQLAlchemy==2.0.51

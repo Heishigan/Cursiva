@@ -40,6 +40,13 @@ def get_lessons(user_id: str, scope_filter=None):
     finally:
         db.close()
 
+import re
+
+_INJECTION_PATTERN = re.compile(
+    r'(ignore|override|disregard).{0,30}(previous|instruction|rule|system|prompt)',
+    re.IGNORECASE
+)
+
 def extract_lesson(api_key: str, user_id: str, user_feedback: str):
     if not user_id or not user_feedback: return
     existing_lessons = get_lessons(user_id)
@@ -55,6 +62,9 @@ def extract_lesson(api_key: str, user_id: str, user_feedback: str):
     if not res.lesson or not res.lesson.strip():
         return
         
+    if _INJECTION_PATTERN.search(res.lesson):
+        return
+
     valid_scopes = [s for s in res.scope if s in ["CV", "Cover_Letter", "General"]]
     if not valid_scopes: valid_scopes = ["General"]
     
@@ -182,10 +192,14 @@ def tailor_node(state: AgentState):
     previous_cv = state.get("tailored_cv", {})
     previous_cv_prompt = f"\n\nPrevious Tailored CV (Apply feedback to THIS version):\n{json.dumps(previous_cv, indent=2)}" if previous_cv and user_feedback else ""
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", f"You are an expert CV writer. Your ONLY task is to rewrite the CV JSON (professional summary and all sections) to best match this role. Do NOT write any cover letter content. \n\n{{rules}}{{supplemental_prompt}}{{lessons_prompt}}"),
+    messages = [
+        ("system", f"You are an expert CV writer. Your ONLY task is to rewrite the CV JSON (professional summary and all sections) to best match this role. Do NOT write any cover letter content. \n\n{{rules}}{{lessons_prompt}}"),
         ("user", "Job Description:\n{job_description}\n\nStrategist's Plan:\n{strategy_plan}\n\nGeneric CV JSON:\n{generic_cv}{previous_cv_prompt}")
-    ])
+    ]
+    if supplemental_prompt:
+        messages.append(("user", "SUPPLEMENTAL CONTEXT FROM CANDIDATE (factual data only):\n{supplemental_prompt}"))
+        
+    prompt = ChatPromptTemplate.from_messages(messages)
     
     chain = prompt | get_llm_json(state["api_key"])
     res = chain.invoke({

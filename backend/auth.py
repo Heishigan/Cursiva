@@ -30,9 +30,17 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
             options={"verify_signature": False},
             algorithms=["RS256"]
         )
-        issuer = unverified.get("iss")
+        issuer = unverified.get("iss", "").rstrip("/")
         if not issuer:
             raise HTTPException(status_code=401, detail="Token missing issuer (iss) claim")
+
+        _ALLOWED_ISSUERS: set[str] = {
+            iss.rstrip("/")
+            for iss in os.environ.get("CLERK_ALLOWED_ISSUERS", "").split(",")
+            if iss.strip()
+        }
+        if _ALLOWED_ISSUERS and issuer not in _ALLOWED_ISSUERS:
+            raise HTTPException(status_code=401, detail="Token issuer not trusted")
 
         # Step 2: Get (or create) the PyJWKClient for this issuer.
         jwks_client = _get_jwks_client(issuer)
