@@ -13,7 +13,7 @@ export default function TermsOfService() {
       <div className={styles.container}>
         <header className={styles.header}>
           <Link href="/" className={styles.logo}>
-            C<span>ursiva</span>
+            Cursiva
           </Link>
           <h1 className={styles.title}>Terms of Service</h1>
           <p className={styles.lastUpdated}>Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>

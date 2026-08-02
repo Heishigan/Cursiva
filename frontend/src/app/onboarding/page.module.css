@@ -11,29 +11,33 @@
 }
 
 .logo {
-  font-family: var(--font-plus-jakarta);
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.03em;
+  font-family: var(--font-anton);
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .logo span {
-  color: var(--text-secondary);
-  font-weight: 500;
+  color: var(--text-primary);
+  font-weight: 400;
 }
 
 .inlineLogo {
-  font-family: var(--font-plus-jakarta);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-family: var(--font-anton);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .inlineLogo span {
-  font-weight: 500;
+  font-weight: 400;
+  color: var(--text-primary);
 }
 
 .title {
@@ -60,22 +64,22 @@
 .stepCircle { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; flex-shrink: 0; }
 .stepLabel  { font-size: 0.78rem; font-weight: 500; white-space: nowrap; }
 
-.sDone .stepCircle  { background: var(--accent-1); color: #fff; }
-.sDone .stepLabel   { color: var(--accent-1); }
-.sActive .stepCircle { border: 2px solid var(--accent-1); color: var(--accent-1); background: rgba(99,102,241,0.1); }
+.sDone .stepCircle  { background: var(--accent); color: var(--accent-ink); }
+.sDone .stepLabel   { color: var(--accent); }
+.sActive .stepCircle { border: 2px solid var(--accent); color: var(--accent); background: rgba(200, 242, 76, 0.12); }
 .sActive .stepLabel  { color: var(--text-primary); }
 .sPend .stepCircle  { border: 2px solid var(--surface-border); color: var(--text-secondary); background: rgba(255,255,255,0.03); }
 .sPend .stepLabel   { color: var(--text-secondary); }
 
 .stepLine { height: 1px; width: 60px; background: rgba(255,255,255,0.1); margin: 0 0.75rem; flex-shrink: 0; }
-.stepLine.done { background: var(--accent-1); }
+.stepLine.done { background: var(--accent); }
 
 @keyframes spin { 100% { transform: rotate(360deg); } }
 .sLoading .stepCircle { position: relative; color: var(--text-primary); border: 2px solid var(--surface-border); }
-.sLoading .stepCircle::before { content: ""; position: absolute; inset: -2px; border: 2px solid transparent; border-top-color: var(--accent-1); border-right-color: var(--accent-1); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.sLoading .stepCircle::before { content: ""; position: absolute; inset: -2px; border: 2px solid transparent; border-top-color: var(--accent); border-right-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 .sLoading .stepLabel { color: var(--text-primary); }
 
-.statusMsg { background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 8px; text-align: center; color: var(--accent-1); font-weight: 500; border: 1px solid var(--surface-border); margin-bottom: 1.5rem; letter-spacing: 0.02em; }
+.statusMsg { background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 8px; text-align: center; color: var(--accent); font-weight: 500; border: 1px solid var(--surface-border); margin-bottom: 1.5rem; letter-spacing: 0.02em; }
 .statusError { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.1); }
 .dots::after { content: '.'; animation: dots 1.5s steps(4, end) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } 100% { content: ''; } }
@@ -125,8 +129,8 @@
 }
 
 .choiceCard:hover {
-  border-color: var(--accent-1);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent);
+  background: rgba(200, 242, 76, 0.05);
 }
 
 .choiceIcon { font-size: 2.5rem; margin-bottom: 1rem; }
@@ -146,8 +150,8 @@
 }
 
 .dropZone:hover {
-  border-color: var(--accent-1);
-  background: rgba(99, 102, 241, 0.05);
+  border-color: var(--accent);
+  background: rgba(200, 242, 76, 0.05);
 }
 
 .dropIcon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.7; }
@@ -156,8 +160,9 @@
 
 /* Banner */
 .banner {
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid var(--accent-1);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 24px;
@@ -183,7 +188,7 @@
 .formGroup { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
 .input, .textarea, .select { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--surface-border); border-radius: 6px; padding: 10px 14px; color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
-.input:focus, .textarea:focus, .select:focus { outline: none; border-color: var(--accent-1); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+.input:focus, .textarea:focus, .select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(200, 242, 76, 0.2); }
 .textarea { min-height: 100px; resize: vertical; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -201,7 +206,7 @@
 .btnIcon { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
 .btnIcon:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
 .btnGhost { background: transparent; border: 1px dashed var(--surface-border); color: var(--text-secondary); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; width: 100%; transition: all 0.2s; }
-.btnGhost:hover { border-color: var(--accent-1); color: var(--accent-1); background: rgba(99, 102, 241, 0.05); }
+.btnGhost:hover { border-color: var(--accent); color: var(--accent); background: rgba(200, 242, 76, 0.05); }
 
 /* Missing Field Highlight */
 .inputError {

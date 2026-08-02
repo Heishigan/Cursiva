@@ -42,10 +42,10 @@ export default function Onboarding() {
 
   const getSectionIcon = (type: string) => {
     switch (type) {
-      case 'work_experience': return <Briefcase size={20} color="var(--accent-1)" />;
-      case 'education': return <GraduationCap size={20} color="var(--accent-1)" />;
-      case 'projects': return <Code size={20} color="var(--accent-1)" />;
-      default: return <User size={20} color="var(--accent-1)" />;
+      case 'work_experience': return <Briefcase size={20} color="var(--accent)" />;
+      case 'education': return <GraduationCap size={20} color="var(--accent)" />;
+      case 'projects': return <Code size={20} color="var(--accent)" />;
+      default: return <User size={20} color="var(--accent)" />;
     }
   };
   
@@ -92,8 +92,8 @@ export default function Onboarding() {
           width: '40px',
           height: '40px',
           borderRadius: '50%',
-          border: '3px solid rgba(99, 102, 241, 0.2)',
-          borderTopColor: '#6366f1',
+          border: '3px solid rgba(200, 242, 76, 0.2)',
+          borderTopColor: 'var(--accent)',
           animation: 'spin 1s linear infinite'
         }}></div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -299,8 +299,8 @@ export default function Onboarding() {
           )}
 
           {isParsing && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '48px 24px', background: 'rgba(99,102,241,0.06)', borderRadius: '16px', border: '1px solid rgba(99,102,241,0.2)' }}>
-              <div style={{ width: '52px', height: '52px', borderRadius: '50%', border: '3px solid rgba(99,102,241,0.2)', borderTopColor: 'var(--accent-1)', borderRightColor: 'var(--accent-1)', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '48px 24px', background: 'rgba(200, 242, 76, 0.05)', borderRadius: '16px', border: '1px solid rgba(200, 242, 76, 0.2)' }}>
+              <div style={{ width: '52px', height: '52px', borderRadius: '50%', border: '3px solid rgba(200, 242, 76, 0.2)', borderTopColor: 'var(--accent)', borderRightColor: 'var(--accent)', animation: 'spin 0.8s linear infinite' }} />
               <div style={{ textAlign: 'center' }}>
                 <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1.05rem', margin: '0 0 6px' }}><span className={styles.inlineLogo}>C<span>ursiva</span></span> AI is reading your CV...</p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>Extracting and structuring your experience. This takes about 15–30 seconds.</p>
@@ -315,7 +315,9 @@ export default function Onboarding() {
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Step 2 of 2 — Review your Baseline CV carefully.</p>
               </div>
               <div className={styles.banner}>
-                <div className={styles.bannerIcon}>⚠️</div>
+                <div className={styles.bannerIcon}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                </div>
                 <div className={styles.bannerText}>
                   <p><strong>Review Required</strong></p>
                   <p>Please verify your extracted CV carefully. Fix any wrongly parsed or missed data here. <strong>You ONLY have to do this ONCE!</strong> This serves as your Ground Truth for all future applications.</p>

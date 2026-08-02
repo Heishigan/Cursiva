@@ -68,23 +68,24 @@
 
 .input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--accent);
   background: rgba(0, 0, 0, 0.4);
 }
 
 .saveBtn {
-  background: #6366f1;
-  color: white;
+  background: var(--accent);
+  color: var(--accent-ink);
   border: none;
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .saveBtn:hover {
-  background: #4f46e5;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .statusMsg {

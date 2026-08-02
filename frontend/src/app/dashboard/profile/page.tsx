@@ -412,22 +412,29 @@ export default function ProfilePage() {
   return (
     <>
       {showWipeConfirm && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#1f2937', padding: '32px', borderRadius: '12px', width: '400px', border: '1px solid #ef4444', boxShadow: '0 20px 25px -5px rgba(239, 68, 68, 0.1), 0 10px 10px -5px rgba(239, 68, 68, 0.04)' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: 600, color: '#f87171', marginBottom: '12px' }}>Wipe All Data?</h3>
-            <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px', lineHeight: 1.5 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'var(--surface-2)', padding: '32px', borderRadius: '16px', width: '400px', maxWidth: '90%', border: '1px solid var(--line)', borderLeft: '4px solid var(--danger)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: 'var(--text-primary)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+              <h3 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>Wipe All Data?</h3>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginBottom: '24px', lineHeight: 1.5 }}>
               Are you absolutely sure you want to completely wipe your baseline CV and job customization? This cannot be undone and you will have to upload a new CV to continue.
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => setShowWipeConfirm(false)} 
-                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '6px', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--text-primary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor='var(--surface-hover)'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor='var(--surface)'}
               >
                 Cancel
               </button>
               <button 
                 onClick={executeWipeData} 
-                style={{ padding: '8px 16px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '10px 20px', background: 'var(--danger)', border: 'none', color: '#111827', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.opacity='0.9'} 
+                onMouseOut={(e) => e.currentTarget.style.opacity='1'}
               >
                 Yes, wipe data
               </button>
@@ -460,8 +467,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Dynamic Sections */}
-        <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.1)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <Info size={16} color="#818cf8" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <Info size={16} color="var(--accent)" style={{ marginTop: '2px', flexShrink: 0 }} />
           <div>
             <strong>Customize Your CV:</strong> You can freely edit, reorder, or add custom sections below to best represent your experience. The AI will use this baseline to tailor your applications.
           </div>
@@ -485,9 +492,9 @@ export default function ProfilePage() {
             </div>
 
             {section.type === 'projects' && (
-              <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Info size={16} style={{ color: '#60a5fa', flexShrink: 0 }} />
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', margin: 0, lineHeight: 1.4 }}>
+              <div style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Info size={16} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
                   <strong>Pro Tip:</strong> Click the edit icon to add `https://` links to your projects. The compiled PDF natively supports clickable hyperlinks!
                 </p>
               </div>
@@ -545,16 +552,16 @@ export default function ProfilePage() {
         <button 
           onClick={addSection}
           className={styles.btnGhost} 
-          style={{ width: '100%', border: '1px dashed var(--surface-border)', margin: '1rem 0' }}
+          style={{ width: '100%', background: 'var(--surface-2)', border: '1px solid var(--line)', color: 'var(--text-primary)', margin: '1rem 0' }}
         >
-          <Plus size={18} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}/>
+          <Plus size={18} style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: 'var(--accent)' }}/>
           Add Custom Section
         </button>
 
         <button 
           onClick={wipeData}
           className={styles.btnGhost} 
-          style={{ width: '100%', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#ef4444', marginTop: '2rem' }}
+          style={{ width: '100%', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', marginTop: '2rem' }}
         >
           Wipe Data & Upload New CV
         </button>

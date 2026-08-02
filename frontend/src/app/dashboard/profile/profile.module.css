@@ -47,8 +47,8 @@
   position: absolute;
   bottom: 2rem;
   right: 2rem;
-  background: var(--accent-gradient);
-  color: white;
+  background: var(--accent);
+  color: var(--accent-ink);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 99px;
@@ -57,15 +57,15 @@
   gap: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px rgba(200, 242, 76, 0.2);
   transition: all 0.2s;
   z-index: 5;
 }
 
 .downloadFab:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6);
-  background: var(--accent-2);
+  box-shadow: 0 6px 16px rgba(200, 242, 76, 0.4);
+  opacity: 0.9;
 }
 
 .pdfOverlay {
@@ -87,7 +87,7 @@
   width: 40px;
   height: 40px;
   border: 4px solid rgba(255, 255, 255, 0.1);
-  border-left-color: #6366f1;
+  border-left-color: var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -443,7 +443,7 @@
 .modalField input:focus,
 .modalField textarea:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--accent);
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -473,18 +473,19 @@
 }
 
 .btnPrimary {
-  background: #6366f1;
-  color: white;
+  background: var(--accent);
+  color: var(--accent-ink);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .btnPrimary:hover {
-  background: #4f46e5;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 /* Tooltip Styles */
@@ -520,8 +521,8 @@
   bottom: 150%;
   left: 50%;
   transform: translateX(-50%);
-  background: #2a2a2a;
-  border: 1px solid var(--surface-border);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
   color: var(--text-primary);
   padding: 0.5rem 0.75rem;
   border-radius: 6px;

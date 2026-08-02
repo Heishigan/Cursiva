@@ -21,8 +21,8 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
         </p>
       </div>
 
-      <div style={{ padding: '16px', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', borderRadius: '8px', color: '#4ade80', marginBottom: '24px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-        ✓ PDF compilation complete.
+      <div style={{ padding: '16px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderLeft: '4px solid var(--accent)', borderRadius: '8px', color: 'var(--text-primary)', marginBottom: '24px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
+        <span style={{ color: 'var(--accent)', marginRight: '8px' }}>✓</span> PDF compilation complete.
       </div>
 
       <div className={styles.workbenchLayout}>
@@ -36,7 +36,7 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
               <div className={styles.mobilePdfFallback}>
                 <p>Mobile browsers cannot preview PDFs.</p>
               </div>
-              <a href={cvPdfUrl} download={cvFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
+              <a href={cvPdfUrl} download={cvFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent)', color: 'var(--accent-ink)', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
             </>
           ) : (
             <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>No CV generated.</div>
@@ -53,7 +53,7 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
               <div className={styles.mobilePdfFallback}>
                 <p>Mobile browsers cannot preview PDFs.</p>
               </div>
-              <a href={clPdfUrl} download={clFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
+              <a href={clPdfUrl} download={clFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent)', color: 'var(--accent-ink)', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
             </>
           ) : (
             <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>No Cover Letter generated.</div>
@@ -61,11 +61,7 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-        <button className={styles.secondaryBtn} onClick={onReset}>
-          &larr; New Application
-        </button>
-      </div>
+
 
     </div>
   );

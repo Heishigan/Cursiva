@@ -1,13 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 :root {
-  --background: #0c0e16;
-  --surface: rgba(255, 255, 255, 0.04);
-  --surface-hover: rgba(255, 255, 255, 0.07);
-  --surface-border: rgba(255, 255, 255, 0.08);
-  --text-primary: #f1f5f9;
-  --text-secondary: #64748b;
-  --accent-1: #6366f1;
-  --accent-2: #4f46e5;
-  --accent-gradient: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  /* Backgrounds & Surfaces */
+  --bg: #111113;
+  --surface: #17171a;
+  --surface-2: #1c1c1f;
+  --line: #232327;
+
+  /* Typography Colors */
+  --text: #dedcd5;
+  --text-strong: #f0efe9;
+  --text-dim: #8f8f93;
+  --text-faint: #5c5c60;
+
+  /* Accents */
+  --accent: #c8f24c;
+  --accent-ink: #14180a;
+  --danger: #e0847f;
+
+  /* Tinted Accent Surfaces */
+  --accent-tint-bg: rgba(200, 242, 76, 0.12);
+  --accent-tint-border: rgba(200, 242, 76, 0.25);
+
+  /* Sample Resume Mock Card */
+  --mock-resume-bg: #f4f3ee;
+  --mock-resume-text: #111;
+
+  /* Structural Tokens */
+  --radius-lg: 9px;
+  --radius-sm: 6px;
+  --border-standard: 1px solid var(--line);
 }
 
 * {
@@ -16,25 +38,32 @@
   padding: 0;
 }
 
-/* Fonts — using CSS variables injected by Next.js font system */
 body {
-  background: 
-    radial-gradient(ellipse at 12% 40%, rgba(99,102,241,0.11) 0%, transparent 52%),
-    radial-gradient(ellipse at 88% 65%, rgba(99,102,241,0.07) 0%, transparent 52%),
-    var(--background);
-  color: var(--text-primary);
-  /* Use the CSS var injected by Next.js, fallback to Inter from Google */
-  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Headings */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  color: var(--text-strong);
+}
+
+/* Anton Headings */
+.font-anton {
+  font-family: 'Anton', system-ui, sans-serif;
+  text-transform: uppercase;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Monospace / Data */
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 a {
@@ -42,18 +71,16 @@ a {
   text-decoration: none;
 }
 
-/* Primary Button */
+/* Buttons */
 .btn-primary {
-  background: var(--accent-gradient);
-  color: white;
+  background: var(--accent);
+  color: var(--accent-ink);
   border: none;
   padding: 0.65rem 1.5rem;
-  border-radius: 6px;
-  font-family: var(--font-inter), 'Inter', sans-serif;
+  border-radius: var(--radius-lg);
+  font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
@@ -62,17 +89,35 @@ a {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent-1) 100%);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  opacity: 0.9;
   transform: translateY(-1px);
 }
 
 .btn-primary:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Cards & Panels */
+.card {
+  background: var(--surface);
+  border: var(--border-standard);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+/* Clerk Overrides */
+.cl-userButtonPopoverCard, .cl-userButtonPopoverCard * { color: var(--text-strong) !important; }
+.cl-userButtonPopoverCard { background-color: var(--surface) !important; }
+.cl-userButtonPopoverActionButtonIcon, .cl-userButtonPopoverFooter * { color: var(--text-dim) !important; }
+
+/* Clerk UserProfile Modal & Form Overrides */
+.cl-card, .cl-profileSectionTitleText, .cl-headerTitle { color: var(--text-strong) !important; }
+.cl-profileSectionContent p, .cl-profileSectionItem span, .cl-headerSubtitle, .cl-navbarButton { color: var(--text) !important; }
+.cl-navbar h1, .cl-navbar h2, .cl-navbar h3 { color: var(--text-strong) !important; }
+.cl-navbar p { color: var(--text-dim) !important; }
+.cl-formFieldSuccessText, .cl-formFieldHintText, .cl-formFieldInfoText, .cl-formFieldErrorText { color: var(--text-dim) !important; }

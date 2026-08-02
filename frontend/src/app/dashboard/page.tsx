@@ -149,26 +149,31 @@ export default function DashboardPage() {
       
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
-          <div style={{ background: '#0f111a', padding: '32px', borderRadius: '24px', width: '420px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 24px 48px -12px rgba(239, 68, 68, 0.2)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f87171', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Trash2 size={24} /> {itemsToDelete.length > 1 ? `Delete ${itemsToDelete.length} Applications?` : 'Delete Application?'}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'var(--surface-2)', padding: '32px', borderRadius: '16px', width: '420px', maxWidth: '90%', border: '1px solid var(--line)', borderLeft: '4px solid var(--danger)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+              {itemsToDelete.length > 1 ? `Delete ${itemsToDelete.length} Applications?` : 'Delete Application?'}
             </h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', lineHeight: 1.6 }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginBottom: '32px', lineHeight: 1.5 }}>
               {itemsToDelete.length > 1 
                 ? `Are you absolutely sure you want to delete these ${itemsToDelete.length} job applications? This action cannot be undone.`
                 : `Are you absolutely sure you want to delete this job application? This action cannot be undone and you will lose the tailored CV and Cover Letter associated with it.`}
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => setShowDeleteModal(false)} 
-                style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
+                style={{ padding: '10px 20px', background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--text-primary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor='var(--surface-hover)'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor='var(--surface)'}
               >
                 Cancel
               </button>
               <button 
                 onClick={executeDelete} 
-                style={{ padding: '10px 20px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)' }}
+                style={{ padding: '10px 20px', background: 'var(--danger)', border: 'none', color: '#111827', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.opacity='0.9'} 
+                onMouseOut={(e) => e.currentTarget.style.opacity='1'}
               >
                 Yes, delete
               </button>
@@ -178,44 +183,44 @@ export default function DashboardPage() {
       )}
 
       <header className={styles.header}>
+        <p className={styles.date}>{today}</p>
         <h1 className={styles.greeting}>
           {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, {parsedName || (isLoaded && user ? user.firstName : null) || "Guest"}
         </h1>
-        <p className={styles.date}>{today}</p>
         <p className={styles.subtitle}>Streamlining your technical applications.</p>
       </header>
 
       <div className={styles.grid}>
-        <div className={styles.metricCard} style={{ animationDelay: '0.1s' }}>
+        <div className={styles.metricCard}>
           <div className={styles.metricTitle}>
-            <Briefcase size={16} color="#818cf8" />
+            <Briefcase size={16} />
             Applied
           </div>
           <div className={styles.metricValue}>{stats.applied}</div>
         </div>
         
-        <div className={styles.metricCard} style={{ animationDelay: '0.2s' }}>
+        <div className={styles.metricCard}>
           <div className={styles.metricTitle}>
-            <Clock size={16} color="#c084fc" />
+            <Clock size={16} />
             Interviewing
           </div>
           <div className={styles.metricValue}>{stats.interviewing}</div>
         </div>
         
-        <div className={styles.metricCard} style={{ animationDelay: '0.3s' }}>
+        <div className={styles.metricCard}>
           <div className={styles.metricTitle}>
-            <XCircle size={16} color="#f87171" />
+            <XCircle size={16} />
             Rejected
           </div>
           <div className={styles.metricValue}>{stats.rejected}</div>
         </div>
         
-        <div className={styles.metricCard} style={{ animationDelay: '0.4s' }}>
+        <div className={styles.metricCard}>
           <div className={styles.metricTitle}>
-            <Key size={16} color="#10b981" />
+            <Key size={16} />
             Credits
           </div>
-          <div className={`${styles.metricValue} ${credits !== null && credits > 0 ? styles.statusActive : styles.statusError}`} style={{ fontSize: credits !== null && credits > 0 ? undefined : '1.75rem', lineHeight: '1.2' }}>
+          <div className={`${styles.metricValue} ${credits !== null && credits > 0 ? styles.statusActive : styles.statusError}`}>
             {credits !== null ? credits : "..."}
           </div>
         </div>
@@ -226,11 +231,11 @@ export default function DashboardPage() {
           <h2 className={styles.sectionTitle}>Recent Applications</h2>
           <div style={{ display: 'flex', gap: '12px' }}>
             {selectedIds.length > 0 && (
-              <button onClick={() => confirmDelete(selectedIds)} style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+              <button onClick={() => confirmDelete(selectedIds)} style={{ padding: '8px 16px', background: 'transparent', color: 'var(--danger)', border: 'var(--border-standard)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                 <Trash2 size={16} /> Delete Selected ({selectedIds.length})
               </button>
             )}
-            <a href="/dashboard/pipeline" className={styles.actionBtn} style={{ background: 'var(--accent-1)', padding: '8px', color: 'white', borderRadius: '8px' }} title="New Application">
+            <a href="/dashboard/pipeline" className={styles.actionBtn} style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }} title="New Application">
               <Plus size={20} />
             </a>
           </div>
@@ -238,12 +243,12 @@ export default function DashboardPage() {
 
         {applications.length === 0 ? (
           <div className={styles.emptyState}>
-            <Briefcase size={48} color="rgba(255,255,255,0.2)" />
+            <Briefcase size={48} />
             <p>You haven't added any applications yet. <br/>Start the pipeline to create your first tailored CV.</p>
           </div>
         ) : (
           <div className={styles.tableWrapper}>
-            <div className={styles.tableHeader} style={{ gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 100px' }}>
+            <div className={styles.tableHeader}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <input type="checkbox" checked={paginatedApplications.length > 0 && paginatedApplications.every(a => selectedIds.includes(a.id))} onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
               </div>
@@ -256,7 +261,7 @@ export default function DashboardPage() {
             
             <div className={styles.appList}>
               {paginatedApplications.map((app, index) => (
-                <div key={app.id} className={styles.appCard} style={{ gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 100px', animationDelay: `${0.5 + index * 0.1}s` }}>
+                <div key={app.id} className={styles.appCard}>
                   {editingId === app.id ? (
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}></div>
@@ -264,32 +269,32 @@ export default function DashboardPage() {
                         type="date" 
                         value={editForm.created_at} 
                         onChange={e => setEditForm({...editForm, created_at: e.target.value})}
-                        style={{ background: '#1f2937', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '8px', borderRadius: '6px' }}
+                        style={{ background: 'var(--surface-2)', color: 'var(--text-strong)', border: 'var(--border-standard)', padding: '8px', borderRadius: 'var(--radius-sm)' }}
                       />
                       <input 
                         type="text" 
                         value={editForm.company_name} 
                         onChange={e => setEditForm({...editForm, company_name: e.target.value})}
-                        style={{ background: '#1f2937', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '8px', borderRadius: '6px', width: '90%' }}
+                        style={{ background: 'var(--surface-2)', color: 'var(--text-strong)', border: 'var(--border-standard)', padding: '8px', borderRadius: 'var(--radius-sm)', width: '90%' }}
                       />
                       <input 
                         type="text" 
                         value={editForm.role_name} 
                         onChange={e => setEditForm({...editForm, role_name: e.target.value})}
-                        style={{ background: '#1f2937', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '8px', borderRadius: '6px', width: '90%' }}
+                        style={{ background: 'var(--surface-2)', color: 'var(--text-strong)', border: 'var(--border-standard)', padding: '8px', borderRadius: 'var(--radius-sm)', width: '90%' }}
                       />
                       <select 
                         value={editForm.status} 
                         onChange={e => setEditForm({...editForm, status: e.target.value})}
-                        style={{ background: '#1f2937', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '8px', borderRadius: '6px' }}
+                        style={{ background: 'var(--surface-2)', color: 'var(--text-strong)', border: 'var(--border-standard)', padding: '8px', borderRadius: 'var(--radius-sm)' }}
                       >
                         <option value="Applied">Applied</option>
                         <option value="Interviewing">Interviewing</option>
                         <option value="Rejected">Rejected</option>
                       </select>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
-                        <button onClick={() => handleSaveEdit(app.id)} style={{ padding: '8px 16px', background: 'var(--accent-1)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', lineHeight: '1', display: 'flex', alignItems: 'center' }}>Save</button>
-                        <button onClick={() => setEditingId(null)} style={{ padding: '7px 15px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', lineHeight: '1', display: 'flex', alignItems: 'center' }}>Cancel</button>
+                        <button onClick={() => handleSaveEdit(app.id)} style={{ padding: '8px 16px', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>Save</button>
+                        <button onClick={() => setEditingId(null)} style={{ padding: '7px 15px', background: 'transparent', color: 'var(--text-dim)', border: 'var(--border-standard)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
                       </div>
                     </>
                   ) : (
@@ -333,13 +338,13 @@ export default function DashboardPage() {
                 <button 
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
                   disabled={currentPage === 1}
-                  style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: currentPage === 1 ? 'rgba(255,255,255,0.3)' : 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: 'var(--radius-sm)', background: 'transparent', color: currentPage === 1 ? 'var(--text-faint)' : 'var(--text-strong)', border: 'var(--border-standard)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
                 >Previous</button>
-                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>Page {currentPage} of {totalPages}</span>
+                <span style={{ fontSize: '14px', color: 'var(--text-dim)' }}>Page {currentPage} of {totalPages}</span>
                 <button 
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
                   disabled={currentPage === totalPages}
-                  style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: currentPage === totalPages ? 'rgba(255,255,255,0.3)' : 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: 'var(--radius-sm)', background: 'transparent', color: currentPage === totalPages ? 'var(--text-faint)' : 'var(--text-strong)', border: 'var(--border-standard)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
                 >Next</button>
               </div>
             )}

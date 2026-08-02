@@ -317,22 +317,22 @@ export default function PipelinePage() {
       <nav className={styles.nav}>
         <div className={styles.navContent}>
           <div className={`${styles.stepItem} ${step >= 1 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 1 ? { backgroundColor: 'var(--accent-1)', borderColor: 'var(--accent-1)', color: 'white' } : {}}>1</span>
+            <span className={styles.stepNumber} style={step === 1 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>1</span>
             Paste JD
           </div>
           <div className={styles.stepDivider} />
           <div className={`${styles.stepItem} ${step >= 2 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 2 ? { backgroundColor: 'var(--accent-1)', borderColor: 'var(--accent-1)', color: 'white' } : {}}>2</span>
+            <span className={styles.stepNumber} style={step === 2 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>2</span>
             Strategy
           </div>
           <div className={styles.stepDivider} />
           <div className={`${styles.stepItem} ${step >= 3 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 3 ? { backgroundColor: 'var(--accent-1)', borderColor: 'var(--accent-1)', color: 'white' } : {}}>3</span>
+            <span className={styles.stepNumber} style={step === 3 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>3</span>
             Workbench
           </div>
           <div className={styles.stepDivider} />
           <div className={`${styles.stepItem} ${step >= 4 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 4 ? { backgroundColor: 'var(--accent-1)', borderColor: 'var(--accent-1)', color: 'white' } : {}}>4</span>
+            <span className={styles.stepNumber} style={step === 4 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>4</span>
             Done
           </div>
         </div>
@@ -360,18 +360,18 @@ export default function PipelinePage() {
       {/* Eligibility Warning Modal */}
       {eligibilityWarning && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)' }}>
-          <div style={{ backgroundColor: '#422006', border: '1px solid #f59e0b', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(245, 158, 11, 0.25)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#fbbf24' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+          <div style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--line)', borderLeft: '4px solid #f59e0b', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: 'var(--text-primary)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
               <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>
                 {eligibilityWarning.includes("Duplicate") || eligibilityWarning.includes("duplicate") ? "Duplicate Application Detected" : "Eligibility Warning"}
               </h2>
             </div>
-            <p style={{ color: '#fcd34d', fontSize: '15px', lineHeight: '1.5', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5', marginBottom: '24px' }}>
               {eligibilityWarning}
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setEligibilityWarning(null)} style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor='rgba(255,255,255,0.2)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor='rgba(255,255,255,0.1)'}>
+              <button onClick={() => setEligibilityWarning(null)} style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--line)', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor='var(--surface-hover)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor='var(--surface)'}>
                 Go Back
               </button>
               <button onClick={() => { setEligibilityWarning(null); submitJd(jdText, true); }} style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: '#f59e0b', color: '#111827', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor='#fbbf24'} onMouseOut={(e) => e.currentTarget.style.backgroundColor='#f59e0b'}>
@@ -384,11 +384,11 @@ export default function PipelinePage() {
 
       {showTopUpModal && (
         <div className={styles.modalOverlay} onClick={() => setShowTopUpModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ position: 'relative', background: '#1f2937', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-            <button onClick={() => setShowTopUpModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '24px', lineHeight: '1', padding: '4px' }}>&times;</button>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ position: 'relative', background: 'var(--surface-2)', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid var(--line)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <button onClick={() => setShowTopUpModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '24px', lineHeight: '1', padding: '4px' }}>&times;</button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
-            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>Out of Credits</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px', lineHeight: '1.5' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)' }}>Out of Credits</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
               You don't have enough credits to generate this application. Please top up your account to continue.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -400,11 +400,11 @@ export default function PipelinePage() {
 
       {showBaselineModal && (
         <div className={styles.modalOverlay} onClick={() => setShowBaselineModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ position: 'relative', background: '#1f2937', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-            <button onClick={() => setShowBaselineModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '24px', lineHeight: '1', padding: '4px' }}>&times;</button>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ position: 'relative', background: 'var(--surface-2)', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '90%', textAlign: 'center', border: '1px solid var(--line)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <button onClick={() => setShowBaselineModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '24px', lineHeight: '1', padding: '4px' }}>&times;</button>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
-            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: '#fff' }}>No Baseline CV</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px', lineHeight: '1.5' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)' }}>No Baseline CV</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
               You haven't set up a baseline CV yet. Please upload a baseline resume to continue.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
