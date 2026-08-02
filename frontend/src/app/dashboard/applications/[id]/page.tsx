@@ -161,7 +161,7 @@ export default function ApplicationDetailPage() {
             </p>
           </div>
           {isCompiling && (
-            <div style={{ padding: '8px 16px', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+            <div style={{ padding: '8px 16px', background: 'var(--surface-2)', color: 'var(--text-primary)', borderRadius: '8px', border: '1px solid var(--line)', borderLeft: '4px solid var(--accent)' }}>
               Re-compiling application materials...
             </div>
           )}
@@ -188,7 +188,7 @@ export default function ApplicationDetailPage() {
             {cvPdfUrl ? (
               <>
                 <iframe src={`${cvPdfUrl}#toolbar=0&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-                <button onClick={() => handleDownload(cvPdfUrl, cvFilename)} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</button>
+                <button onClick={() => handleDownload(cvPdfUrl, cvFilename)} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', cursor: 'pointer', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</button>
               </>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>
@@ -205,7 +205,7 @@ export default function ApplicationDetailPage() {
             {clPdfUrl ? (
               <>
                 <iframe src={`${clPdfUrl}#toolbar=0&view=FitH`} style={{ width: '100%', flex: 1, border: 'none', borderRadius: '8px' }} />
-                <button onClick={() => handleDownload(clPdfUrl, clFilename)} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent-1)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</button>
+                <button onClick={() => handleDownload(clPdfUrl, clFilename)} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', cursor: 'pointer', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</button>
               </>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>

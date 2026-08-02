@@ -134,26 +134,31 @@ export default function MatchesPage() {
     <div className={styles.container}>
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
-          <div style={{ background: '#0f111a', padding: '32px', borderRadius: '24px', width: '420px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 24px 48px -12px rgba(239, 68, 68, 0.2)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f87171', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Trash2 size={24} /> {itemsToDelete.length > 1 ? `Delete ${itemsToDelete.length} Matches?` : 'Delete Match?'}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'var(--surface-2)', padding: '32px', borderRadius: '16px', width: '420px', maxWidth: '90%', border: '1px solid var(--line)', borderLeft: '4px solid var(--danger)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+              {itemsToDelete.length > 1 ? `Delete ${itemsToDelete.length} Matches?` : 'Delete Match?'}
             </h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', lineHeight: 1.6 }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginBottom: '32px', lineHeight: 1.5 }}>
               {itemsToDelete.length > 1 
                 ? `Are you absolutely sure you want to delete these ${itemsToDelete.length} job matches? This action cannot be undone.`
                 : `Are you absolutely sure you want to delete this job match? This action cannot be undone.`}
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => setShowDeleteModal(false)} 
-                style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
+                style={{ padding: '10px 20px', background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--text-primary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor='var(--surface-hover)'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor='var(--surface)'}
               >
                 Cancel
               </button>
               <button 
                 onClick={executeDelete} 
-                style={{ padding: '10px 20px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)' }}
+                style={{ padding: '10px 20px', background: 'var(--danger)', border: 'none', color: '#111827', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.opacity='0.9'} 
+                onMouseOut={(e) => e.currentTarget.style.opacity='1'}
               >
                 Yes, delete
               </button>
@@ -163,38 +168,53 @@ export default function MatchesPage() {
       )}
 
       {isManualModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
-          <div style={{ background: '#0f111a', padding: '32px', borderRadius: '24px', width: '600px', maxWidth: '90%', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.5)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'var(--surface-2)', padding: '32px', borderRadius: '16px', width: '600px', maxWidth: '90%', border: '1px solid var(--line)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Add Job Manually</h3>
-              <button onClick={() => setIsManualModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><X size={20} /></button>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Add Job Manually</h3>
+              <button onClick={() => setIsManualModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>Job URL *</label>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 500 }}>Job URL *</label>
                 <input 
                   type="url" 
                   value={manualUrl} 
                   onChange={(e) => setManualUrl(e.target.value)} 
                   placeholder="https://company.com/jobs/..." 
-                  style={{ width: '100%', background: '#1f2937', color: 'white', border: '1px solid rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px' }}
+                  style={{ width: '100%', background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--line)', padding: '12px', borderRadius: '8px', outline: 'none' }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>Full Job Description *</label>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 500 }}>Full Job Description *</label>
                 <textarea 
                   value={manualJd} 
                   onChange={(e) => setManualJd(e.target.value)} 
                   placeholder="Paste the full job description text here..." 
-                  style={{ width: '100%', height: '200px', background: '#1f2937', color: 'white', border: '1px solid rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px', resize: 'vertical' }}
+                  style={{ width: '100%', height: '200px', background: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--line)', padding: '12px', borderRadius: '8px', resize: 'vertical', outline: 'none' }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
                 />
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setIsManualModalOpen(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
-              <button onClick={handleAddManualSubmit} disabled={!manualJd.trim() || !manualUrl.trim() || isSubmittingManual} style={{ padding: '10px 20px', background: 'var(--accent-1)', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 600, cursor: (!manualJd.trim() || !manualUrl.trim() || isSubmittingManual) ? 'not-allowed' : 'pointer', opacity: (!manualJd.trim() || !manualUrl.trim() || isSubmittingManual) ? 0.5 : 1 }}>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setIsManualModalOpen(false)} 
+                style={{ padding: '10px 20px', background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--text-primary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor='var(--surface-hover)'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor='var(--surface)'}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleAddManualSubmit} 
+                disabled={!manualJd.trim() || !manualUrl.trim() || isSubmittingManual} 
+                style={{ padding: '10px 20px', background: 'var(--accent)', border: 'none', color: 'var(--accent-ink)', borderRadius: '8px', fontWeight: 600, cursor: (!manualJd.trim() || !manualUrl.trim() || isSubmittingManual) ? 'not-allowed' : 'pointer', opacity: (!manualJd.trim() || !manualUrl.trim() || isSubmittingManual) ? 0.5 : 1, transition: 'opacity 0.2s' }}
+              >
                 {isSubmittingManual ? "Analyzing & Saving..." : "Save Job Match"}
               </button>
             </div>
@@ -265,7 +285,10 @@ export default function MatchesPage() {
                   <div className={styles.colCompany}>{job.company_name}</div>
                   <div className={styles.colRole}>{job.role_name}</div>
                   <div className={styles.colStatus}>
-                    <span className={styles.statusBadge} style={{ background: job.match_score >= 80 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.1)', color: job.match_score >= 80 ? '#10b981' : 'white' }}>
+                    <span className={styles.statusBadge} style={{ 
+                      background: job.match_score >= 80 ? 'rgba(200, 242, 76, 0.15)' : job.match_score >= 50 ? 'rgba(250, 204, 21, 0.15)' : 'rgba(224, 132, 127, 0.15)', 
+                      color: job.match_score >= 80 ? 'var(--accent)' : job.match_score >= 50 ? '#facc15' : 'var(--danger)' 
+                    }}>
                       {job.match_score}%
                     </span>
                   </div>

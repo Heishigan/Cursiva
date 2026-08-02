@@ -12,19 +12,13 @@
 }
 
 .logo {
-  font-family: var(--font-plus-jakarta);
+  font-family: 'Anton', sans-serif;
   font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.03em;
+  color: var(--accent);
+  text-transform: uppercase;
   text-decoration: none;
   display: inline-block;
   margin-bottom: 32px;
-}
-
-.logo span {
-  color: var(--text-secondary);
-  font-weight: 500;
 }
 
 .title {

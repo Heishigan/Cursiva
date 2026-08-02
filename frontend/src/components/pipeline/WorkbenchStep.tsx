@@ -214,8 +214,8 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
           disabled={isSaving || isCompilingCv || isCompilingCl}
           style={{
             padding: '8px 16px',
-            backgroundColor: 'var(--accent-1)',
-            color: 'white',
+            backgroundColor: 'var(--accent)',
+            color: 'var(--accent-ink)',
             border: 'none',
             borderRadius: '6px',
             fontWeight: 600,
@@ -224,7 +224,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
             marginBottom: '12px'
           }}
         >
-          {isSaving ? "Saving..." : "Approve & Compile \u2713"}
+          {isSaving ? "Saving..." : "Approve & Compile"}
         </button>
       </div>
 
@@ -402,20 +402,20 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
       
       {showDisclaimer && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)' }}>
-          <div style={{ backgroundColor: '#422006', border: '1px solid #f59e0b', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(245, 158, 11, 0.25)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#fbbf24' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+          <div style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--line)', borderLeft: '4px solid #f59e0b', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: 'var(--text-primary)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
               <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>Review Your Documents</h2>
             </div>
-            <p style={{ color: '#fcd34d', fontSize: '15px', lineHeight: '1.5', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5', marginBottom: '24px' }}>
               AI can make mistakes or hallucinate. Please review your CV and Cover Letter carefully to ensure all information is accurate and factual before finalizing your application.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowDisclaimer(false)}
-                style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }} 
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor='rgba(255,255,255,0.2)'} 
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor='rgba(255,255,255,0.1)'}
+                style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--line)', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }} 
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor='var(--surface-hover)'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor='var(--surface)'}
               >
                 Cancel
               </button>
