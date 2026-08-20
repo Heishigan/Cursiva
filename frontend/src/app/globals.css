@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,600;1,400;1,600&family=Kalam:wght@400;700&family=Architects+Daughter&display=swap');
 
 :root {
   /* Backgrounds & Surfaces */
@@ -23,8 +23,9 @@
   --accent-tint-border: rgba(200, 242, 76, 0.25);
 
   /* Sample Resume Mock Card */
-  --mock-resume-bg: #f4f3ee;
-  --mock-resume-text: #111;
+  --mock-resume-bg: #18181c;
+  --mock-resume-paper: #f0eee6;
+  --mock-resume-text: #1a1a1c;
 
   /* Structural Tokens */
   --radius-lg: 9px;
@@ -41,7 +42,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
@@ -59,6 +60,13 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   font-weight: 400;
   letter-spacing: 0.02em;
+}
+
+/* Editorial / Cursive-inspired Serif Accents */
+.font-serif-italic {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  letter-spacing: -0.01em;
 }
 
 /* Monospace / Data */
