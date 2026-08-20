@@ -5,6 +5,7 @@ import { UserButton, useAuth, useUser } from "@clerk/nextjs";
 import { LayoutGrid, PlusCircle, User, Settings, Target } from "lucide-react";
 import styles from "./layout.module.css";
 import React, { useEffect, useState } from "react";
+import Logo from "@/components/Logo";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -132,9 +133,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className={styles.container}>
       {/* Mobile Header */}
       <div className={styles.mobileHeader}>
-        <Link href="/" className={styles.logo}>
-          C<span>ursiva</span>
-        </Link>
+        <Logo size="md" />
         <button className={styles.hamburger} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           <LayoutGrid size={24} />
         </button>
@@ -143,9 +142,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.logoContainer}>
-          <Link href="/" className={styles.logo}>
-            C<span>ursiva</span>
-          </Link>
+          <Logo size="md" />
         </div>
 
         <nav className={styles.nav}>

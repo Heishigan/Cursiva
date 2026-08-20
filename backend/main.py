@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import uvicorn
 import uuid
@@ -65,7 +65,17 @@ app.add_middleware(
 
 # BYOK has been removed
 
-from pydantic import Field
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "Cursiva Backend"}
+
+@app.get("/api/health")
+def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "degraded", "database": str(e)}
 
 class IntakeRequest(BaseModel):
     job_description: str = Field(..., max_length=50_000)

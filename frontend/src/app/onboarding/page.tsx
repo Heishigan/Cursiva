@@ -8,6 +8,7 @@ import styles from './page.module.css';
 import profileStyles from '../dashboard/profile/profile.module.css';
 import { Briefcase, GraduationCap, Code, Globe, User, Pencil, Plus, Trash2, ArrowDown } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
+import Logo from "@/components/Logo";
 
 // Default Schema — matches gui_v2.py FullCVData exactly
 const DEFAULT_CV = {
@@ -224,7 +225,7 @@ export default function Onboarding() {
     <div className={styles.wrapper}>
       <header className={styles.header}>
         <nav className={styles.nav}>
-          <div className={styles.logo}>C<span>ursiva</span></div>
+          <Logo size="md" />
           <div className={styles.stepper}>
             <div className={styles.stepWrap}>
               <div className={`${styles.stepNode} ${isParsing ? styles.sLoading : step >= 2 ? styles.sActive : styles.sPend}`}>

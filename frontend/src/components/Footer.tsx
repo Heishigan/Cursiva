@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
 import { Mail } from "lucide-react";
 import styles from "./Footer.module.css";
+import Logo from "./Logo";
 
 export default function Footer() {
   return (
@@ -10,9 +11,7 @@ export default function Footer() {
         
         {/* Brand Column */}
         <div className={styles.brandColumn}>
-          <Link href="/" className={styles.logo}>
-            C<span>ursiva</span>
-          </Link>
+          <Logo size="md" />
           <p className={styles.tagline}>
             Deploy a team of autonomous AI agents to research, tailor, and natively compile your technical job applications.
           </p>

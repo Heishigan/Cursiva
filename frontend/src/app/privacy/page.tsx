@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import styles from "../legal.module.css";
+import Logo from "@/components/Logo";
 
 export const metadata = {
   title: "Privacy Policy | Cursiva",
@@ -12,9 +13,9 @@ export default function PrivacyPolicy() {
     <>
       <div className={styles.container}>
         <header className={styles.header}>
-          <Link href="/" className={styles.logo}>
-            Cursiva
-          </Link>
+          <div style={{ marginBottom: '32px' }}>
+            <Logo size="md" />
+          </div>
           <h1 className={styles.title}>Privacy Policy</h1>
           <p className={styles.lastUpdated}>Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </header>

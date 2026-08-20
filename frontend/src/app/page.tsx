@@ -1,15 +1,17 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Show, UserButton } from "@clerk/nextjs";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ExternalLink } from "lucide-react";
 import styles from "./page.module.css";
 import Footer from "@/components/Footer";
+import Logo from "@/components/Logo";
 
 export default function Home() {
   return (
     <>
       <main className={styles.container}>
         <header className={styles.header}>
-          <div className={styles.logo}>Cursiva</div>
+          <Logo size="md" />
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Show when="signed-in">
               <UserButton />
@@ -143,21 +145,30 @@ export default function Home() {
               </ul>
             </div>
             
-            <div className={styles.resumePreview}>
-              <div className={styles.resumeHeader}>
-                <div className={styles.resumeName}>John Doe</div>
-                <div className={styles.resumeContact}>San Francisco, CA • (123) 456-7890 • github.com/johndoe</div>
+            <div className={styles.resumeContainer}>
+              <div className={styles.resumeImageWrapper}>
+                <Image
+                  src="/jakes-resume-annotated.jpg"
+                  alt="Jake's LaTeX Resume ATS Annotations"
+                  width={3712}
+                  height={4608}
+                  priority
+                  className={styles.resumeImage}
+                />
               </div>
-              
-              <div className={styles.resumeSectionTitle}>Experience</div>
-              <div className={styles.resumeItem}>
-                <span>Senior Software Engineer | TechCorp</span>
-                <span>Jan 2021 - Present</span>
+
+              {/* Bottom Right Citation Link */}
+              <div className={styles.resumeFooterRow}>
+                <a
+                  href="https://github.com/jakegut/resume"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.githubCitation}
+                >
+                  <span>github.com/jakegut/resume</span>
+                  <ExternalLink size={12} />
+                </a>
               </div>
-              <ul className={styles.resumeBullets}>
-                <li>Architected and deployed a highly scalable microservices architecture...</li>
-                <li>Led a team of 5 engineers to deliver the flagship product, increasing revenue by 15%...</li>
-              </ul>
             </div>
           </div>
         </section>

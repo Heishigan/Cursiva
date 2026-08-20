@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   title: "Cursiva | AI-Powered Job Applications",
   description: "Stop spray-and-pray applying. Deploy an autonomous Executive Assistant that builds meticulously researched, natively compiled applications.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/logo.png",
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
 };
 

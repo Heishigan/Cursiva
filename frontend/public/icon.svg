@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#111113"/>
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="#232327" stroke-width="8"/>
+  <text x="48%" y="54%" fill="#c8f24c" font-family="'Playfair Display', Georgia, 'Times New Roman', serif" font-style="italic" font-weight="700" font-size="360" text-anchor="middle" dominant-baseline="central">C</text>
+</svg>
