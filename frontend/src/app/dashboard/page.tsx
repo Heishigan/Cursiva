@@ -135,8 +135,10 @@ export default function DashboardPage() {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+  const firstName = (parsedName ? parsedName.trim().split(/\s+/)[0] : (isLoaded && user ? user.firstName : null)) || "there";
+
   const stats = {
-    applied: applications.filter(a => (a.status || 'Applied') === 'Applied').length,
+    total: applications.length,
     interviewing: applications.filter(a => a.status === 'Interviewing').length,
     rejected: applications.filter(a => a.status === 'Rejected').length
   };
@@ -185,7 +187,7 @@ export default function DashboardPage() {
       <header className={styles.header}>
         <p className={styles.date}>{today}</p>
         <h1 className={styles.greeting}>
-          {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, {parsedName || (isLoaded && user ? user.firstName : null) || "Guest"}
+          {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, {firstName}
         </h1>
         <p className={styles.subtitle}>Streamlining your technical applications.</p>
       </header>
@@ -194,9 +196,9 @@ export default function DashboardPage() {
         <div className={styles.metricCard}>
           <div className={styles.metricTitle}>
             <Briefcase size={16} />
-            Applied
+            Total Applications
           </div>
-          <div className={styles.metricValue}>{stats.applied}</div>
+          <div className={styles.metricValue}>{stats.total}</div>
         </div>
         
         <div className={styles.metricCard}>
