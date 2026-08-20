@@ -709,6 +709,7 @@ async def create_checkout_session(user_id: str = Depends(get_current_user_id)):
                 'quantity': 1,
             }],
             mode='payment',
+            allow_promotion_codes=True,
             success_url=os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000") + '/dashboard/settings?success=true',
             cancel_url=os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000") + '/dashboard/settings?canceled=true',
             client_reference_id=user_id,
