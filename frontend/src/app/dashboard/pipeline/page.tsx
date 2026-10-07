@@ -223,6 +223,7 @@ export default function PipelinePage() {
       const decoder = new TextDecoder("utf-8");
       
       let buffer = "";
+      let finalResult: any = null;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -238,6 +239,7 @@ export default function PipelinePage() {
               if (data.type === 'status') {
                 setLogs(prev => [...prev, data.message]);
               } else if (data.type === 'result') {
+                finalResult = data;
                 if (data.status === 'success') {
                   // Combine with generic personal info
                   const genericData = JSON.parse(genericCv);
@@ -264,8 +266,6 @@ export default function PipelinePage() {
                     role: jobMetadata?.role_name || "Role"
                   });
                   setStep(3);
-                } else if (data.status === 'error') {
-                  throw new Error(data.message);
                 }
               }
             } catch (e) {
@@ -274,9 +274,18 @@ export default function PipelinePage() {
           }
         }
       }
+
+      if (!finalResult) {
+        throw new Error("The connection was lost before the run finished. If it did not complete, your credit is refunded automatically.");
+      }
+      if (finalResult.status !== 'success') {
+        // failed_review or error: the backend has already refunded the credit.
+        alert(finalResult.message || "Tailoring failed. Your credit has been refunded.");
+        if (finalResult.issues) console.warn("Reviewer issues:", finalResult.issues);
+      }
     } catch (error) {
       console.error(error);
-      alert("Tailoring failed.");
+      alert(error instanceof Error && error.message ? error.message : "Tailoring failed.");
     } finally {
       setIsProcessing(false);
     }
