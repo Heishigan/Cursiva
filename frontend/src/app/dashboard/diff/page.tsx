@@ -183,7 +183,7 @@ export default function DiffViewer() {
           return;
         }
         if (!resTailor.ok) throw new Error(`Server Error: ${resTailor.status}`);
-        let tailorResult: any = null;
+        let tailorResult: { status?: string; message?: string } | null = null;
         if (resTailor.body) {
           const reader = resTailor.body.getReader();
           const decoder = new TextDecoder("utf-8");
