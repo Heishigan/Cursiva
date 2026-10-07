@@ -9,6 +9,7 @@ from .models import (
     CVData, ReviewResult, CoverLetterOutput, LessonResult
 )
 from database import SessionLocal
+from . import checks
 import models as db_models
 
 # --- LLM INITIALIZATION ---
@@ -214,28 +215,72 @@ def tailor_node(state: AgentState):
     
     return {"tailored_cv": res.model_dump(), "revision_count": state.get("revision_count", 0) + 1}
 
+def supplemental_context(state) -> str:
+    """User-provided facts the tailor is required to use; the reviewer treats them as source truth."""
+    parts = []
+    if state.get("user_strategy_answers"):
+        parts.append("User Strategy Answers:\n" + state["user_strategy_answers"])
+    if state.get("user_feedback"):
+        parts.append("User Feedback on Previous Draft:\n" + state["user_feedback"])
+    return "\n\n".join(parts)
+
+
+REVIEWER_SYSTEM = """You are a fact-checking reviewer for a tailored CV. Your ONLY job is to find FABRICATION.
+
+SOURCES (the only ground truth): the Generic CV and the Supplemental Candidate Context. Facts in the
+Supplemental Context are true even if they are not in the Generic CV.
+
+Flag a claim ONLY if it is not supported by the SOURCES:
+1. A technology, tool, framework, employer, title, degree, certification or project that the SOURCES never mention.
+2. A responsibility, achievement, scope or seniority the SOURCES don't support.
+3. Event exaggeration: a single event, project or role turned into a plural ("client-facing roles" when the SOURCES show one pitch).
+
+ALLOWED (never flag these):
+- Rephrasing, reordering, shortening or merging of supported content.
+- Using a Job Description keyword as another name for a skill the SOURCES already show (e.g. "LLMs" for GPT-4 work, "CI/CD" for GitHub Actions pipelines).
+- Formatting, punctuation, style, tone or length. These are checked elsewhere; ignore them completely.
+
+For every problem, copy the offending text EXACTLY as it appears in the Tailored CV into `quote`, and explain the fix in `problem`.
+If nothing is fabricated, return passed=true with an empty issues list. Do not invent problems to seem thorough."""
+
+
+def _format_issues(lines) -> str:
+    return "\n".join(f"- {l}" for l in lines)
+
+
 def reviewer_node(state: AgentState):
-    rules = """
-    You are a strict QA Reviewer. Check the newly tailored CV against the generic CV.
-    Check for:
-    1. Hallucinations: Did the tailor invent any technologies or metrics not in the generic CV?
-    2. Em-dashes: Are there any em-dashes (---) in the text?
-    3. Markdown: Are there any markdown asterisks (**) used for bolding? If so, FAIL.
-    4. Banned Phrases (Rule 14): Check the Professional Summary. If it contains "passionate about", "dedicated to", or "proven track record", FAIL.
-    5. Event Exaggeration: Did the tailor pluralize a single event into "roles" or "experiences" (e.g. claiming "client-facing roles" when the CV only shows a single pitch)? If so, FAIL.
-    
-    If it fails ANY of these, return passed=False and explain exactly what to fix. If it passes, return passed=True.
+    """Two-stage review.
+
+    (a) Deterministic: auto-fix em dashes and markdown, then check banned
+        phrases, invented numbers and dropped items in plain Python. If any
+        fail, return without calling the LLM.
+    (b) LLM judge for semantic fabrication only, with the same supplemental
+        context the tailor was given. An LLM issue counts only if its quote
+        really appears in the CV, so complaints about text that isn't there
+        can't fail the run.
     """
+    supplemental = supplemental_context(state)
+    fixed_cv, _fix_log = checks.autofix_cv(state.get("tailored_cv") or {})
+    det_issues = checks.find_issues(fixed_cv, state.get("generic_cv_raw", ""), supplemental)
+    if det_issues:
+        return {"tailored_cv": fixed_cv, "review_feedback": _format_issues(str(i) for i in det_issues)}
+
     prompt = ChatPromptTemplate.from_messages([
-        ("system", rules),
-        ("user", "Generic CV:\n{generic_cv}\n\nTailored CV:\n{tailored_cv}")
+        ("system", REVIEWER_SYSTEM),
+        ("user", "Generic CV:\n{generic_cv}\n\nSupplemental Candidate Context:\n{supplemental}\n\nTailored CV:\n{tailored_cv}")
     ])
     chain = prompt | get_llm_review(state["api_key"])
     res = chain.invoke({
         "generic_cv": state["generic_cv_raw"],
-        "tailored_cv": json.dumps(state["tailored_cv"])
+        "supplemental": supplemental or "(none)",
+        "tailored_cv": json.dumps({k: v for k, v in fixed_cv.items() if k != "reasoning"}),
     })
-    return {"review_feedback": res.feedback if not res.passed else "PASS"}
+    grounded = [i for i in (res.issues or []) if checks.quote_in_cv(i.quote, fixed_cv)]
+    if res.passed or not grounded:
+        return {"tailored_cv": fixed_cv, "review_feedback": "PASS"}
+    return {"tailored_cv": fixed_cv,
+            "review_feedback": _format_issues(f'[fabrication] "{i.quote}": {i.problem}' for i in grounded)}
+
 
 def cover_letter_node(state: AgentState):
     if not state.get("generate_cover_letter"):
