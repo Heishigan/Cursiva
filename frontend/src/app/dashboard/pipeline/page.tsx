@@ -88,6 +88,23 @@ export default function PipelinePage() {
     }
   }, [step, jdText]);
 
+  // The baseline CV normally lives in localStorage; on a new browser it may not be
+  // there yet, so fall back to the server copy instead of sending an empty "{}"
+  // (which made the tailor write a CV from nothing).
+  const loadGenericCv = async (token: string | null): Promise<string> => {
+    const cached = localStorage.getItem(`generic_cv_json_${user?.id}`);
+    if (cached && cached !== "{}") return cached;
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => null);
+    const cv = data?.data?.cv_data;
+    if (!cv) throw new Error("Your baseline CV is missing. Please set it up in Profile first.");
+    const str = JSON.stringify(cv);
+    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, str);
+    return str;
+  };
+
   const submitJd = async (text: string, override = false) => {
     // Credit gate — block before calling the API
     if (credits !== null && credits < 1) {
@@ -107,7 +124,7 @@ export default function PipelinePage() {
     
     try {
       const token = await getToken();
-      const genericCv = localStorage.getItem(`generic_cv_json_${user?.id}`) || "{}";
+      const genericCv = await loadGenericCv(token);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/intake`, {
         method: "POST",
@@ -172,7 +189,7 @@ export default function PipelinePage() {
       
     } catch (error) {
       console.error(error);
-      alert("Pipeline failed.");
+      alert(error instanceof Error && error.message ? error.message : "Pipeline failed.");
     } finally {
       setIsProcessing(false);
     }
@@ -184,7 +201,7 @@ export default function PipelinePage() {
     
     try {
       const token = await getToken();
-      const genericCv = localStorage.getItem(`generic_cv_json_${user?.id}`) || "{}";
+      const genericCv = await loadGenericCv(token);
       const threadId = "thread_" + Math.random().toString(36).substring(7);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/tailor`, {
@@ -225,7 +242,7 @@ export default function PipelinePage() {
       const decoder = new TextDecoder("utf-8");
       
       let buffer = "";
-      let finalResult: any = null;
+      let finalResult: { status?: string; message?: string; issues?: string } | null = null;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
