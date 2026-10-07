@@ -19,7 +19,7 @@ from fastapi import Request
 from core.models import FullCVData
 from core.agent import setup_node, strategist_node, tailor_app, extract_lesson
 
-from database import engine, get_db
+from database import engine, get_db, SessionLocal
 from models import Base, UserProfile, JobApplication, UserLesson, SavedJob
 from auth import get_current_user_id
 
@@ -99,7 +99,10 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     strict_eligibility = profile.strict_eligibility if profile is not None else True
 
-    async def event_generator():
+    # Plain (sync) generator on purpose: Starlette iterates it in a worker
+    # thread. An async generator here would run the blocking LLM calls on the
+    # event loop and stall every other request on the instance.
+    def event_generator():
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
         setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
@@ -107,11 +110,14 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
         role_name = setup_result.get("role_name", "").strip()
         
         if company_name and role_name and not req.override_eligibility:
-            duplicate = db.query(JobApplication).filter(
-                JobApplication.clerk_id == user_id,
-                JobApplication.company_name == company_name,
-                JobApplication.role_name == role_name
-            ).first()
+            # The request-scoped session is already closed once the body
+            # streams, so use a short-lived session of our own.
+            with SessionLocal() as gen_db:
+                duplicate = gen_db.query(JobApplication).filter(
+                    JobApplication.clerk_id == user_id,
+                    JobApplication.company_name == company_name,
+                    JobApplication.role_name == role_name
+                ).first()
             if duplicate:
                 yield f"data: {json.dumps({'type': 'result', 'status': 'ineligible', 'reason': f'Duplicate detected! You have already started an application for {role_name} at {company_name}.'})}\n\n"
                 return
@@ -147,7 +153,10 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
         profile.credits -= 1
         db.commit()
         
-    async def event_generator():
+    # Plain (sync) generator on purpose: Starlette iterates it in a worker
+    # thread. An async generator here would run the blocking LLM calls on the
+    # event loop and stall every other request on the instance.
+    def event_generator():
         initial_state = {
             "api_key": os.environ.get("OPENAI_API_KEY"),
             "user_id": user_id,
