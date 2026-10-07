@@ -2,7 +2,7 @@ import logging
 import os
 
 import jwt
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 from jwt import PyJWKClient
 from jwt.exceptions import PyJWKClientError
 
@@ -48,7 +48,7 @@ _jwks_clients: dict[str, PyJWKClient] = {
 _UNAUTHORIZED = HTTPException(status_code=401, detail="Invalid or expired session token")
 
 
-def get_current_user_id(authorization: str = Header(None)) -> str:
+def get_current_user_id(authorization: str = Header(None), request: Request = None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
     token = authorization.split(" ", 1)[1].strip()
@@ -79,6 +79,8 @@ def get_current_user_id(authorization: str = Header(None)) -> str:
         if azp is not None and str(azp).rstrip("/") not in AUTHORIZED_PARTIES:
             logger.warning("Rejected token with unexpected azp")
             raise _UNAUTHORIZED
+        if request is not None:
+            request.state.user_id = payload["sub"]  # used as the rate-limit key
         return payload["sub"]
     except HTTPException:
         raise
