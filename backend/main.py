@@ -89,7 +89,7 @@ class TailorRequest(BaseModel):
     strategy_plan: str
     user_strategy_answers: Optional[str] = Field("", max_length=5_000)
     user_feedback: Optional[str] = Field("", max_length=5_000)
-    thread_id: str
+    thread_id: Optional[str] = None  # unused (no checkpointer); kept for client compatibility
 
 from fastapi.responses import StreamingResponse
 
@@ -134,66 +134,111 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 from sqlalchemy import text
+import credits
+
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+FAILED_REVIEW_MESSAGE = (
+    "We couldn't produce a CV that passed our quality checks for this job, so nothing was generated "
+    "and your credit has been refunded. Try adjusting your answers or feedback and run it again."
+)
+ERROR_MESSAGE = "Something went wrong while generating your documents. Your credit has been refunded."
+
 
 @app.post("/api/tailor")
 @limiter.limit("10/minute")
-def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    if db.bind.dialect.name == "postgresql":
-        result = db.execute(
-            text("UPDATE user_profiles SET credits = credits - 1 WHERE clerk_id = :uid AND credits >= 1"),
-            {"uid": user_id}
-        )
-        db.commit()
-        if result.rowcount == 0:
-            raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
-    else:
-        profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
-        if not profile or profile.credits < 1:
-            raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
-        profile.credits -= 1
-        db.commit()
-        
+def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_current_user_id)):
+    credits.sweep_stale_runs()
+    try:
+        run_id = credits.charge_for_run(user_id)
+    except credits.InsufficientCredits:
+        raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+
     # Plain (sync) generator on purpose: Starlette iterates it in a worker
     # thread. An async generator here would run the blocking LLM calls on the
     # event loop and stall every other request on the instance.
     def event_generator():
-        initial_state = {
-            "api_key": os.environ.get("OPENAI_API_KEY"),
-            "user_id": user_id,
-            "job_description": req.job_description,
-            "generic_cv_raw": req.generic_cv_raw,
-            "company_name": req.company_name,
-            "role_name": req.role_name,
-            "strategy_plan": req.strategy_plan,
-            "user_strategy_answers": req.user_strategy_answers,
-            "user_feedback": req.user_feedback,
-            "revision_count": 0,
-            "generate_cover_letter": True
-        }
-        
-        config = {"configurable": {"thread_id": req.thread_id}}
-        
-        final_state = {}
-        for event in tailor_app.stream(initial_state, config=config):
-            for node_name, node_state in event.items():
-                final_state.update(node_state)
-                if node_name == "tailor":
-                    rev_count = node_state.get("revision_count", 0)
-                    tailored_cv = node_state.get("tailored_cv", {})
-                    reasoning = tailored_cv.get("reasoning", "Modifying content to match the provided strategy...") if isinstance(tailored_cv, dict) else "Modifying content..."
-                    yield f"data: {json.dumps({'type': 'status', 'message': f'Tailoring CV (Revision {rev_count}): {reasoning}'})}\n\n"
-                elif node_name == "reviewer":
-                    feedback = node_state.get("review_feedback", "")
-                    if feedback and feedback != "PASS":
-                        # Extract the first sentence or so of the feedback
-                        short_feedback = feedback.split('.')[0] if '.' in feedback else feedback
-                        yield f"data: {json.dumps({'type': 'status', 'message': f'Reviewer found issues: {short_feedback}'})}\n\n"
-                    else:
-                        yield f"data: {json.dumps({'type': 'status', 'message': 'Reviewer checked constraints: Passed!'})}\n\n"
-                elif node_name == "cover_letter":
-                    yield f"data: {json.dumps({'type': 'status', 'message': 'Generating Cover Letter based on the tailored CV and company context...'})}\n\n"
-        
-        yield f"data: {json.dumps({'type': 'result', 'status': 'success', 'tailored_cv': final_state.get('tailored_cv'), 'cover_letter_parts': final_state.get('cover_letter_parts', {}), 'revision_count': final_state.get('revision_count'), 'review_feedback': final_state.get('review_feedback')})}\n\n"
+        # Every exit path closes the run exactly once: success keeps the
+        # credit, anything else refunds it (credits.refund_run is idempotent).
+        outcome = None
+        final_state: dict = {}
+        failure_reasons: list = []
+
+        def metrics() -> dict:
+            return {
+                "revision_count": final_state.get("revision_count"),
+                "cap_hit": final_state.get("review_feedback") not in (None, "PASS"),
+                "failure_reasons": failure_reasons,
+            }
+
+        try:
+            initial_state = {
+                "api_key": os.environ.get("OPENAI_API_KEY"),
+                "user_id": user_id,
+                "job_description": req.job_description,
+                "generic_cv_raw": req.generic_cv_raw,
+                "company_name": req.company_name,
+                "role_name": req.role_name,
+                "strategy_plan": req.strategy_plan,
+                "user_strategy_answers": req.user_strategy_answers,
+                "user_feedback": req.user_feedback,
+                "revision_count": 0,
+                "generate_cover_letter": True,
+            }
+            for event in tailor_app.stream(initial_state):
+                for node_name, node_state in event.items():
+                    final_state.update(node_state)
+                    if node_name == "tailor":
+                        rev_count = node_state.get("revision_count", 0)
+                        tailored_cv = node_state.get("tailored_cv", {})
+                        reasoning = tailored_cv.get("reasoning", "Modifying content to match the provided strategy...") if isinstance(tailored_cv, dict) else "Modifying content..."
+                        yield _sse({'type': 'status', 'message': f'Tailoring CV (Revision {rev_count}): {reasoning}'})
+                    elif node_name == "reviewer":
+                        feedback = node_state.get("review_feedback", "")
+                        if feedback and feedback != "PASS":
+                            failure_reasons.append(feedback)
+                            short_feedback = feedback.split('.')[0] if '.' in feedback else feedback
+                            yield _sse({'type': 'status', 'message': f'Reviewer found issues: {short_feedback}'})
+                        else:
+                            yield _sse({'type': 'status', 'message': 'Reviewer checked constraints: Passed!'})
+                    elif node_name == "cover_letter":
+                        yield _sse({'type': 'status', 'message': 'Generating Cover Letter based on the tailored CV and company context...'})
+
+            if final_state.get("review_feedback") != "PASS":
+                credits.refund_run(run_id, "failed_review", metrics=metrics())
+                outcome = "failed_review"
+                yield _sse({'type': 'result', 'status': 'failed_review', 'refunded': True,
+                            'message': FAILED_REVIEW_MESSAGE,
+                            'issues': final_state.get('review_feedback') or '',
+                            'revision_count': final_state.get('revision_count')})
+                return
+
+            if not final_state.get("tailored_cv"):
+                raise RuntimeError("pipeline finished without a tailored CV")
+
+            credits.mark_success(run_id, metrics())
+            outcome = "success"
+            yield _sse({'type': 'result', 'status': 'success', 'tailored_cv': final_state.get('tailored_cv'),
+                        'cover_letter_parts': final_state.get('cover_letter_parts', {}),
+                        'revision_count': final_state.get('revision_count'),
+                        'review_feedback': final_state.get('review_feedback')})
+        except GeneratorExit:
+            # Client disconnected before an outcome was recorded.
+            if outcome is None:
+                credits.refund_run(run_id, "abandoned", "client disconnected", metrics=metrics())
+                outcome = "abandoned"
+            raise
+        except Exception as e:
+            logger.exception("Tailor run %s failed", run_id)
+            if outcome is None:
+                credits.refund_run(run_id, "error", f"{type(e).__name__}: {e}", metrics=metrics())
+                outcome = "error"
+                yield _sse({'type': 'result', 'status': 'error', 'refunded': True, 'message': ERROR_MESSAGE})
+        finally:
+            if outcome is None:
+                credits.refund_run(run_id, "error", "stream closed without an outcome", metrics=metrics())
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
