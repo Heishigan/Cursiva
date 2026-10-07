@@ -821,6 +821,8 @@ async def clerk_webhook(request: Request, db: Session = Depends(get_db)):
             db.query(UserProfile).filter(UserProfile.clerk_id == user_id).delete()
             db.query(UserLesson).filter(UserLesson.clerk_id == user_id).delete()
             db.query(JobApplication).filter(JobApplication.clerk_id == user_id).delete()
+            # Saved jobs hold JDs, URLs and embeddings: personal data too.
+            db.query(SavedJob).filter(SavedJob.clerk_id == user_id).delete()
             db.commit()
             
     return {"status": "success"}
