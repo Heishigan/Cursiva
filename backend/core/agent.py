@@ -190,8 +190,16 @@ def tailor_node(state: AgentState):
     lessons = get_lessons(user_id, ["CV", "General"])
     lessons_prompt = f"\n\nPAST LESSONS (MUST OBEY):\n{json.dumps(lessons, indent=2)}" if lessons else ""
     
-    previous_cv = state.get("tailored_cv", {})
-    previous_cv_prompt = f"\n\nPrevious Tailored CV (Apply feedback to THIS version):\n{json.dumps(previous_cv, indent=2)}" if previous_cv and user_feedback else ""
+    previous_cv = state.get("tailored_cv") or {}
+    review_feedback = state.get("review_feedback") or ""
+    is_review_retry = state.get("revision_count", 0) > 0 and review_feedback not in ("", "PASS")
+    previous_cv_prompt = ""
+    if previous_cv and (is_review_retry or user_feedback):
+        previous_cv_prompt = "\n\nPrevious Tailored CV (revise THIS version; keep everything that isn't flagged identical):\n" + json.dumps(
+            {k: v for k, v in previous_cv.items() if k != "reasoning"}, indent=2, ensure_ascii=False)
+    if is_review_retry:
+        # Without this each retry re-rolled the same prompt and repeated the same mistakes.
+        previous_cv_prompt += ("\n\nQUALITY REVIEW FAILED. Fix exactly these issues and change nothing else:\n" + review_feedback)
     
     messages = [
         ("system", f"You are an expert CV writer. Your ONLY task is to rewrite the CV JSON (professional summary and all sections) to best match this role. Do NOT write any cover letter content. \n\n{{rules}}{{lessons_prompt}}"),
