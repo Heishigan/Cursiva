@@ -645,7 +645,9 @@ def get_saved_jobs(user_id: str = Depends(get_current_user_id), db: Session = De
     result = []
     
     for job in jobs:
-        score = 0
+        # None means "no score": the UI shows n/a. Earlier versions showed an
+        # invented 75-94% (hash-based, different on every instance) here.
+        score = None
         if cv_emb is not None and job.embedding_json:
             try:
                 job_emb = np.array(json.loads(job.embedding_json))
@@ -654,14 +656,10 @@ def get_saved_jobs(user_id: str = Depends(get_current_user_id), db: Session = De
                 # Convert from [-1, 1] to a realistic percentage [0, 100]
                 # Empirically, text-embedding-3-small similarities usually hover around 0.3 - 0.6 for related texts
                 # Let's map 0.25 -> 0% and 0.55 -> 100% roughly to spread out the scores
-                clamped_sim = max(0.25, min(0.55, cosine_sim))
+                clamped_sim = max(0.25, min(0.55, float(cosine_sim)))
                 score = int(((clamped_sim - 0.25) / 0.30) * 100)
             except Exception as e:
-                print(f"Failed to compute similarity: {e}")
-                score = 75 + (hash(job.id) % 20)
-        else:
-            # Fallback to pseudo-random if embeddings are missing
-            score = 75 + (hash(job.id) % 20)
+                logger.warning("Failed to compute similarity for job %s: %s", job.id, e)
 
         result.append({
             "id": job.id,
