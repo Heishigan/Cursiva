@@ -71,3 +71,12 @@ class GenerationRun(Base):
     prompt_tokens = Column(Integer, nullable=True)
     completion_tokens = Column(Integer, nullable=True)
     cost_usd = Column(Float, nullable=True)
+
+
+class StripeEvent(Base):
+    """Processed Stripe webhook events (idempotency)."""
+    __tablename__ = "stripe_events"
+
+    event_id = Column(String, primary_key=True)
+    checkout_session_id = Column(String, nullable=True, unique=True)
+    processed_at = Column(DateTime, default=datetime.datetime.utcnow)

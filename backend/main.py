@@ -20,7 +20,9 @@ from core.models import FullCVData
 from core.agent import setup_node, strategist_node, tailor_app, extract_lesson
 
 from database import engine, get_db, SessionLocal
-from models import Base, UserProfile, JobApplication, UserLesson, SavedJob
+from models import Base, UserProfile, JobApplication, UserLesson, SavedJob, StripeEvent
+from sqlalchemy.exc import IntegrityError
+from starlette.concurrency import run_in_threadpool
 from auth import get_current_user_id
 
 Base.metadata.create_all(bind=engine)
@@ -734,11 +736,15 @@ def batch_delete_applications(req: BatchDeleteRequest, user_id: str = Depends(ge
 
 # --- STRIPE INTEGRATION ---
 
+CREDITS_PER_PACK = int(os.environ.get("CREDITS_PER_PACK", "15"))
+
+
 @app.post("/api/create-checkout-session")
-async def create_checkout_session(user_id: str = Depends(get_current_user_id)):
+def create_checkout_session(user_id: str = Depends(get_current_user_id)):
     stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
     stripe_price_id = os.environ.get("STRIPE_PRICE_ID")
-    
+    app_url = os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000")
+
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -748,13 +754,16 @@ async def create_checkout_session(user_id: str = Depends(get_current_user_id)):
             }],
             mode='payment',
             allow_promotion_codes=True,
-            success_url=os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000") + '/dashboard/settings?success=true',
-            cancel_url=os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000") + '/dashboard/settings?canceled=true',
+            success_url=app_url + '/dashboard/settings?success=true',
+            cancel_url=app_url + '/dashboard/settings?canceled=true',
             client_reference_id=user_id,
+            # Read back by the webhook to decide what was bought.
+            metadata={"product": "cursiva_credits", "price_id": stripe_price_id or "", "credits": str(CREDITS_PER_PACK)},
         )
         return {"url": session.url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Stripe checkout session creation failed for user %s", user_id)
+        raise HTTPException(status_code=502, detail="Could not start checkout. Please try again.")
 
 @app.post("/api/clerk/webhook")
 async def clerk_webhook(request: Request, db: Session = Depends(get_db)):
@@ -792,39 +801,92 @@ async def clerk_webhook(request: Request, db: Session = Depends(get_db)):
             
     return {"status": "success"}
 
+def _sget(obj, key, default=None):
+    """Key access that works for dicts and StripeObjects of any version."""
+    try:
+        return obj[key]
+    except (KeyError, TypeError, AttributeError):
+        return default
+
+
+def _credits_for_session(session) -> int:
+    """How many credits a completed Checkout Session buys, or 0 if it isn't ours."""
+    expected_price = os.environ.get("STRIPE_PRICE_ID")
+    meta = dict(session.get("metadata") or {})
+    if meta.get("product") == "cursiva_credits" and expected_price and meta.get("price_id") == expected_price:
+        try:
+            return max(0, int(meta.get("credits", CREDITS_PER_PACK)))
+        except (TypeError, ValueError):
+            return 0
+    # Sessions created before metadata was added: verify the price with Stripe.
+    if not expected_price:
+        return 0
+    items = stripe.checkout.Session.list_line_items(session["id"], limit=10)
+    qty = 0
+    for li in _sget(items, "data", []) or []:
+        if _sget(_sget(li, "price", {}) or {}, "id") == expected_price:
+            qty += _sget(li, "quantity", 0) or 0
+    return CREDITS_PER_PACK * qty
+
+
+_PAID_STATUSES = {"paid", "no_payment_required"}  # the latter: 100% promo codes
+
+
 @app.post("/api/webhook")
 async def stripe_webhook(request: Request):
     stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
     endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
+    if not endpoint_secret:
+        raise HTTPException(status_code=500, detail="Stripe webhook secret is not configured.")
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
-
     try:
-        if not endpoint_secret:
-            raise HTTPException(status_code=500, detail="Stripe webhook secret is not configured.")
-        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-    except ValueError as e:
+        stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)  # verifies the signature
+        # Work on plain dicts: StripeObject's dict API differs across stripe-python versions.
+        event = json.loads(payload)
+    except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError as e:
+    except stripe.error.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid signature")
 
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        user_id = getattr(session, 'client_reference_id', None)
-        if user_id:
-            # We need a new db session here since it's a webhook
-            db = next(get_db())
-            try:
-                profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
-                if profile:
-                    profile.credits += 15
-                else:
-                    profile = UserProfile(clerk_id=user_id, credits=16)
-                    db.add(profile)
-                db.commit()
-            finally:
-                db.close()
+    # Blocking Stripe/DB work runs off the event loop.
+    return await run_in_threadpool(_handle_stripe_event, event)
 
+
+def _handle_stripe_event(event) -> dict:
+    if event["type"] not in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+        return {"status": "ignored"}
+    session = event["data"]["object"]
+    user_id = session.get("client_reference_id")
+    if not user_id:
+        logger.warning("Stripe event %s has no client_reference_id", event["id"])
+        return {"status": "ignored"}
+    if session.get("payment_status") not in _PAID_STATUSES:
+        # Delayed payment methods: credits are granted on async_payment_succeeded.
+        return {"status": "pending"}
+
+    amount = _credits_for_session(session)
+    if amount <= 0:
+        logger.warning("Stripe event %s: session %s is not a Cursiva credit pack", event["id"], session.get("id"))
+        return {"status": "ignored"}
+
+    with SessionLocal() as db:
+        try:
+            # The event row and the credit grant commit together. Both columns
+            # are unique, so a redelivered event, a concurrent delivery, or a
+            # second event for the same checkout session (completed +
+            # async_payment_succeeded) can't grant twice.
+            db.add(StripeEvent(event_id=event["id"], checkout_session_id=session.get("id")))
+            db.flush()
+            res = db.execute(text("UPDATE user_profiles SET credits = credits + :n WHERE clerk_id = :uid"),
+                             {"n": amount, "uid": user_id})
+            if res.rowcount == 0:
+                db.add(UserProfile(clerk_id=user_id, credits=amount))
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return {"status": "duplicate"}
+    logger.info("Granted %s credits to %s for %s", amount, user_id, event["id"])
     return {"status": "success"}
 
 if __name__ == "__main__":

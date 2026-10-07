@@ -30,7 +30,7 @@ PyJWT==2.13.0
 svix==1.24.0
 
 # Stripe
-stripe>=10.0.0
+stripe==16.0.0  # pinned: webhook code tested against this version
 
 # Env file loading (for local dev)
 python-dotenv>=1.0.0
