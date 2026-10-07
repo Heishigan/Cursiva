@@ -21,7 +21,6 @@ from core.agent import setup_node, strategist_node, tailor_app, extract_lesson
 
 from database import engine, get_db
 from models import Base, UserProfile, JobApplication, UserLesson, SavedJob
-from security import encrypt_key, decrypt_key
 from auth import get_current_user_id
 
 Base.metadata.create_all(bind=engine)
@@ -398,21 +397,6 @@ def compile_cl(req: CompileCLRequest, user_id: str = Depends(get_current_user_id
     import base64
     b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
     return JSONResponse(content={"status": "success", "pdf_base64": b64_pdf})
-
-@app.get("/api/status")
-def check_status(x_api_key: Optional[str] = Header(None)):
-    api_key = x_api_key or os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return {"openai_status": "disconnected"}
-        
-    try:
-        # Just check if we can list models to verify the key
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        client.models.list()
-        return {"openai_status": "connected"}
-    except Exception:
-        return {"openai_status": "invalid"}
 
 @app.get("/")
 def read_root():
