@@ -262,16 +262,16 @@ MAX_CV_TEXT_CHARS = 60_000
 
 @app.post("/api/parse_pdf")
 @limiter.limit("5/minute;30/day")
-async def parse_pdf(
+def parse_pdf(  # sync on purpose: PyMuPDF and the LLM call block; FastAPI runs this in a threadpool
     request: Request,
     file: UploadFile = File(...), 
     user_id: str = Depends(get_current_user_id), 
     db: Session = Depends(get_db)
 ):
-    if not file.filename.endswith('.pdf'):
+    if not (file.filename or "").lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Must be a PDF file")
     
-    content = await file.read()
+    content = file.file.read(MAX_PDF_SIZE_BYTES + 1)
     if len(content) > MAX_PDF_SIZE_BYTES:
         raise HTTPException(status_code=413, detail="PDF file exceeds 5 MB limit.")
     try:
