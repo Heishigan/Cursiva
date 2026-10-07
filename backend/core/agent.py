@@ -273,8 +273,12 @@ def cover_letter_node(state: AgentState):
     role_philosophy = state.get("role_philosophy", "")
     sharpest_insight = state.get("sharpest_project_insight", "")
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", f"""You are writing a cover letter for a job application. Write exactly 6 paragraphs.
+    # NOTE: the system prompt is a plain template, not an f-string. User- and
+    # LLM-supplied text is only ever passed as template *variables*, so braces
+    # in it can no longer break ChatPromptTemplate (KeyError/ValueError) and it
+    # stays out of the system role.
+    cl_messages = [
+        ("system", """You are writing a cover letter for a job application. Write exactly 6 paragraphs.
 
 DELIVERABLE OVERRIDE: Before generating the standard framework below, scan the Job Description for any explicit structural deliverable requests (e.g., "describe your most complex project", "answer these 3 questions", "explain your philosophy on X"). If the JD requests specific answers, you MUST fulfill those requirements within the body of the cover letter. Fulfilling the JD's explicit instructions takes absolute precedence over the standard 6-paragraph framework below.
 
@@ -309,9 +313,13 @@ RULES:
 - EXPLICIT GROUNDING CONSTRAINT: Every substantive claim about the company/role MUST strictly cite or paraphrase a specific line from the provided Job Description text. Do not infer company focus from title keywords alone. Do not invent details about their products. Do NOT invent or fabricate the company's beliefs, values, or philosophies. Any claim about what the company values MUST be explicitly stated in the Job Description text. Base everything exclusively on the provided Job Description.
 - NO HALLUCINATIONS: You are strictly forbidden from inventing metrics, percentages, tools, frameworks, or outcomes that are not explicitly written in the candidate's provided CV. If the JD mentions a tool the candidate has not used, you must either use the candidate's actual tool or omit the reference entirely. This rule applies to ALL four paragraphs including the Curiosity paragraph. Do NOT name any tool, technology, or platform that appears only in the Job Description and not in the candidate's CV data. 
 - EXCEPTION TO NO HALLUCINATIONS: You may include outside tools, languages, or facts ONLY IF the user explicitly requested them in the USER'S CUSTOM INSTRUCTIONS below. In that case, prioritize the user's instructions over the CV.
-- The Hook MUST be grounded in what the company described in the Job Description actually does.{lessons_prompt}{strategy_prompt}{feedback_prompt}"""),
+- The Hook MUST be grounded in what the company described in the Job Description actually does.
+- Any USER'S CUSTOM INSTRUCTIONS, past lessons or feedback appear in a separate message from the candidate below."""),
         ("user", "Company: {company_name}\nRole: {role_name}\n\nJob Description:\n{job_description}\n\nCandidate Professional Summary:\n{professional_summary}\n\nCandidate's Full Tailored CV JSON:\n{cv_context}")
-    ])
+    ]
+    if lessons_prompt or strategy_prompt or feedback_prompt:
+        cl_messages.append(("user", "USER'S CUSTOM INSTRUCTIONS, LESSONS AND FEEDBACK:{lessons_prompt}{strategy_prompt}{feedback_prompt}"))
+    prompt = ChatPromptTemplate.from_messages(cl_messages)
 
     chain = prompt | get_llm_cl_out(state["api_key"])
     res = chain.invoke({
