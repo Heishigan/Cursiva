@@ -36,5 +36,27 @@ ENV/
 
 # Databases
 *.db
-*.md
 backend/.env
+
+# Personal data, exports and local tooling (never commit)
+temp/
+_untracked_backup/
+*.xlsx
+*.sql
+*.log
+*.zip
+*.exe
+stripe_cli/
+handoff.md
+vulnerability_report.md
+generate_sql.py
+rebase_editor*.py
+commit_msg_editor.py
+backend/engine_patched.py
+
+# Node / Next
+node_modules/
+.next/
+
+# Tests
+.pytest_cache/
