@@ -44,7 +44,19 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-limiter = Limiter(key_func=get_remote_address)
+def rate_limit_key(request) -> str:
+    """Rate-limit per authenticated user, falling back to the client address.
+
+    Authentication runs as a dependency before the limit is checked, so
+    request.state.user_id is the *verified* Clerk user id. Keying on the
+    remote address alone grouped users behind Cloud Run's proxy.
+    Note: limits are held in memory, so they are per instance.
+    """
+    uid = getattr(request.state, "user_id", None)
+    return f"user:{uid}" if uid else f"ip:{get_remote_address(request)}"
+
+
+limiter = Limiter(key_func=rate_limit_key)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -96,7 +108,7 @@ class TailorRequest(BaseModel):
 from fastapi.responses import StreamingResponse
 
 @app.post("/api/intake")
-@limiter.limit("10/minute")
+@limiter.limit("10/minute;60/day")
 def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     strict_eligibility = profile.strict_eligibility if profile is not None else True
@@ -246,9 +258,10 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 MAX_PDF_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_CV_TEXT_CHARS = 60_000
 
 @app.post("/api/parse_pdf")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute;30/day")
 async def parse_pdf(
     request: Request,
     file: UploadFile = File(...), 
@@ -264,6 +277,9 @@ async def parse_pdf(
     try:
         doc = fitz.open(stream=content, filetype="pdf")
         text = "".join(page.get_text() for page in doc)
+        if len(text) > MAX_CV_TEXT_CHARS:
+            # A real CV is a few thousand characters; cap the GPT-4o input cost.
+            raise HTTPException(status_code=413, detail="This PDF has too much text to be a CV.")
         
         setup_llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=os.environ.get("OPENAI_API_KEY"))
         structured_llm = setup_llm.with_structured_output(FullCVData)
@@ -276,6 +292,8 @@ async def parse_pdf(
         parsed_data = res.model_dump()
         
         return {"status": "success", "parsed_data": parsed_data}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("PDF parse error for user %s: %s", user_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to process the uploaded file.")
@@ -327,7 +345,8 @@ def sanitize_url(url: str) -> str:
     return url
 
 @app.post("/api/compile_cv")
-def compile_cv(req: FullCVData, user_id: str = Depends(get_current_user_id)):
+@limiter.limit("20/minute")
+def compile_cv(request: Request, req: FullCVData, user_id: str = Depends(get_current_user_id)):
     data = req.model_dump()
     
     # Ensure URLs have https:// prefix for valid LaTeX hyperlinks and sanitize
@@ -394,7 +413,8 @@ class FeedbackRequest(BaseModel):
     user_feedback: str = Field(..., max_length=5_000)
 
 @app.post("/api/feedback")
-def submit_feedback(req: FeedbackRequest, user_id: str = Depends(get_current_user_id)):
+@limiter.limit("10/minute;100/day")
+def submit_feedback(request: Request, req: FeedbackRequest, user_id: str = Depends(get_current_user_id)):
     extract_lesson(os.environ.get("OPENAI_API_KEY"), user_id, req.user_feedback)
     return {"status": "success"}
 
@@ -405,7 +425,8 @@ class CompileCLRequest(BaseModel):
     cover_letter_paragraphs: list
 
 @app.post("/api/compile_cl")
-def compile_cl(req: CompileCLRequest, user_id: str = Depends(get_current_user_id)):
+@limiter.limit("20/minute")
+def compile_cl(request: Request, req: CompileCLRequest, user_id: str = Depends(get_current_user_id)):
     template_dir = os.path.join(os.path.dirname(__file__), 'templates')
     try:
         jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
@@ -476,7 +497,8 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
 
 
 @app.post("/api/user/profile")
-def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def update_user_profile(request: Request, req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     if not profile:
         profile = UserProfile(clerk_id=user_id, credits=trial.starting_credits_for_new_profile(db, user_id))
@@ -510,7 +532,8 @@ class JobApplicationCreate(BaseModel):
     cl_data_json: str
 
 @app.post("/api/applications")
-def create_application(req: JobApplicationCreate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def create_application(request: Request, req: JobApplicationCreate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     app_id = str(uuid.uuid4())
     new_app = JobApplication(
         id=app_id,
@@ -730,7 +753,8 @@ CREDITS_PER_PACK = int(os.environ.get("CREDITS_PER_PACK", "15"))
 
 
 @app.post("/api/create-checkout-session")
-def create_checkout_session(user_id: str = Depends(get_current_user_id)):
+@limiter.limit("10/minute")
+def create_checkout_session(request: Request, user_id: str = Depends(get_current_user_id)):
     stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
     stripe_price_id = os.environ.get("STRIPE_PRICE_ID")
     app_url = os.environ.get("NEXT_PUBLIC_APP_URL", "http://localhost:3000")
