@@ -137,6 +137,7 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
 
 from sqlalchemy import text
 import credits
+import trial
 
 def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
@@ -460,7 +461,7 @@ def read_root():
 
 class ProfileUpdate(BaseModel):
     cv_data_json: Optional[str] = None
-    email: Optional[str] = None  # Used only on first profile creation to detect cycling
+    email: Optional[str] = None  # Ignored: trial eligibility uses the verified email from Clerk (see trial.py)
     strict_eligibility: Optional[bool] = None
 
 @app.get("/api/user/profile")
@@ -476,20 +477,9 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
 
 @app.post("/api/user/profile")
 def update_user_profile(req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    from models import UsedTrialEmail
-    import hashlib
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     if not profile:
-        # Check if this email has been used for a free trial before
-        starting_credits = 1  # default trial credit
-        if req.email:
-            email_hash = hashlib.sha256(req.email.lower().strip().encode()).hexdigest()
-            used = db.query(UsedTrialEmail).filter(UsedTrialEmail.email_hash == email_hash).first()
-            if used:
-                starting_credits = 0  # cycling detected — no free trial
-            else:
-                db.add(UsedTrialEmail(email_hash=email_hash))  # record it now
-        profile = UserProfile(clerk_id=user_id, credits=starting_credits)
+        profile = UserProfile(clerk_id=user_id, credits=trial.starting_credits_for_new_profile(db, user_id))
         db.add(profile)
     
     if req.cv_data_json is not None:
