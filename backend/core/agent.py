@@ -337,23 +337,42 @@ RULES:
     })
     return {"cover_letter_parts": res.model_dump(), "user_feedback": ""}
 
+MAX_REVISIONS = 3
+
+
 def review_conditional(state: AgentState):
-    if state["review_feedback"] == "PASS" or state["revision_count"] >= 3:
+    """Route after review.
+
+    pass    -> the CV passed review; go on to the cover letter.
+    fail    -> retry the tailor with the reviewer's feedback.
+    give_up -> the retry budget is spent and the CV still fails. The run ends
+               here (no cover letter is generated) and the API reports it as
+               failed_review and refunds the credit. A failed CV is never
+               passed off as a success.
+    """
+    if state.get("review_feedback") == "PASS":
         return "pass"
+    if state.get("revision_count", 0) >= MAX_REVISIONS:
+        return "give_up"
     return "fail"
 
 # --- APP EXPORT ---
 # Exported for FastApi to run independently or test via LangGraph
-builder = StateGraph(AgentState)
-builder.add_node("tailor", tailor_node)
-builder.add_node("reviewer", reviewer_node)
-builder.add_node("cover_letter", cover_letter_node)
-builder.set_entry_point("tailor")
-builder.add_edge("tailor", "reviewer")
-builder.add_conditional_edges("reviewer", review_conditional, {
-    "pass": "cover_letter",
-    "fail": "tailor"
-})
-builder.add_edge("cover_letter", END)
+def build_graph():
+    builder = StateGraph(AgentState)
+    builder.add_node("tailor", tailor_node)
+    builder.add_node("reviewer", reviewer_node)
+    builder.add_node("cover_letter", cover_letter_node)
+    builder.set_entry_point("tailor")
+    builder.add_edge("tailor", "reviewer")
+    builder.add_conditional_edges("reviewer", review_conditional, {
+        "pass": "cover_letter",
+        "fail": "tailor",
+        "give_up": END,
+    })
+    builder.add_edge("cover_letter", END)
 
-tailor_app = builder.compile()
+    return builder.compile()
+
+
+tailor_app = build_graph()
