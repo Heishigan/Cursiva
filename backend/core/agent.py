@@ -149,9 +149,9 @@ def tailor_node(state: AgentState):
     rules = f"""
     STRICT RULES:
     1. DO NOT invent or hallucinate any skills, metrics, or technologies not present in the generic CV OR the Supplemental Candidate Context. You MUST incorporate any facts, projects, or tools explicitly mentioned in the Supplemental Context.
-    2. NEVER use em dashes (---) in paragraph text.
+    2. NEVER use em dashes (the — character, or ---) anywhere. Use a comma or "and" instead.
     3. CV ORDERING: The final `sections` array MUST be strictly ordered as follows: {order_str}. Do NOT deviate from this order.
-    4. For the 'projects' section ONLY: You MUST select exactly 5 projects (always including the Master's Thesis and BSc Final-Year Project). You MUST reorder the 5 selected projects so that the most relevant projects for this specific role appear at the top.
+    4. For the 'projects' section ONLY: select the most relevant projects for this role, at most 5. If the generic CV has 5 or fewer projects, keep all of them. If it contains a thesis or final-year degree project, keep it. NEVER invent, split or duplicate projects to reach a number. Order the selected projects so the most relevant appear first.
     5. For ALL OTHER sections: You MUST include every single item from the generic CV exactly as they appear (do not delete or add items). **CRITICAL:** You MUST preserve the exact original top-to-bottom order of the items, AND the exact original top-to-bottom order of the bullet points within each item, exactly as they appear in the generic CV. Do NOT reorder them. You are encouraged to carefully rephrase their bullet points to match the exact ATS keywords from the Job Description, but ONLY if the keywords logically align with the candidate's existing experience.
     6. ATS KEYWORD STRATEGY: If the generic CV already demonstrates a related skill, you should adjust the phrasing to explicitly include the JD's exact keyword. You may only inject ATS keywords if they logically fit into the existing narrative of the item. Do NOT fundamentally change the story, scope, or technical achievements of any item. 
     7. The original item's authenticity must never be compromised. 
@@ -160,15 +160,15 @@ def tailor_node(state: AgentState):
     10. IGNORING COVER LETTER FEEDBACK: If the user's feedback specifically mentions the Cover Letter and does NOT mention the CV, ignore the feedback and keep the CV changes minimal or identical to previous iterations.
 
     BULLET VOICE (applies to bullets only, not Professional Summary):
-    10. BAN empty intensifiers: "successfully," "effectively," "expertly," "robust," "seamlessly," "cutting-edge," "leveraged" (use "used" or "built with" instead), "various," "comprehensive." If a bullet works without the adjective, the adjective goes.
-    11. VARY the opening verb across the bullets. Do not let three bullets in a row open with "Built" or "Developed." Rotate: Built, Designed, Reduced, Ran, Architected, Deployed, Automated, Shipped, Coordinated, Led, etc., chosen for what's actually true of that bullet, not at random.
-    12. Metrics stay embedded in the sentence that earns them, never appended as a dangling clause. Not "Built a classifier, achieving 94% accuracy" as a generic tail; only keep the metric tail if the sentence has nowhere more natural to put it. Prefer working it into the clause: "Fine-tuned BERT for binary classification, achieving 94% accuracy" only if that's the most natural phrasing already in the generic CV; otherwise restructure minimally.
-    13. No paragraph-style summarizing inside a bullet. Each bullet is one concrete action plus its concrete result. Cut any bullet that ends in a vague capstone clause like "...improving overall system performance" or "...enhancing the user experience" unless that exact outcome is named with specifics from the generic CV.
+    11. BAN empty intensifiers: "successfully," "effectively," "expertly," "robust," "seamlessly," "cutting-edge," "leveraged" (use "used" or "built with" instead), "various," "comprehensive." If a bullet works without the adjective, the adjective goes.
+    12. VARY the opening verb across the bullets. Do not let three bullets in a row open with "Built" or "Developed." Rotate: Built, Designed, Reduced, Ran, Architected, Deployed, Automated, Shipped, Coordinated, Led, etc., chosen for what's actually true of that bullet, not at random.
+    13. Metrics stay embedded in the sentence that earns them, never appended as a dangling clause. Not "Built a classifier, achieving 94% accuracy" as a generic tail; only keep the metric tail if the sentence has nowhere more natural to put it. Prefer working it into the clause: "Fine-tuned BERT for binary classification, achieving 94% accuracy" only if that's the most natural phrasing already in the generic CV; otherwise restructure minimally.
+    14. No paragraph-style summarizing inside a bullet. Each bullet is one concrete action plus its concrete result. Cut any bullet that ends in a vague capstone clause like "...improving overall system performance" or "...enhancing the user experience" unless that exact outcome is named with specifics from the generic CV.
 
     PROFESSIONAL SUMMARY VOICE:
-    14. Open with role/credential plus one concrete specialization, not a values statement. Avoid "passionate about," "dedicated to," "proven track record."
-    15. Keep sentences short. 3-4 sentences total, no sentence over ~30 words.
-    16. EVENT EXAGGERATION: NEVER pluralize single events or projects into "roles" or "experiences" (e.g., do not say "client-facing roles" if the generic CV only shows a single event). Stick exactly to the scale of the experience described.
+    15. Open with role/credential plus one concrete specialization, not a values statement. Avoid "passionate about," "dedicated to," "proven track record."
+    16. Keep sentences short. 3-4 sentences total, no sentence over ~30 words.
+    17. EVENT EXAGGERATION: NEVER pluralize single events or projects into "roles" or "experiences" (e.g., do not say "client-facing roles" if the generic CV only shows a single event). Stick exactly to the scale of the experience described.
     """
     
     user_strategy = state.get('user_strategy_answers', '')
