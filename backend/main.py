@@ -7,6 +7,10 @@ import uuid
 import os
 from dotenv import load_dotenv
 load_dotenv()
+import logging
+if not logging.getLogger().handlers:
+    # Cloud Run captures stdout/stderr; without this INFO logs were dropped.
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 from svix.webhooks import Webhook, WebhookVerificationError
 import fitz
 import json
@@ -156,6 +160,8 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
 from sqlalchemy import text
 import credits
 import trial
+import usage
+from langchain_core.callbacks import UsageMetadataCallbackHandler
 
 def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
@@ -189,12 +195,17 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
         final_state: dict = {}
         failure_reasons: list = []
 
-        def metrics() -> dict:
-            return {
+        usage_cb = UsageMetadataCallbackHandler()
+
+        def metrics(label: str) -> dict:
+            m = {
                 "revision_count": final_state.get("revision_count"),
                 "cap_hit": final_state.get("review_feedback") not in (None, "PASS"),
                 "failure_reasons": failure_reasons,
+                **usage.usage_to_metrics(usage_cb.usage_metadata),
             }
+            logger.info("generation_run %s", json.dumps({"run_id": run_id, "outcome": label, **{k: v for k, v in m.items() if k != "failure_reasons"}, "failed_attempts": len(failure_reasons)}))
+            return m
 
         try:
             initial_state = {
@@ -214,7 +225,7 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             }
             if req.user_feedback and req.previous_tailored_cv:
                 initial_state["tailored_cv"] = req.previous_tailored_cv
-            for event in tailor_app.stream(initial_state):
+            for event in tailor_app.stream(initial_state, config={"callbacks": [usage_cb]}):
                 for node_name, node_state in event.items():
                     final_state.update(node_state)
                     if node_name == "tailor":
@@ -234,7 +245,7 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
                         yield _sse({'type': 'status', 'message': 'Generating Cover Letter based on the tailored CV and company context...'})
 
             if final_state.get("review_feedback") != "PASS":
-                credits.refund_run(run_id, "failed_review", metrics=metrics())
+                credits.refund_run(run_id, "failed_review", metrics=metrics("failed_review"))
                 outcome = "failed_review"
                 yield _sse({'type': 'result', 'status': 'failed_review', 'refunded': True,
                             'message': FAILED_REVIEW_MESSAGE,
@@ -245,7 +256,7 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             if not final_state.get("tailored_cv"):
                 raise RuntimeError("pipeline finished without a tailored CV")
 
-            credits.mark_success(run_id, metrics())
+            credits.mark_success(run_id, metrics("success"))
             outcome = "success"
             yield _sse({'type': 'result', 'status': 'success', 'tailored_cv': final_state.get('tailored_cv'),
                         'cover_letter_parts': final_state.get('cover_letter_parts', {}),
@@ -254,18 +265,18 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
         except GeneratorExit:
             # Client disconnected before an outcome was recorded.
             if outcome is None:
-                credits.refund_run(run_id, "abandoned", "client disconnected", metrics=metrics())
+                credits.refund_run(run_id, "abandoned", "client disconnected", metrics=metrics("abandoned"))
                 outcome = "abandoned"
             raise
         except Exception as e:
             logger.exception("Tailor run %s failed", run_id)
             if outcome is None:
-                credits.refund_run(run_id, "error", f"{type(e).__name__}: {e}", metrics=metrics())
+                credits.refund_run(run_id, "error", f"{type(e).__name__}: {e}", metrics=metrics("error"))
                 outcome = "error"
                 yield _sse({'type': 'result', 'status': 'error', 'refunded': True, 'message': ERROR_MESSAGE})
         finally:
             if outcome is None:
-                credits.refund_run(run_id, "error", "stream closed without an outcome", metrics=metrics())
+                credits.refund_run(run_id, "error", "stream closed without an outcome", metrics=metrics("error"))
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
