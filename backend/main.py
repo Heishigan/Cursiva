@@ -117,6 +117,12 @@ class TailorRequest(BaseModel):
 
 from fastapi.responses import StreamingResponse
 
+
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+
 @app.post("/api/intake")
 @limiter.limit("10/minute;60/day")
 def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
@@ -130,6 +136,10 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
         setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
+        if setup_result.get("setup_failed"):
+            yield _sse({'type': 'result', 'status': 'error', 'reason': "We couldn't analyse this job description right now. Please try again in a minute."})
+            return
+
         company_name = setup_result.get("company_name", "").strip()
         role_name = setup_result.get("role_name", "").strip()
         
@@ -151,7 +161,12 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
             return
             
         yield f"data: {json.dumps({'type': 'status', 'message': 'Strategist analyzing fit and formulating plan...'})}\n\n"
-        strategy_result = strategist_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
+        try:
+            strategy_result = strategist_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
+        except Exception:
+            logger.exception("strategist_node failed for user %s", user_id)
+            yield _sse({'type': 'result', 'status': 'error', 'reason': "The strategist step failed. Please try again in a minute."})
+            return
         
         yield f"data: {json.dumps({'type': 'result', 'status': 'success', 'metadata': setup_result, 'strategy': strategy_result})}\n\n"
 
@@ -162,10 +177,6 @@ import credits
 import trial
 import usage
 from langchain_core.callbacks import UsageMetadataCallbackHandler
-
-def _sse(payload: dict) -> str:
-    return f"data: {json.dumps(payload)}\n\n"
-
 
 FAILED_REVIEW_MESSAGE = (
     "We couldn't produce a CV that passed our quality checks for this job, so nothing was generated "

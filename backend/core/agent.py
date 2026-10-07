@@ -11,13 +11,26 @@ from .models import (
 from database import SessionLocal
 from . import checks
 import models as db_models
+import logging
+
+logger = logging.getLogger(__name__)
 
 # --- LLM INITIALIZATION ---
-def get_llm(api_key: str): return ChatOpenAI(model="gpt-4o", temperature=0.2, api_key=api_key)
-def get_llm_cl(api_key: str): return ChatOpenAI(model="gpt-4o", temperature=0.5, api_key=api_key)
+# Explicit timeouts: the default is no timeout, so a hung OpenAI call held a
+# worker thread (and the user's credit) indefinitely.
+LLM_TIMEOUT_S = float(os.environ.get("LLM_TIMEOUT_S", "90"))
+LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "2"))
+
+
+def get_llm(api_key: str, temperature: float = 0.2):
+    return ChatOpenAI(model="gpt-4o", temperature=temperature, api_key=api_key,
+                      timeout=LLM_TIMEOUT_S, max_retries=LLM_MAX_RETRIES)
+
+
+def get_llm_cl(api_key: str): return get_llm(api_key, temperature=0.5)
 
 def get_llm_json(api_key: str): return get_llm(api_key).with_structured_output(CVData)
-def get_llm_review(api_key: str): return get_llm(api_key).with_structured_output(ReviewResult)
+def get_llm_review(api_key: str): return get_llm(api_key, temperature=0).with_structured_output(ReviewResult)
 def get_llm_setup(api_key: str): return get_llm(api_key).with_structured_output(JobMetadata)
 def get_llm_cl_out(api_key: str): return get_llm_cl(api_key).with_structured_output(CoverLetterOutput)
 
@@ -86,13 +99,14 @@ def setup_node(state: AgentState):
         ("system", "Read the Job Description and the Generic CV provided below. Extract the company name, role name, job summary, and key requirements. Finally, evaluate the candidate's Eligibility (checking for hard mismatches in visa/location/languages). Output strictly the requested JSON. IMPORTANT: If you cannot determine the company name or role name with confidence from the text, return an empty string for that field — do NOT use placeholder values like 'Company' or 'Unknown'."),
         ("user", "Job Description:\n{job_description}\n\nGeneric CV:\n{generic_cv}")
     ])
-    chain = prompt | get_llm_setup(state["api_key"])
-    
     try:
+        chain = prompt | get_llm_setup(state["api_key"])
         res = chain.invoke({"job_description": state["job_description"], "generic_cv": state["generic_cv_raw"]})
     except Exception as e:
-        print(f"Sanity Check LLM Exception: {e}")
-        res = None
+        logger.exception("setup_node LLM call failed")
+        # Don't pretend the job passed eligibility: tell the caller it failed.
+        return {"setup_failed": True, "company_name": "", "role_name": "", "eligibility_passed": False,
+                "eligibility_reason": "", "is_valid_job_description": False}
     
     company = ""
     role = ""
