@@ -35,3 +35,15 @@ def test_user_feedback_applies_to_previous_draft(rec):
 
 def test_revision_count_increments(rec):
     assert A.tailor_node({**BASE, "revision_count": 2})["revision_count"] == 3
+
+
+def test_feedback_request_seeds_previous_draft(client, app_module, monkeypatch, rec):
+    from tests.conftest import set_credits
+    monkeypatch.setattr(A, "reviewer_node", lambda s: {"review_feedback": "PASS"})
+    monkeypatch.setattr(A, "cover_letter_node", lambda s: {"cover_letter_parts": {}})
+    monkeypatch.setattr(app_module, "tailor_app", A.build_graph())
+    set_credits("user_A", 1)
+    body = {"job_description": "jd", "generic_cv_raw": "{}", "strategy_plan": "s", "user_feedback": "shorter",
+            "previous_tailored_cv": {"professional_summary": "THE_DRAFT_I_SAW"}}
+    client.post("/api/tailor", json=body)
+    assert "THE_DRAFT_I_SAW" in rec.prompts[0]
