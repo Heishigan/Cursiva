@@ -98,9 +98,12 @@ class IntakeRequest(BaseModel):
 class TailorRequest(BaseModel):
     job_description: str = Field(..., max_length=50_000)
     generic_cv_raw: str = Field(..., max_length=100_000)
-    company_name: str
-    role_name: str
-    strategy_plan: str
+    company_name: str = Field("", max_length=300)
+    role_name: str = Field("", max_length=300)
+    strategy_plan: str = Field("", max_length=20_000)
+    # Strategist outputs from /api/intake; the cover letter's Match paragraph is built on them.
+    role_philosophy: Optional[str] = Field("", max_length=2_000)
+    sharpest_project_insight: Optional[str] = Field("", max_length=2_000)
     user_strategy_answers: Optional[str] = Field("", max_length=5_000)
     user_feedback: Optional[str] = Field("", max_length=5_000)
     thread_id: Optional[str] = None  # unused (no checkpointer); kept for client compatibility
@@ -197,6 +200,8 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
                 "company_name": req.company_name,
                 "role_name": req.role_name,
                 "strategy_plan": req.strategy_plan,
+                "role_philosophy": req.role_philosophy or "",
+                "sharpest_project_insight": req.sharpest_project_insight or "",
                 "user_strategy_answers": req.user_strategy_answers,
                 "user_feedback": req.user_feedback,
                 "revision_count": 0,

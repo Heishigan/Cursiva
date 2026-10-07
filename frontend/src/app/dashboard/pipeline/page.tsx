@@ -200,6 +200,8 @@ export default function PipelinePage() {
           company_name: jobMetadata?.company_name || "",
           role_name: jobMetadata?.role_name || "",
           strategy_plan: strategyResult?.strategy_plan || "",
+          role_philosophy: strategyResult?.role_philosophy || "",
+          sharpest_project_insight: strategyResult?.sharpest_project_insight || "",
           user_strategy_answers: userAnswers,
           user_feedback: feedback,
           thread_id: threadId
@@ -256,6 +258,8 @@ export default function PipelinePage() {
                     localStorage.setItem(`diff_cl_${user.id}`, JSON.stringify(data.cover_letter_parts));
                     localStorage.setItem(`diff_jd_${user.id}`, jdText);
                     localStorage.setItem(`diff_strategy_${user.id}`, strategyResult?.strategy_plan || "");
+                    localStorage.setItem(`diff_role_philosophy_${user.id}`, strategyResult?.role_philosophy || "");
+                    localStorage.setItem(`diff_sharpest_insight_${user.id}`, strategyResult?.sharpest_project_insight || "");
                     localStorage.setItem(`diff_user_answers_${user.id}`, userAnswers);
                   }
                   

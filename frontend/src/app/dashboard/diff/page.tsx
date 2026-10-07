@@ -166,6 +166,8 @@ export default function DiffViewer() {
             company_name: company,
             role_name: role,
             strategy_plan: strategyStr,
+            role_philosophy: localStorage.getItem(`diff_role_philosophy_${user?.id}`) || "",
+            sharpest_project_insight: localStorage.getItem(`diff_sharpest_insight_${user?.id}`) || "",
             user_strategy_answers: userAnswers,
             user_feedback: feedback,
             thread_id: threadId
