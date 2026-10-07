@@ -106,6 +106,9 @@ class TailorRequest(BaseModel):
     sharpest_project_insight: Optional[str] = Field("", max_length=2_000)
     user_strategy_answers: Optional[str] = Field("", max_length=5_000)
     user_feedback: Optional[str] = Field("", max_length=5_000)
+    # The draft the user is giving feedback on, so feedback is applied to it
+    # instead of regenerating from scratch.
+    previous_tailored_cv: Optional[dict] = None
     thread_id: Optional[str] = None  # unused (no checkpointer); kept for client compatibility
 
 from fastapi.responses import StreamingResponse
@@ -168,6 +171,8 @@ ERROR_MESSAGE = "Something went wrong while generating your documents. Your cred
 @app.post("/api/tailor")
 @limiter.limit("10/minute")
 def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_current_user_id)):
+    if req.previous_tailored_cv is not None and len(json.dumps(req.previous_tailored_cv)) > 100_000:
+        raise HTTPException(status_code=413, detail="Previous CV draft is too large.")
     credits.sweep_stale_runs()
     try:
         run_id = credits.charge_for_run(user_id)
@@ -207,6 +212,8 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
                 "revision_count": 0,
                 "generate_cover_letter": True,
             }
+            if req.user_feedback and req.previous_tailored_cv:
+                initial_state["tailored_cv"] = req.previous_tailored_cv
             for event in tailor_app.stream(initial_state):
                 for node_name, node_state in event.items():
                     final_state.update(node_state)

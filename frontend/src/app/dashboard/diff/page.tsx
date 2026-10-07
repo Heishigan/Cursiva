@@ -170,6 +170,9 @@ export default function DiffViewer() {
             sharpest_project_insight: localStorage.getItem(`diff_sharpest_insight_${user?.id}`) || "",
             user_strategy_answers: userAnswers,
             user_feedback: feedback,
+            previous_tailored_cv: (() => {
+              try { return JSON.parse(localStorage.getItem(`diff_tailored_cv_${user?.id}`) || "null"); } catch { return null; }
+            })(),
             thread_id: threadId
           })
         });
