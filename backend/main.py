@@ -793,7 +793,8 @@ def create_checkout_session(request: Request, user_id: str = Depends(get_current
 
     try:
         session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
+            # No payment_method_types: current Stripe API versions reject it.
+            # Payment methods are configured in the Stripe Dashboard instead.
             line_items=[{
                 'price': stripe_price_id,
                 'quantity': 1,
