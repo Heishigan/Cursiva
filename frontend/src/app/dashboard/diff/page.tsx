@@ -166,12 +166,24 @@ export default function DiffViewer() {
             company_name: company,
             role_name: role,
             strategy_plan: strategyStr,
+            role_philosophy: localStorage.getItem(`diff_role_philosophy_${user?.id}`) || "",
+            sharpest_project_insight: localStorage.getItem(`diff_sharpest_insight_${user?.id}`) || "",
             user_strategy_answers: userAnswers,
             user_feedback: feedback,
+            previous_tailored_cv: (() => {
+              try { return JSON.parse(localStorage.getItem(`diff_tailored_cv_${user?.id}`) || "null"); } catch { return null; }
+            })(),
             thread_id: threadId
           })
         });
 
+        if (resTailor.status === 402) {
+          alert("You're out of credits. Top up in Settings to regenerate.");
+          setIsSubmittingFeedback(false);
+          return;
+        }
+        if (!resTailor.ok) throw new Error(`Server Error: ${resTailor.status}`);
+        let tailorResult: { status?: string; message?: string } | null = null;
         if (resTailor.body) {
           const reader = resTailor.body.getReader();
           const decoder = new TextDecoder("utf-8");
@@ -186,6 +198,7 @@ export default function DiffViewer() {
               if (line.startsWith('data: ')) {
                 try {
                   const data = JSON.parse(line.substring(6));
+                  if (data.type === 'result') tailorResult = data;
                   if (data.type === 'result' && data.status === 'success') {
                     const genericData = JSON.parse(genericStr);
                     const completeTailoredCv = {
@@ -205,6 +218,13 @@ export default function DiffViewer() {
               }
             }
           }
+        }
+
+        if (!tailorResult) throw new Error("The connection was lost before regeneration finished. If it did not complete, your credit is refunded automatically.");
+        if (tailorResult.status !== 'success') {
+          alert(tailorResult.message || "Regeneration failed. Your credit has been refunded.");
+          setIsSubmittingFeedback(false);
+          return;
         }
       }
 

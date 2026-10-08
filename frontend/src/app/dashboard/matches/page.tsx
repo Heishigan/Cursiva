@@ -285,12 +285,18 @@ export default function MatchesPage() {
                   <div className={styles.colCompany}>{job.company_name}</div>
                   <div className={styles.colRole}>{job.role_name}</div>
                   <div className={styles.colStatus}>
+                    {job.match_score == null ? (
+                      <span className={styles.statusBadge} title="No score yet: re-save your CV in Profile to compute matches" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)' }}>
+                        n/a
+                      </span>
+                    ) : (
                     <span className={styles.statusBadge} style={{ 
                       background: job.match_score >= 80 ? 'rgba(200, 242, 76, 0.15)' : job.match_score >= 50 ? 'rgba(250, 204, 21, 0.15)' : 'rgba(224, 132, 127, 0.15)', 
                       color: job.match_score >= 80 ? 'var(--accent)' : job.match_score >= 50 ? '#facc15' : 'var(--danger)' 
                     }}>
                       {job.match_score}%
                     </span>
+                    )}
                   </div>
                   <div className={styles.colActions} style={{ justifyContent: 'flex-end', display: 'flex', gap: '8px' }}>
                     {job.url && (

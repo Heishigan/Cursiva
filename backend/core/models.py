@@ -55,9 +55,15 @@ class CVData(BaseModel):
     professional_summary: str = Field(description="The tailored professional summary paragraph.")
     sections: List[Section] = Field(description="List of ALL tailored sections. Must include every section from the baseline CV.")
 
+class ReviewIssue(BaseModel):
+    quote: str = Field(description="The exact offending text, copied verbatim from the TAILORED CV (not paraphrased).")
+    problem: str = Field(description="Why it is unsupported by the SOURCES, and how to fix it.")
+
+
 class ReviewResult(BaseModel):
-    passed: bool = Field(description="True if the draft passes all rules, False otherwise.")
-    feedback: str = Field(description="Feedback on what needs to be fixed if passed is False. Empty if passed is True.")
+    passed: bool = Field(description="True if no fabrication was found, False otherwise.")
+    issues: List[ReviewIssue] = Field(default_factory=list, description="One entry per fabricated or exaggerated claim. Empty if passed is True.")
+    feedback: str = Field(default="", description="Optional short summary.")
 
 class CoverLetterOutput(BaseModel):
     salutation: str = Field(description="The greeting (e.g. 'Dear Hiring Manager,')")

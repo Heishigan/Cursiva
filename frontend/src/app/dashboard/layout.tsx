@@ -51,7 +51,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           // 3. Existing user — safe to run legacy key migration now
           const legacyCv = localStorage.getItem('generic_cv_json');
-          const legacyKey = localStorage.getItem('openai_api_key');
 
           if (legacyCv && user?.id) {
             localStorage.setItem(`generic_cv_json_${user.id}`, legacyCv);
@@ -62,17 +61,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }).catch(() => {});
           }
 
-          if (legacyKey && user?.id) {
-            localStorage.setItem(`openai_api_key_${user.id}`, legacyKey);
-            fetch(`${apiUrl}/api/user/profile`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({ openai_api_key: legacyKey })
-            }).catch(() => {});
-          }
-
           localStorage.removeItem('generic_cv_json');
+          // BYOK was removed: never keep users' OpenAI keys in the browser.
           localStorage.removeItem('openai_api_key');
+          if (user?.id) localStorage.removeItem(`openai_api_key_${user.id}`);
           localStorage.removeItem('job_description');
           localStorage.removeItem('diff_tailored_cv');
 
