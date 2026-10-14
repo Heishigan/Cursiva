@@ -282,10 +282,13 @@ def reviewer_node(state: AgentState):
         can't fail the run.
     """
     supplemental = supplemental_context(state)
-    fixed_cv, _fix_log = checks.autofix_cv(state.get("tailored_cv") or {})
+    fixed_cv, fix_log = checks.autofix_cv(state.get("tailored_cv") or {})
     det_issues = checks.find_issues(fixed_cv, state.get("generic_cv_raw", ""), supplemental)
+    # Plain facts for the progress view (see progress.py).
+    report = {"autofixed": fix_log, "rule_issues": len(det_issues), "fact_issues": 0, "llm_checked": False}
     if det_issues:
-        return {"tailored_cv": fixed_cv, "review_feedback": _format_issues(str(i) for i in det_issues)}
+        return {"tailored_cv": fixed_cv, "review_report": report,
+                "review_feedback": _format_issues(str(i) for i in det_issues)}
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", REVIEWER_SYSTEM),
@@ -298,9 +301,11 @@ def reviewer_node(state: AgentState):
         "tailored_cv": json.dumps({k: v for k, v in fixed_cv.items() if k != "reasoning"}),
     })
     grounded = [i for i in (res.issues or []) if checks.quote_in_cv(i.quote, fixed_cv)]
+    report["llm_checked"] = True
     if res.passed or not grounded:
-        return {"tailored_cv": fixed_cv, "review_feedback": "PASS"}
-    return {"tailored_cv": fixed_cv,
+        return {"tailored_cv": fixed_cv, "review_report": report, "review_feedback": "PASS"}
+    report["fact_issues"] = len(grounded)
+    return {"tailored_cv": fixed_cv, "review_report": report,
             "review_feedback": _format_issues(f'[fabrication] "{i.quote}": {i.problem}' for i in grounded)}
 
 

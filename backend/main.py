@@ -134,6 +134,7 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
     # event loop and stall every other request on the instance.
     def event_generator():
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
+        yield progress.stage("reader", "working", "Reading the job ad")
         setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
         if setup_result.get("setup_failed"):
@@ -142,6 +143,9 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
 
         company_name = setup_result.get("company_name", "").strip()
         role_name = setup_result.get("role_name", "").strip()
+        reqs = setup_result.get("key_requirements") or []
+        yield progress.stage("reader", "done", f"{len(reqs)} key requirements found",
+                             requirements=reqs, company=company_name, role=role_name)
         
         if company_name and role_name and not req.override_eligibility:
             # The request-scoped session is already closed once the body
@@ -161,6 +165,7 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
             return
             
         yield f"data: {json.dumps({'type': 'status', 'message': 'Strategist analyzing fit and formulating plan...'})}\n\n"
+        yield progress.stage("strategist", "working", "Matching your experience to the role")
         try:
             strategy_result = strategist_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         except Exception:
@@ -168,6 +173,10 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
             yield _sse({'type': 'result', 'status': 'error', 'reason': "The strategist step failed. Please try again in a minute."})
             return
         
+        fit = progress.fit_label(strategy_result.get("strategy_plan", ""))
+        angles = len(strategy_result.get("strategic_options") or [])
+        yield progress.stage("strategist", "done", " · ".join(x for x in (fit, f"{angles} angles proposed") if x),
+                             fit=fit, angles=angles)
         yield f"data: {json.dumps({'type': 'result', 'status': 'success', 'metadata': setup_result, 'strategy': strategy_result})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
@@ -175,6 +184,8 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
 from sqlalchemy import text
 import credits
 import trial
+import progress
+from core.agent import MAX_REVISIONS
 import usage
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
@@ -236,6 +247,7 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             }
             if req.user_feedback and req.previous_tailored_cv:
                 initial_state["tailored_cv"] = req.previous_tailored_cv
+            yield progress.stage("cv", "working", "Tailoring your CV to the role", revision=1)
             for event in tailor_app.stream(initial_state, config={"callbacks": [usage_cb]}):
                 for node_name, node_state in event.items():
                     final_state.update(node_state)
@@ -244,16 +256,41 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
                         tailored_cv = node_state.get("tailored_cv", {})
                         reasoning = tailored_cv.get("reasoning", "Modifying content to match the provided strategy...") if isinstance(tailored_cv, dict) else "Modifying content..."
                         yield _sse({'type': 'status', 'message': f'Tailoring CV (Revision {rev_count}): {reasoning}'})
+                        changes = progress.cv_changes(req.generic_cv_raw, tailored_cv)
+                        yield progress.stage("cv", "done", progress.cv_summary(changes), revision=rev_count, **changes)
+                        yield progress.draft("cv", {k: v for k, v in tailored_cv.items() if k != "reasoning"})
+                        yield progress.stage("checker", "working", "Checking every claim against your CV",
+                                             numbers=progress.numbers_in(tailored_cv))
                     elif node_name == "reviewer":
                         feedback = node_state.get("review_feedback", "")
+                        report = node_state.get("review_report") or {}
+                        fixed = report.get("autofixed") or []
                         if feedback and feedback != "PASS":
                             failure_reasons.append(feedback)
                             short_feedback = feedback.split('.')[0] if '.' in feedback else feedback
                             yield _sse({'type': 'status', 'message': f'Reviewer found issues: {short_feedback}'})
+                            issues = report.get("rule_issues", 0) + report.get("fact_issues", 0)
+                            if final_state.get("revision_count", 0) < MAX_REVISIONS:
+                                yield progress.stage("checker", "retry", f"Sent back: {issues} issue{'s' if issues != 1 else ''} to fix",
+                                                     issues=issues, autofixed=fixed)
+                                yield progress.stage("cv", "working", "Fixing what the checker flagged",
+                                                     revision=final_state.get("revision_count", 0) + 1)
+                            else:
+                                yield progress.stage("checker", "failed", "Still not right after 3 attempts",
+                                                     issues=issues, autofixed=fixed)
                         else:
                             yield _sse({'type': 'status', 'message': 'Reviewer checked constraints: Passed!'})
+                            done_bits = ["Passed all checks"] + [f.capitalize() for f in fixed]
+                            yield progress.stage("checker", "done", " · ".join(done_bits), autofixed=fixed)
+                            fixed_cv = node_state.get("tailored_cv") or {}
+                            yield progress.draft("cv", {k: v for k, v in fixed_cv.items() if k != "reasoning"})
+                            yield progress.stage("letter", "working", "Writing your cover letter")
                     elif node_name == "cover_letter":
                         yield _sse({'type': 'status', 'message': 'Generating Cover Letter based on the tailored CV and company context...'})
+                        parts = node_state.get("cover_letter_parts") or {}
+                        lf = progress.letter_facts(parts)
+                        yield progress.stage("letter", "done", f"{lf['paragraphs']} paragraphs · {lf['words']} words", **lf)
+                        yield progress.draft("letter", parts)
 
             if final_state.get("review_feedback") != "PASS":
                 credits.refund_run(run_id, "failed_review", metrics=metrics("failed_review"))
