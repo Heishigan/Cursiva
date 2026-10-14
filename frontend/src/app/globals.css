@@ -27,6 +27,17 @@
   --mock-resume-paper: #f0eee6;
   --mock-resume-text: #1a1a1c;
 
+  /* Legacy token names: still used by many components (pipeline, profile,
+     modals) but were dropped in the design overhaul, so those borders and
+     colours silently fell back to nothing. Mapped onto the current palette. */
+  --text-primary: var(--text-strong);
+  --text-secondary: var(--text-dim);
+  --surface-border: var(--line);
+  --surface-hover: #222226;
+  --background: var(--bg);
+  --accent-1: var(--accent);
+  --accent-gradient: var(--accent);
+
   /* Structural Tokens */
   --radius-lg: 9px;
   --radius-sm: 6px;

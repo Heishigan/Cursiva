@@ -196,8 +196,8 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   };
 
   return (
-    <div className={styles.animateFadeIn} style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div className={styles.tabs} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className={`${styles.animateFadeIn} ${styles.workbenchRoot}`} style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className={`${styles.tabs} ${styles.workbenchTabs}`} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '32px' }}>
           {["CV", "Cover Letter", "Reference & Feedback"].map(tab => (
             <button
@@ -210,6 +210,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
           ))}
         </div>
         <button 
+          className={styles.approveBtn}
           onClick={handleSaveClick}
           disabled={isSaving || isCompilingCv || isCompilingCl}
           style={{
@@ -377,7 +378,13 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
           </div>
           <div className={styles.pdfContainer} style={{ position: 'relative' }}>
             {activeTab === "CV" && cvPdfUrl && (
-              <iframe src={`${cvPdfUrl}#toolbar=0&view=FitH`} style={{ width: '100%', height: '100%', border: 'none' }} />
+              <>
+                <iframe src={`${cvPdfUrl}#toolbar=0&view=FitH`} className={styles.previewFrame} style={{ width: '100%', height: '100%', border: 'none' }} />
+                <div className={styles.previewFallback}>
+                  <p>Phone browsers can&apos;t show the PDF inline.</p>
+                  <a href={cvPdfUrl} target="_blank" rel="noopener noreferrer">Open CV preview</a>
+                </div>
+              </>
             )}
             {activeTab === "CV" && cvCompileError && (
               <div style={{ padding: '24px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid #ef4444' }}>
@@ -387,7 +394,13 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
               </div>
             )}
             {activeTab === "Cover Letter" && clPdfUrl && (
-              <iframe src={`${clPdfUrl}#toolbar=0&view=FitH`} style={{ width: '100%', height: '100%', border: 'none' }} />
+              <>
+                <iframe src={`${clPdfUrl}#toolbar=0&view=FitH`} className={styles.previewFrame} style={{ width: '100%', height: '100%', border: 'none' }} />
+                <div className={styles.previewFallback}>
+                  <p>Phone browsers can&apos;t show the PDF inline.</p>
+                  <a href={clPdfUrl} target="_blank" rel="noopener noreferrer">Open cover letter preview</a>
+                </div>
+              </>
             )}
             {activeTab === "Cover Letter" && clCompileError && (
               <div style={{ padding: '24px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid #ef4444' }}>
