@@ -2,7 +2,7 @@
 import styles from './pipeline.module.css';
 import { useState, useRef, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import AgentWorkflow from "@/components/pipeline/AgentWorkflow";
+import Glassbox, { type Stages, type StageEvent, type CvDoc, type LetterDoc } from "@/components/pipeline/glassbox/Glassbox";
 import PasteJdStep from "@/components/pipeline/PasteJdStep";
 import StrategyStep from "@/components/pipeline/StrategyStep";
 import WorkbenchStep from "@/components/pipeline/WorkbenchStep";
@@ -22,7 +22,24 @@ export default function PipelinePage() {
   const [tailoredData, setTailoredData] = useState<any>(null);
   const [finalPdfs, setFinalPdfs] = useState({ cvUrl: "", clUrl: "" });
   
-  const [logs, setLogs] = useState<string[]>([]);
+  const [, setLogs] = useState<string[]>([]); // legacy status messages (kept for debugging)
+  // Live progress for the Glassbox view (structured events from the backend).
+  const [stages, setStages] = useState<Stages>({});
+  const [drafts, setDrafts] = useState<{ cv?: CvDoc; letter?: LetterDoc }>({});
+  const [genericForView, setGenericForView] = useState<CvDoc | null>(null);
+  const handleProgress = (data: { type?: string; agent?: string; doc?: string; content?: unknown }) => {
+    if (data.type === 'stage' && data.agent) {
+      const ev = data as unknown as StageEvent;
+      setStages(prev => ({ ...prev, [ev.agent]: ev }));
+      return true;
+    }
+    if (data.type === 'draft' && (data.doc === 'cv' || data.doc === 'letter')) {
+      setDrafts(prev => ({ ...prev, [data.doc as string]: data.content }));
+      return true;
+    }
+    return false;
+  };
+  const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   const [isProcessing, setIsProcessing] = useState(false);
   const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -120,6 +137,8 @@ export default function PipelinePage() {
     localStorage.setItem("cursiva_backup_jd", text);
     setIsProcessing(true);
     setLogs([]);
+    setStages({});
+    setDrafts({});
     setEligibilityWarning(null);
     
     try {
@@ -164,13 +183,16 @@ export default function PipelinePage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.substring(6));
-              if (data.type === 'status') {
+              if (handleProgress(data)) {
+                // handled by the Glassbox view
+              } else if (data.type === 'status') {
                 setLogs(prev => [...prev, data.message]);
               } else if (data.type === 'result') {
                 streamCompleted = true;
                 if (data.status === 'success') {
                   setJobMetadata(data.metadata);
                   setStrategyResult(data.strategy);
+                  await pause(900); // let the last step land before moving on
                   setStep(2);
                 } else {
                   setEligibilityWarning(data.reason);
@@ -198,10 +220,13 @@ export default function PipelinePage() {
   const submitStrategy = async (userAnswers: string, feedback: string = "") => {
     setIsProcessing(true);
     setLogs([]);
+    setStages({});
+    setDrafts({});
     
     try {
       const token = await getToken();
       const genericCv = await loadGenericCv(token);
+      try { setGenericForView(JSON.parse(genericCv)); } catch { setGenericForView(null); }
       const threadId = "thread_" + Math.random().toString(36).substring(7);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/tailor`, {
@@ -255,7 +280,9 @@ export default function PipelinePage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.substring(6));
-              if (data.type === 'status') {
+              if (handleProgress(data)) {
+                // handled by the Glassbox view
+              } else if (data.type === 'status') {
                 setLogs(prev => [...prev, data.message]);
               } else if (data.type === 'result') {
                 finalResult = data;
@@ -286,6 +313,7 @@ export default function PipelinePage() {
                     company: jobMetadata?.company_name || "Company",
                     role: jobMetadata?.role_name || "Role"
                   });
+                  await pause(2600); // let the letter finish revealing and the stamp land
                   setStep(3);
                 }
               }
@@ -346,37 +374,39 @@ export default function PipelinePage() {
       {/* Top Navigation Stepper */}
       <nav className={styles.nav}>
         <div className={styles.navContent}>
-          <div className={`${styles.stepItem} ${step >= 1 ? styles.stepItemActive : ''}`}>
+          <div className={`${styles.stepItem} ${step >= 1 ? styles.stepItemActive : ''} ${step === 1 ? styles.stepCurrent : ''}`}>
             <span className={styles.stepNumber} style={step === 1 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>1</span>
-            Paste JD
+            <span className={styles.stepLabel}>Paste JD</span>
           </div>
           <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 2 ? styles.stepItemActive : ''}`}>
+          <div className={`${styles.stepItem} ${step >= 2 ? styles.stepItemActive : ''} ${step === 2 ? styles.stepCurrent : ''}`}>
             <span className={styles.stepNumber} style={step === 2 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>2</span>
-            Strategy
+            <span className={styles.stepLabel}>Strategy</span>
           </div>
           <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 3 ? styles.stepItemActive : ''}`}>
+          <div className={`${styles.stepItem} ${step >= 3 ? styles.stepItemActive : ''} ${step === 3 ? styles.stepCurrent : ''}`}>
             <span className={styles.stepNumber} style={step === 3 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>3</span>
-            Workbench
+            <span className={styles.stepLabel}>Workbench</span>
           </div>
           <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 4 ? styles.stepItemActive : ''}`}>
+          <div className={`${styles.stepItem} ${step >= 4 ? styles.stepItemActive : ''} ${step === 4 ? styles.stepCurrent : ''}`}>
             <span className={styles.stepNumber} style={step === 4 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>4</span>
-            Done
+            <span className={styles.stepLabel}>Done</span>
           </div>
         </div>
       </nav>
 
       {/* Main Content Area */}
-      <main className={styles.mainArea} style={{ overflowY: (step >= 3 || isProcessing) ? 'hidden' : 'auto' }}>
+      <main className={`${styles.mainArea} ${(step >= 3 || isProcessing) ? styles.mainAreaLocked : ''}`}>
         {isProcessing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '64px', height: '100%' }}>
-            <h2 className={`${styles.strategyTitle} ${styles.agentsTitle}`} style={{ marginBottom: '16px' }}>
-              Agents at Work
-            </h2>
-            <AgentWorkflow logs={logs} activePipelinePhase={step === 1 ? 'intake' : 'tailor'} />
-          </div>
+          <Glassbox
+            phase={step === 1 ? 'intake' : 'tailor'}
+            stages={stages}
+            drafts={drafts}
+            genericCv={genericForView}
+            company={jobMetadata?.company_name}
+            role={jobMetadata?.role_name}
+          />
         ) : (
           <>
             {step === 1 && <PasteJdStep initialText={jdText} onSubmit={submitJd} />}
