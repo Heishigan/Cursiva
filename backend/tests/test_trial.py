@@ -97,3 +97,24 @@ def test_fetch_verified_primary_email_parses_clerk_payload(monkeypatch):
 
     monkeypatch.setattr(trial.requests, "get", lambda *a, **k: R())
     assert trial.fetch_verified_primary_email("user_1") == "main@example.com"
+
+
+def test_concurrent_first_save_is_not_a_500(client, app_module, clerk, monkeypatch):
+    """Second request finds no profile, then loses the insert race: it must update instead."""
+    from database import SessionLocal
+    from models import UserProfile
+    clerk["user_r"] = ("race@example.com", True)
+    real = trial.starting_credits_for_new_profile
+
+    def racing(db, user_id):
+        # Simulate the other request committing the same profile first.
+        with SessionLocal() as other:
+            other.add(UserProfile(clerk_id=user_id, credits=1))
+            other.commit()
+        return 0
+    monkeypatch.setattr(trial, "starting_credits_for_new_profile", racing)
+    r = _create(client, app_module, "user_r", {"strict_eligibility": False})
+    assert r.status_code == 200
+    with SessionLocal() as s:
+        p = s.get(UserProfile, "user_r")
+        assert p.credits == 1 and p.strict_eligibility is False

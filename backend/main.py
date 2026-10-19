@@ -570,29 +570,43 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
 @app.post("/api/user/profile")
 @limiter.limit("20/minute")
 def update_user_profile(request: Request, req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    # Compute the (slow) embedding once, outside the transaction.
+    embedding_json = None
+    if req.cv_data_json is not None and req.cv_data_json.strip():
+        try:
+            from langchain_openai import OpenAIEmbeddings
+            embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.environ.get("OPENAI_API_KEY"))
+            embedding_json = json.dumps(embedder.embed_query(req.cv_data_json))
+        except Exception as e:
+            logger.warning("Failed to generate CV embedding: %s", type(e).__name__)
+
+    def apply(profile):
+        if req.cv_data_json is not None:
+            if req.cv_data_json.strip() == "":
+                profile.cv_data_json = None
+                profile.cv_embedding_json = None
+            else:
+                profile.cv_data_json = req.cv_data_json
+                profile.cv_embedding_json = embedding_json
+        if req.strict_eligibility is not None:
+            profile.strict_eligibility = req.strict_eligibility
+
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     if not profile:
         profile = UserProfile(clerk_id=user_id, credits=trial.starting_credits_for_new_profile(db, user_id))
         db.add(profile)
-    
-    if req.cv_data_json is not None:
-        if req.cv_data_json.strip() == "":
-             profile.cv_data_json = None
-             profile.cv_embedding_json = None
-        else:
-             profile.cv_data_json = req.cv_data_json
-             try:
-                 from langchain_openai import OpenAIEmbeddings
-                 embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.environ.get("OPENAI_API_KEY"))
-                 embedding = embedder.embed_query(req.cv_data_json)
-                 profile.cv_embedding_json = json.dumps(embedding)
-             except Exception as e:
-                 print(f"Failed to generate CV embedding: {e}")
-                 profile.cv_embedding_json = None
-    if req.strict_eligibility is not None:
-        profile.strict_eligibility = req.strict_eligibility
-
-    db.commit()
+    apply(profile)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two saves raced to create the same new profile (e.g. layout and
+        # onboarding on first sign-in). The other one won: update its row.
+        db.rollback()
+        profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+        if profile is None:
+            raise HTTPException(status_code=409, detail="Please try again.")
+        apply(profile)
+        db.commit()
     return {"status": "success"}
 
 class JobApplicationCreate(BaseModel):
