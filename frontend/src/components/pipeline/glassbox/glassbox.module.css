@@ -3,7 +3,7 @@
 
 .wrap {
   width: 100%;
-  max-width: 1040px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 40px 24px 24px;
   display: flex;
@@ -17,23 +17,30 @@
 .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
 .title { margin: 0; font-family: 'Anton', sans-serif; font-weight: 400; font-size: clamp(28px, 4vw, 40px); letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-strong); line-height: 1.05; }
 
-.statusRow { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
-.status { margin: 0; font-size: 15px; color: var(--text); min-height: 1.6em; flex: 1 1 320px; }
-.steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 18px; flex-wrap: wrap; }
-.step { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-faint); }
-.stepDot { width: 8px; height: 8px; border-radius: 4px; background: var(--line); flex-shrink: 0; }
-.stepActive { color: var(--text-strong); }
-.stepActive .stepDot { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
-.stepDone { color: var(--text-dim); }
-.stepDone .stepDot { background: var(--accent); }
-.stepFailed { color: var(--danger); }
-.stepFailed .stepDot { background: var(--danger); }
+/* Layout C: agent cards on the left, the documents on a board on the right */
+.stage { display: flex; gap: 28px; flex: 1; min-height: 0; }
+.side { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+.agents { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.agent { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); transition: opacity 0.3s ease, border-color 0.3s ease, background 0.3s ease; }
+.agentIdle { opacity: 0.45; }
+.agentWorking { border-color: rgba(200, 242, 76, 0.4); background: #191a14; }
+.agentFailed { border-color: var(--danger); }
+.avatar { width: 36px; height: 36px; border-radius: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--text-dim); font: 700 13px 'Plus Jakarta Sans', sans-serif; }
+.agentWorking .avatar { background: var(--accent); color: var(--accent-ink); animation: breathe 1.2s ease-in-out infinite; }
+.agentDone .avatar { background: #2d3418; color: var(--accent); }
+.agentFailed .avatar { background: var(--danger); color: #fff; }
+.agentText { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.agentName { font-size: 14px; font-weight: 600; color: var(--text-strong); }
+.agentSay { font-size: 13px; line-height: 1.45; color: var(--text-dim); }
+.status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
 
-.papers { display: flex; gap: 24px; justify-content: center; flex: 1; min-height: 0; }
+.board { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 28px; border-radius: 14px; border: 1px solid var(--line); background-color: #141416; background-image: radial-gradient(#1f1f23 1px, transparent 1px); background-size: 22px 22px; overflow: hidden; }
+
+.papers { display: flex; gap: 24px; justify-content: center; align-items: center; flex: 1; min-height: 0; }
 .paper {
   position: relative;
   flex: 1 1 0;
-  max-width: 460px;
+  max-width: 420px;
   height: clamp(380px, 62vh, 600px);
   background: var(--mock-resume-paper);
   color: var(--mock-resume-text);
@@ -73,6 +80,7 @@
 .skLive { animation: shimmer 1.4s ease-in-out infinite; }
 
 .reveal { animation: reveal 0.35s ease both; }
+.caret { display: inline-block; width: 2px; height: 1em; margin-left: 1px; vertical-align: -0.12em; background: #4d6b12; animation: blink 0.9s steps(1) infinite; }
 
 /* Checker */
 .scan { position: absolute; left: 0; right: 0; height: 56px; pointer-events: none; background: linear-gradient(rgba(200, 242, 76, 0), rgba(200, 242, 76, 0.28), rgba(200, 242, 76, 0)); animation: scan 1.6s linear infinite; }
@@ -88,24 +96,38 @@
 .tab { min-height: 36px; padding: 0 16px; border: 0; border-radius: 6px; background: transparent; color: var(--text-dim); font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
 .tabOn { background: var(--surface-2); color: var(--text-strong); }
 
-.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 1000px) {
+  .stage { flex-direction: column; gap: 16px; }
+  .side { width: auto; }
+  /* Cards become a compact row; the active agent's sentence shows below. */
+  .agents { flex-direction: row; gap: 6px; }
+  .agent { flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; text-align: center; }
+  .avatar { width: 30px; height: 30px; border-radius: 15px; font-size: 12px; }
+  .agentName { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .agentSay { display: none; }
+  .agentText { align-items: center; width: 100%; }
+  .status { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-size: 14px; color: var(--text); min-height: 1.5em; }
+  .board { padding: 16px; }
+}
 
 @media (max-width: 720px) {
   .wrap { padding: 24px 16px 16px; gap: 14px; }
   .tabs { display: flex; }
   .papers { gap: 0; }
-  .paper { max-width: none; height: clamp(360px, 58vh, 520px); }
+  .paper { max-width: none; height: clamp(340px, 54vh, 520px); }
   .paperHiddenMobile { display: none; }
-  .steps { gap: 12px; }
-  .status { flex-basis: 100%; }
+  .board { padding: 12px; background-image: none; }
+  .agentName { font-size: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .skLive, .scan, .stepActive .stepDot { animation: none; }
+  .reveal, .skLive, .scan, .agentWorking .avatar, .caret { animation: none; }
   .stamp { transition: none; }
 }
 
-@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(200, 242, 76, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(200, 242, 76, 0); } }
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes blink { 50% { opacity: 0; } }
 @keyframes shimmer { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 @keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes scan { from { top: -56px; } to { top: 100%; } }

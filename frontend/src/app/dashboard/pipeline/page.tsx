@@ -2,7 +2,7 @@
 import styles from './pipeline.module.css';
 import { useState, useRef, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import Glassbox, { type Stages, type StageEvent, type CvDoc, type LetterDoc } from "@/components/pipeline/glassbox/Glassbox";
+import Glassbox, { type Stages, type StageEvent, type CvDoc, type LetterDoc, type LiveDocs } from "@/components/pipeline/glassbox/Glassbox";
 import PasteJdStep from "@/components/pipeline/PasteJdStep";
 import StrategyStep from "@/components/pipeline/StrategyStep";
 import WorkbenchStep from "@/components/pipeline/WorkbenchStep";
@@ -26,15 +26,28 @@ export default function PipelinePage() {
   // Live progress for the Glassbox view (structured events from the backend).
   const [stages, setStages] = useState<Stages>({});
   const [drafts, setDrafts] = useState<{ cv?: CvDoc; letter?: LetterDoc }>({});
+  // Documents that arrive as a live token stream: 'streaming' while text is
+  // coming in, 'done' once the finished draft has landed.
+  const [liveDocs, setLiveDocs] = useState<LiveDocs>({});
   const [genericForView, setGenericForView] = useState<CvDoc | null>(null);
-  const handleProgress = (data: { type?: string; agent?: string; doc?: string; content?: unknown }) => {
+  const handleProgress = (data: { type?: string; agent?: string; doc?: string; content?: unknown; partial?: boolean }) => {
     if (data.type === 'stage' && data.agent) {
       const ev = data as unknown as StageEvent;
       setStages(prev => ({ ...prev, [ev.agent]: ev }));
       return true;
     }
     if (data.type === 'draft' && (data.doc === 'cv' || data.doc === 'letter')) {
-      setDrafts(prev => ({ ...prev, [data.doc as string]: data.content }));
+      const doc = data.doc;
+      if (data.partial) {
+        // Keep the previous draft on screen until the new one has real text.
+        const c = (data.content || {}) as Record<string, unknown>;
+        const hasText = Object.values(c).some(v => (typeof v === 'string' ? v.trim() !== '' : Array.isArray(v) && v.length > 0));
+        if (!hasText) return true;
+        setLiveDocs(prev => (prev[doc] === 'streaming' ? prev : { ...prev, [doc]: 'streaming' }));
+      } else {
+        setLiveDocs(prev => (prev[doc] === 'streaming' ? { ...prev, [doc]: 'done' } : prev));
+      }
+      setDrafts(prev => ({ ...prev, [doc]: data.content }));
       return true;
     }
     return false;
@@ -220,8 +233,10 @@ export default function PipelinePage() {
   const submitStrategy = async (userAnswers: string, feedback: string = "") => {
     setIsProcessing(true);
     setLogs([]);
-    setStages({});
+    // Keep the reader and strategist results so their cards stay "done".
+    setStages(prev => ({ reader: prev.reader, strategist: prev.strategist }));
     setDrafts({});
+    setLiveDocs({});
     
     try {
       const token = await getToken();
@@ -313,7 +328,7 @@ export default function PipelinePage() {
                     company: jobMetadata?.company_name || "Company",
                     role: jobMetadata?.role_name || "Role"
                   });
-                  await pause(2600); // let the letter finish revealing and the stamp land
+                  await pause(800); // let the CHECKED stamp land
                   setStep(3);
                 }
               }
@@ -403,6 +418,7 @@ export default function PipelinePage() {
             phase={step === 1 ? 'intake' : 'tailor'}
             stages={stages}
             drafts={drafts}
+            live={liveDocs}
             genericCv={genericForView}
             company={jobMetadata?.company_name}
             role={jobMetadata?.role_name}
