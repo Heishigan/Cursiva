@@ -2,6 +2,9 @@ import os
 import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from langgraph.config import get_stream_writer
+import time
 from langgraph.graph import StateGraph, END
 
 from .models import (
@@ -33,6 +36,46 @@ def get_llm_json(api_key: str): return get_llm(api_key).with_structured_output(C
 def get_llm_review(api_key: str): return get_llm(api_key, temperature=0).with_structured_output(ReviewResult)
 def get_llm_setup(api_key: str): return get_llm(api_key).with_structured_output(JobMetadata)
 def get_llm_cl_out(api_key: str): return get_llm_cl(api_key).with_structured_output(CoverLetterOutput)
+
+# --- LIVE DRAFT STREAMING ---
+# When the caller sets configurable.stream_drafts, the CV and letter are
+# streamed token by token and partial JSON is pushed to the graph's custom
+# stream so the UI can show the text as it is written. Any streaming failure
+# falls back to the normal (non-streamed) structured call.
+DRAFT_EMIT_INTERVAL_S = 0.15
+
+
+def _stream_enabled(config) -> bool:
+    return bool(((config or {}).get("configurable") or {}).get("stream_drafts"))
+
+
+def get_llm_stream(api_key: str, schema_cls, temperature: float):
+    return ChatOpenAI(model="gpt-4o", temperature=temperature, api_key=api_key,
+                      timeout=LLM_TIMEOUT_S, max_retries=LLM_MAX_RETRIES,
+                      streaming=True, stream_usage=True).bind(
+        response_format={"type": "json_schema", "json_schema": {
+            "name": schema_cls.__name__, "schema": schema_cls.model_json_schema(), "strict": False}})
+
+
+def run_structured(prompt, values, schema_cls, api_key, temperature, fallback_llm, config, doc, strip_keys=()):
+    if _stream_enabled(config):
+        try:
+            writer = get_stream_writer()
+            last, last_emit = None, 0.0
+            chain = prompt | get_llm_stream(api_key, schema_cls, temperature) | JsonOutputParser()
+            for partial in chain.stream(values, config=config):
+                if not isinstance(partial, dict):
+                    continue
+                last = partial
+                now = time.monotonic()
+                if now - last_emit >= DRAFT_EMIT_INTERVAL_S:
+                    writer({"draft_partial": {"doc": doc, "content": {k: v for k, v in partial.items() if k not in strip_keys}}})
+                    last_emit = now
+            return schema_cls.model_validate(last)
+        except Exception:
+            logger.warning("Streaming %s draft failed; falling back to a normal call", doc, exc_info=True)
+    return (prompt | fallback_llm).invoke(values)
+
 
 # --- LESSONS MECHANIC ---
 def get_lessons(user_id: str, scope_filter=None):
@@ -145,7 +188,7 @@ def strategist_node(state: AgentState):
         "revision_count": state.get("revision_count", 0)
     }
 
-def tailor_node(state: AgentState):
+def tailor_node(state: AgentState, config=None):
     cv_context = state.get("generic_cv_raw", "")
     
     order_str = '"Work Experience", then "Education", then "Projects", then "Skills"'
@@ -224,8 +267,7 @@ def tailor_node(state: AgentState):
         
     prompt = ChatPromptTemplate.from_messages(messages)
     
-    chain = prompt | get_llm_json(state["api_key"])
-    res = chain.invoke({
+    res = run_structured(prompt, {
         "job_description": state.get("job_description", ""),
         "strategy_plan": state.get("strategy_plan", ""),
         "generic_cv": cv_context,
@@ -233,7 +275,7 @@ def tailor_node(state: AgentState):
         "rules": rules,
         "supplemental_prompt": supplemental_prompt,
         "lessons_prompt": lessons_prompt
-    })
+    }, CVData, state["api_key"], 0.2, get_llm_json(state["api_key"]), config, doc="cv", strip_keys=("reasoning",))
     
     return {"tailored_cv": res.model_dump(), "revision_count": state.get("revision_count", 0) + 1}
 
@@ -314,7 +356,7 @@ def reviewer_node(state: AgentState):
             "review_feedback": _format_issues(f'[fabrication] "{i.quote}": {i.problem}' for i in grounded)}
 
 
-def cover_letter_node(state: AgentState):
+def cover_letter_node(state: AgentState, config=None):
     if not state.get("generate_cover_letter"):
         return {"cover_letter_parts": {}}
 
@@ -402,8 +444,7 @@ RULES:
         cl_messages.append(("user", "USER'S CUSTOM INSTRUCTIONS, LESSONS AND FEEDBACK:{lessons_prompt}{strategy_prompt}{feedback_prompt}"))
     prompt = ChatPromptTemplate.from_messages(cl_messages)
 
-    chain = prompt | get_llm_cl_out(state["api_key"])
-    res = chain.invoke({
+    res = run_structured(prompt, {
         "company_name": state.get("company_name", ""),
         "role_name": state.get("role_name", ""),
         "job_description": state.get("job_description", ""),
@@ -415,7 +456,7 @@ RULES:
         "lessons_prompt": lessons_prompt,
         "strategy_prompt": strategy_prompt,
         "feedback_prompt": feedback_prompt
-    })
+    }, CoverLetterOutput, state["api_key"], 0.5, get_llm_cl_out(state["api_key"]), config, doc="letter")
     return {"cover_letter_parts": res.model_dump(), "user_feedback": ""}
 
 MAX_REVISIONS = 3

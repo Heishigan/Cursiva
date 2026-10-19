@@ -248,7 +248,16 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             if req.user_feedback and req.previous_tailored_cv:
                 initial_state["tailored_cv"] = req.previous_tailored_cv
             yield progress.stage("cv", "working", "Tailoring your CV to the role", revision=1)
-            for event in tailor_app.stream(initial_state, config={"callbacks": [usage_cb]}):
+            stream = tailor_app.stream(initial_state,
+                                       config={"callbacks": [usage_cb], "configurable": {"stream_drafts": True}},
+                                       stream_mode=["updates", "custom"])
+            for item in stream:
+                mode, event = item if isinstance(item, tuple) else ("updates", item)
+                if mode == "custom":
+                    dp = event.get("draft_partial") if isinstance(event, dict) else None
+                    if dp and dp.get("doc") in ("cv", "letter"):
+                        yield progress.draft(dp["doc"], dp.get("content") or {}, partial=True)
+                    continue
                 for node_name, node_state in event.items():
                     final_state.update(node_state)
                     if node_name == "tailor":

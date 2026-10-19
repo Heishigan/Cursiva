@@ -23,8 +23,11 @@ def stage(agent: str, state: str, summary: str, **facts) -> str:
     return sse({"type": "stage", "agent": agent, "state": state, "summary": summary, "facts": facts})
 
 
-def draft(doc: str, content: dict) -> str:
-    return sse({"type": "draft", "doc": doc, "content": content})
+def draft(doc: str, content: dict, partial: bool = False) -> str:
+    payload = {"type": "draft", "doc": doc, "content": content}
+    if partial:
+        payload["partial"] = True
+    return sse(payload)
 
 
 def fit_label(strategy_plan: str) -> str:

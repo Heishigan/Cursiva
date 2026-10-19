@@ -16,7 +16,7 @@ class FakeGraph:
         self.events = events or []
         self.exc = exc
 
-    def stream(self, state, config=None):
+    def stream(self, state, config=None, **kwargs):
         for e in self.events:
             yield e
         if self.exc:

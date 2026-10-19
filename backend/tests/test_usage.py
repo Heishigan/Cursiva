@@ -22,7 +22,7 @@ def test_price_override(monkeypatch):
 
 def test_run_records_tokens_from_callback(client, app_module, monkeypatch, db):
     class Graph:
-        def stream(self, state, config=None):
+        def stream(self, state, config=None, **kwargs):
             cb = config["callbacks"][0]
             cb.usage_metadata = {"gpt-4o": {"input_tokens": 1000, "output_tokens": 200}}
             yield from PASS_EVENTS
