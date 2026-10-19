@@ -166,3 +166,36 @@ def quote_in_cv(quote: str, cv: dict) -> bool:
     """
     q = _norm(quote).strip(" .\"'")
     return len(q) >= 3 and q in _norm(cv_text(cv))
+
+
+_WORD_RE = re.compile(r"[a-z0-9åäöéü%+#]+(?:[.-][a-z0-9]+)*")
+
+
+def _source_segments(generic_cv_raw: str, supplemental: str = "") -> list[str]:
+    cv = _safe_json(generic_cv_raw)
+    segs = [cv.get("professional_summary", "")]
+    for sec in cv.get("sections", []) or []:
+        for it in sec.get("items", []) or []:
+            segs += [it.get("title", ""), it.get("subtitle", ""), it.get("context", "")]
+            segs += list(it.get("bullets", []) or [])
+    segs += re.split(r"[\n.]+", supplemental or "")
+    return [_norm(s) for s in segs if s and s.strip()]
+
+
+def quote_in_source(quote: str, generic_cv_raw: str, supplemental: str = "", threshold: float = 0.85) -> bool:
+    """True if a reviewer's quote is (nearly) the user's own text.
+
+    The user's own CV and supplemental answers are ground truth, so a quote
+    that is in them, or overlaps one of their lines by at least `threshold`
+    of its words, can never be a fabrication.
+    """
+    q = _norm(quote).strip(" .\"'")
+    if len(q) < 3:
+        return False
+    segs = _source_segments(generic_cv_raw, supplemental)
+    if any(q in s for s in segs):
+        return True
+    qw = set(_WORD_RE.findall(q))
+    if len(qw) < 5:
+        return False
+    return any(len(qw & set(_WORD_RE.findall(s))) / len(qw) >= threshold for s in segs)

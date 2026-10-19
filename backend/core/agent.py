@@ -261,6 +261,8 @@ ALLOWED (never flag these):
 - Rephrasing, reordering, shortening or merging of supported content.
 - Using a Job Description keyword as another name for a skill the SOURCES already show (e.g. "LLMs" for GPT-4 work, "CI/CD" for GitHub Actions pipelines).
 - Formatting, punctuation, style, tone or length. These are checked elsewhere; ignore them completely.
+- Shortening, simplifying or leaving out detail from a supported claim. Losing nuance is NOT fabrication.
+- Any wording that already appears in the Generic CV or Supplemental Context.
 
 For every problem, copy the offending text EXACTLY as it appears in the Tailored CV into `quote`, and explain the fix in `problem`.
 If nothing is fabricated, return passed=true with an empty issues list. Do not invent problems to seem thorough."""
@@ -300,7 +302,10 @@ def reviewer_node(state: AgentState):
         "supplemental": supplemental or "(none)",
         "tailored_cv": json.dumps({k: v for k, v in fixed_cv.items() if k != "reasoning"}),
     })
-    grounded = [i for i in (res.issues or []) if checks.quote_in_cv(i.quote, fixed_cv)]
+    # Keep an issue only if its quote is really in the tailored CV AND is not
+    # (near-)verbatim the user's own text: the user's own CV can't be fabricated.
+    grounded = [i for i in (res.issues or []) if checks.quote_in_cv(i.quote, fixed_cv)
+                and not checks.quote_in_source(i.quote, state.get("generic_cv_raw", ""), supplemental)]
     report["llm_checked"] = True
     if res.passed or not grounded:
         return {"tailored_cv": fixed_cv, "review_report": report, "review_feedback": "PASS"}
@@ -382,6 +387,7 @@ BANNED PHRASES (reject and rewrite if any appear):
 - Any sentence starting with "Moreover," "Furthermore," "Additionally" as a paragraph opener
 - Closing with "I look forward to the opportunity to discuss" verbatim, use a more specific, direct ask instead
 - "no small feat," "truly," "transformative," "seamless," "aligns perfectly," "eager to contribute," "innovative journey," "not only ... but also"
+- These bans also apply to their equivalents in the letter's language. Swedish examples: "spännande", "innovativa lösningar", "ser fram emot", "verkligen gör skillnad", "avgörande", "effektivt".
 
 RULES:
 - Hook, Match, Curiosity and Fit: 40-60 words each (160-240 words in total, excluding greeting and sign-off).

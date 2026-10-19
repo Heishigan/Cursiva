@@ -32,3 +32,8 @@ def test_tailor_round1(monkeypatch):
     _, cv = _render(monkeypatch)
     assert "Go through the JD's key requirements one by one" in cv
     assert '"AI agents" for "AI-agenter"' in cv
+
+
+def test_cover_letter_round2_swedish_bans(monkeypatch):
+    cl, _ = _render(monkeypatch)
+    assert '"ser fram emot"' in cl and "equivalents in the letter's language" in cl

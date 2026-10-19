@@ -49,11 +49,39 @@ def test_ungrounded_llm_issue_is_ignored(judge):
 
 
 def test_grounded_llm_issue_fails(judge):
-    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="Wrote tests", problem="exaggerated")])
-    fb = A.reviewer_node(_state(tailored()))["review_feedback"]
-    assert fb != "PASS" and "Wrote tests" in fb
+    cv = tailored()
+    cv["sections"][0]["items"][1]["bullets"][0] = "Wrote tests and led the QA team."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="led the QA team", problem="exaggerated")])
+    fb = A.reviewer_node(_state(cv))["review_feedback"]
+    assert fb != "PASS" and "led the QA team" in fb
 
 
 def test_reviewer_prompt_has_no_style_rules(judge):
     A.reviewer_node(_state(tailored()))
     assert "ignore them completely" in judge.last
+
+
+def test_issue_on_users_own_wording_is_ignored(judge):
+    # Regression for the Thule run: the judge flagged the user's original bullet as fabricated.
+    own = "Cut inference latency by 40% with batching."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote=own, problem="not supported")])
+    assert A.reviewer_node(_state(tailored()))["review_feedback"] == "PASS"
+
+
+def test_simplified_own_bullet_is_ignored(judge):
+    cv = tailored()
+    cv["sections"][0]["items"][0]["bullets"][0] = "Cut inference latency by 40% using batching."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="Cut inference latency by 40% using batching", problem="omits detail")])
+    assert A.reviewer_node(_state(cv))["review_feedback"] == "PASS"
+
+
+def test_new_claim_still_fails(judge):
+    cv = tailored()
+    cv["sections"][0]["items"][0]["bullets"][0] = "Led a team of engineers building Kubernetes clusters."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="Led a team of engineers building Kubernetes clusters", problem="invented")])
+    assert A.reviewer_node(_state(cv))["review_feedback"] != "PASS"
+
+
+def test_reviewer_prompt_allows_simplification(judge):
+    A.reviewer_node(_state(tailored()))
+    assert "Losing nuance is NOT fabrication." in judge.last
