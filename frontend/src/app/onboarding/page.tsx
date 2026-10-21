@@ -52,7 +52,8 @@ export default function Onboarding() {
   
   // Check profile status and auto-redirect if already set up
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (!isLoaded) return;
+    if (!user) { setIsRedirecting(false); return; } // signed out: show the page, not an endless spinner
     
     getToken().then(token => {
       if (!token) {
