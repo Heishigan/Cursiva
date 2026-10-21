@@ -13,9 +13,10 @@
   flex: 1;
 }
 
-.header { display: flex; flex-direction: column; gap: 6px; }
+.header { display: flex; flex-direction: column; gap: 0.5rem; }
 .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
-.title { margin: 0; font-family: 'Anton', sans-serif; font-weight: 400; font-size: clamp(28px, 4vw, 40px); letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-strong); line-height: 1.05; }
+.title { margin: 0; font-family: 'Anton', sans-serif; font-weight: 400; font-size: clamp(2.2rem, 5vw, 3rem); line-height: 1.1; text-transform: uppercase; color: var(--text-strong); }
+.subtitle { margin: 0; font-size: 1rem; line-height: 1.55; color: var(--text-dim); }
 
 /* Layout C: agent cards on the left, the documents on a board on the right */
 .stage { display: flex; gap: 28px; flex: 1; min-height: 0; }
@@ -55,7 +56,7 @@
 .paperIdle { opacity: 0.55; }
 .paperDim .paperBody { opacity: 0.55; }
 .paperLabel { padding: 12px 20px 0; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #8f8c82; }
-.paperBody { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 26px 40px; scrollbar-width: none; transition: opacity 0.4s ease; }
+.paperBody { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 26px 40px; scrollbar-width: none; transition: opacity 0.4s ease; }
 .paperBody::-webkit-scrollbar { display: none; }
 
 /* CV content: small, document-like */
@@ -69,7 +70,7 @@
 .changed { background: rgba(200, 242, 76, 0.45); box-shadow: 0 0 0 2px rgba(200, 242, 76, 0.45); }
 .letterPara { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; margin-bottom: 10px; white-space: pre-line; }
 
-.reqList { list-style: none; margin: 0; padding: 12px 26px 24px; display: flex; flex-direction: column; gap: 10px; }
+.reqList { list-style: none; margin: 0; padding: 26px 26px 24px; display: flex; flex-direction: column; gap: 10px; }
 .reqList li { font-size: 14px; line-height: 1.45; padding-left: 20px; position: relative; }
 .reqList li::before { content: ""; position: absolute; left: 0; top: 0.45em; width: 8px; height: 8px; border-radius: 2px; background: #4d6b12; }
 

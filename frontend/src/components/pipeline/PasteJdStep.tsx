@@ -35,15 +35,14 @@ export default function PasteJdStep({ onSubmit, initialText = "" }: PasteJdStepP
   return (
     <div className={`${styles.page} ${styles.narrow}`}>
       <header className={styles.head}>
-        <div className={styles.eyebrow}>New application</div>
-        <h1 className={styles.title}>Paste the job ad</h1>
-        <p className={styles.lede}>The whole page is fine. The Reader strips out the clutter and pulls out the requirements.</p>
+        <h1 className={styles.title}>New application</h1>
+        <p className={styles.subtitle}>Paste the job ad below. The whole page is fine: the Reader strips out the clutter and pulls out the requirements.</p>
       </header>
 
       <div className={`${styles.paper} ${styles.jdPaper}`}>
-        <label htmlFor="jd-input" className={styles.paperLabel}>Job ad</label>
         <textarea
           id="jd-input"
+          aria-label="Job ad"
           className={styles.jdInput}
           placeholder="Paste the full job description here…"
           value={text}

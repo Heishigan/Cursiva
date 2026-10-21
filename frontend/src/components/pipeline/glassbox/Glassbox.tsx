@@ -214,8 +214,8 @@ export default function Glassbox({
   return (
     <section className={styles.wrap} aria-label="Agents at work">
       <header className={styles.header}>
-        {title && <div className={styles.eyebrow}>{title}</div>}
         <h2 className={styles.title}>{phase === "intake" ? "Reading the job" : "Watch your documents take shape"}</h2>
+        {title && <p className={styles.subtitle}>{title}</p>}
       </header>
 
       <div className={styles.stage}>
@@ -228,7 +228,6 @@ export default function Glassbox({
           {phase === "intake" ? (
             <div className={styles.papers}>
               <article className={`${styles.paper} ${styles.paperSingle}`} aria-label="Job ad">
-                <div className={styles.paperLabel}>Job ad</div>
                 {stages.reader?.state === "done" && (readerFacts.requirements || []).length > 0 ? (
                   <ul className={styles.reqList}>
                     {(readerFacts.requirements || []).map((r, i) => (
@@ -252,7 +251,6 @@ export default function Glassbox({
               </div>
               <div className={styles.papers}>
                 <article className={`${styles.paper} ${tab === "cv" ? "" : styles.paperHiddenMobile} ${cvWaitingForRewrite ? styles.paperDim : ""}`} aria-label="Tailored CV">
-                  <div className={styles.paperLabel}>Tailored CV{cvRevision !== "1" ? ` · revision ${cvRevision}` : ""}</div>
                   <div className={styles.paperBody} ref={cvPaperRef}>
                     {drafts.cv && blocks.length > 0 ? (
                       <>
@@ -279,7 +277,6 @@ export default function Glassbox({
                 </article>
 
                 <article className={`${styles.paper} ${tab === "letter" ? "" : styles.paperHiddenMobile} ${!letterState ? styles.paperIdle : ""}`} aria-label="Cover letter">
-                  <div className={styles.paperLabel}>Cover letter</div>
                   <div className={styles.paperBody} ref={letterPaperRef}>
                     {letterParts.length > 0 ? (
                       letterParts.slice(0, shownLetter).map((p, i) => {

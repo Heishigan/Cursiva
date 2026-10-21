@@ -225,8 +225,8 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
     <div className={`${styles.page} ${styles.wide}`} style={{ height: '100%' }}>
       <header className={styles.headRow}>
         <div className={styles.head}>
-          {eyebrow && <div className={styles.eyebrow}>{eyebrow}</div>}
-          <h1 className={styles.title} style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}>Review your drafts</h1>
+          <h1 className={styles.title}>Review your drafts</h1>
+          {eyebrow && <p className={styles.subtitle}>{eyebrow}</p>}
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <div className={styles.seg} role="tablist" aria-label="Document">
@@ -343,7 +343,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                 <div className={styles.waitingSheet}>Building the PDF…</div>
               )}
             </div>
-            <div className={`${styles.paperLabel} ${styles.previewNote}`} aria-live="polite">{compiling ? "PDF preview · updating…" : "PDF preview · updates as you edit"}</div>
+            <div className={styles.previewNote} aria-live="polite">{compiling ? "Updating the PDF…" : "The PDF updates as you edit."}</div>
           </section>
         )}
       </div>

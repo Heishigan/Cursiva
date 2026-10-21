@@ -50,13 +50,12 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
   return (
     <div className={`${styles.page} ${styles.wide}`} style={{ paddingTop: 44 }}>
       <header className={styles.head}>
-        {eyebrow && <div className={styles.eyebrow}>{eyebrow}</div>}
         <h1 className={styles.title}>Pick your angle</h1>
+        {eyebrow && <p className={styles.subtitle}>{eyebrow}</p>}
       </header>
 
       <div className={styles.strategy}>
         <article className={`${styles.paper} ${styles.adCard}`} aria-label="Job ad summary">
-          <div className={styles.paperLabel}>Job ad, cleaned up</div>
           <div>
             <div className={styles.adRole}>{role}</div>
             <div className={styles.adMeta}>{[company, jobMetadata?.company_location].filter(Boolean).join(' · ')}</div>

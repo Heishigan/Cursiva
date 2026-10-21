@@ -38,9 +38,8 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
     <div className={`${styles.page} ${styles.medium}`} style={{ gap: 36 }}>
       <header className={styles.headRow}>
         <div className={styles.head}>
-          {eyebrow && <div className={styles.eyebrow}>{eyebrow}</div>}
           <h1 className={styles.title}>Ready to send</h1>
-          <p className={styles.lede}>Saved to your dashboard. You can open and edit this application there any time.</p>
+          <p className={styles.subtitle}>{eyebrow ? `${eyebrow}. ` : ""}Saved to your dashboard, where you can open and edit it any time.</p>
         </div>
         <button className={styles.link} onClick={onReset}>Start another application &rarr;</button>
       </header>
