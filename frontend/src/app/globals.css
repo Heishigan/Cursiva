@@ -130,13 +130,11 @@ a {
 }
 
 /* Clerk Overrides */
-.cl-userButtonPopoverCard, .cl-userButtonPopoverCard * { color: var(--text-strong) !important; }
+.cl-userButtonPopoverCard { color: var(--text-strong) !important; }
 .cl-userButtonPopoverCard { background-color: var(--surface) !important; }
-.cl-userButtonPopoverActionButtonIcon, .cl-userButtonPopoverFooter * { color: var(--text-dim) !important; }
+.cl-userButtonPopoverActionButtonIcon { color: var(--text-dim) !important; }
 
 /* Clerk UserProfile Modal & Form Overrides */
 .cl-card, .cl-profileSectionTitleText, .cl-headerTitle { color: var(--text-strong) !important; }
-.cl-profileSectionContent p, .cl-profileSectionItem span, .cl-headerSubtitle, .cl-navbarButton { color: var(--text) !important; }
-.cl-navbar h1, .cl-navbar h2, .cl-navbar h3 { color: var(--text-strong) !important; }
-.cl-navbar p { color: var(--text-dim) !important; }
+.cl-profileSectionContent, .cl-profileSectionItem, .cl-headerSubtitle, .cl-navbarButton { color: var(--text) !important; }
 .cl-formFieldSuccessText, .cl-formFieldHintText, .cl-formFieldInfoText, .cl-formFieldErrorText { color: var(--text-dim) !important; }
