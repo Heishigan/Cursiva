@@ -13,13 +13,12 @@ function Sheet({ url, label }: { url: string; label: string }) {
     <div className={`${styles.paper} ${styles.docSheet}`} aria-label={`${label} preview`}>
       {url ? (
         <>
-          <iframe src={`${url}#toolbar=0&view=FitH`} title={`${label} preview`} className={styles.previewFrame} tabIndex={-1} />
+          <iframe src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} title={`${label} preview`} className={styles.previewFrame} tabIndex={-1} />
           <div className={styles.previewFallback}>{label}</div>
         </>
       ) : (
         <div className={styles.waitingSheet} style={{ padding: 24 }}>No {label === "CV" ? "CV" : label.toLowerCase()} generated.</div>
       )}
-      <div className={`${styles.stamp} ${styles.docStamp}`}>Saved</div>
     </div>
   );
 }
