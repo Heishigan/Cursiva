@@ -1,6 +1,6 @@
 "use client";
 
-import styles from '@/app/dashboard/pipeline/pipeline.module.css';
+import styles from './flow.module.css';
 import { useState, useEffect } from 'react';
 
 interface PasteJdStepProps {
@@ -33,28 +33,27 @@ export default function PasteJdStep({ onSubmit, initialText = "" }: PasteJdStepP
   }, [text]);
   
   return (
-    <div className={`${styles.stepContainer} ${styles.animateFadeIn}`} style={{ maxWidth: '1200px', width: '90%' }}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Start Your Application</h1>
-        <p className={styles.subtitle}>Paste the job description below to begin the analysis.</p>
-      </div>
+    <div className={`${styles.page} ${styles.narrow}`}>
+      <header className={styles.head}>
+        <div className={styles.eyebrow}>New application</div>
+        <h1 className={styles.title}>Paste the job ad</h1>
+        <p className={styles.lede}>The whole page is fine. The Reader strips out the clutter and pulls out the requirements.</p>
+      </header>
 
-      <div className={styles.textareaBox}>
-        <textarea 
-          className={styles.textarea}
-          placeholder="Paste the full job description here..."
+      <div className={`${styles.paper} ${styles.jdPaper}`}>
+        <label htmlFor="jd-input" className={styles.paperLabel}>Job ad</label>
+        <textarea
+          id="jd-input"
+          className={styles.jdInput}
+          placeholder="Paste the full job description here…"
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
       </div>
-      
-      <div className={styles.buttonContainer}>
-        <button 
-          className={styles.primaryBtn}
-          onClick={() => onSubmit(text)}
-          disabled={!text.trim()}
-        >
-          Start Pipeline &rarr;
+
+      <div className={styles.actions}>
+        <button className={styles.btn} onClick={() => onSubmit(text)} disabled={!text.trim()}>
+          Read the job &rarr;
         </button>
       </div>
     </div>

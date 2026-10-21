@@ -1,12 +1,19 @@
-import styles from '@/app/dashboard/pipeline/pipeline.module.css';
-import profileStyles from '@/app/dashboard/profile/profile.module.css';
+import styles from './flow.module.css';
 import { useState, useEffect, useRef } from "react";
-import { ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
+
+const CL_FIELDS: [string, string][] = [
+  ["salutation", "Greeting"], ["hook", "Opening"], ["match", "Why you"],
+  ["curiosity", "Why them"], ["fit", "Fit"], ["sign_off", "Sign-off"],
+];
+const Up = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6" /></svg>;
+const Down = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>;
+const Bin = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>;
 
 export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback }: { data: any, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: any, clData: any) => void, onSubmitFeedback?: (feedback: string) => void }) {
   const { getToken } = useAuth();
-  const [activeTab, setActiveTab] = useState("CV");
+  const [activeTab, setActiveTab] = useState<"CV" | "Cover Letter" | "Job ad">("CV");
+  const [view, setView] = useState<"preview" | "edit">("preview"); // small screens only
   const [cvData, setCvData] = useState(data.cv);
   const [clData, setClData] = useState(data.cl);
   const [isSaving, setIsSaving] = useState(false);
@@ -110,6 +117,15 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
     compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
   };
 
+  const handleBulletChange = (sIdx: number, iIdx: number, bIdx: number, value: string) => {
+    const newCv = { ...cvData, sections: cvData.sections.map((sec: any, si: number) => si !== sIdx ? sec : {
+      ...sec, items: sec.items.map((it: any, ii: number) => ii !== iIdx ? it : {
+        ...it, bullets: it.bullets.map((b: string, bi: number) => bi === bIdx ? value : b) }) }) };
+    setCvData(newCv);
+    if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
+    compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
+  };
+
   const moveSection = (idx: number, direction: 'up' | 'down') => {
     if (direction === 'up' && idx === 0) return;
     if (direction === 'down' && idx === cvData.sections.length - 1) return;
@@ -195,251 +211,160 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
     }
   };
 
+  const compiling = isCompilingCv || isCompilingCl;
+  const tabs: { id: "CV" | "Cover Letter" | "Job ad"; label: string }[] = [
+    { id: "CV", label: "CV" }, { id: "Cover Letter", label: "Cover letter" }, { id: "Job ad", label: "Job ad" },
+  ];
+  const showPreview = activeTab !== "Job ad";
+  const pdfUrl = activeTab === "CV" ? cvPdfUrl : clPdfUrl;
+  const compileError = activeTab === "CV" ? cvCompileError : clCompileError;
+  const eyebrow = [data.role, data.company].filter(Boolean).join(" · ");
+
+
   return (
-    <div className={`${styles.animateFadeIn} ${styles.workbenchRoot}`} style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div className={`${styles.tabs} ${styles.workbenchTabs}`} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '32px' }}>
-          {["CV", "Cover Letter", "Reference & Feedback"].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`${styles.tabBtn} ${activeTab === tab ? styles.tabBtnActive : ''}`}
-            >
-              {tab}
-            </button>
-          ))}
+    <div className={`${styles.page} ${styles.wide}`} style={{ height: '100%' }}>
+      <header className={styles.headRow}>
+        <div className={styles.head}>
+          {eyebrow && <div className={styles.eyebrow}>{eyebrow}</div>}
+          <h1 className={styles.title} style={{ fontSize: 'clamp(28px, 4vw, 40px)' }}>Review your drafts</h1>
         </div>
-        <button 
-          className={styles.approveBtn}
-          onClick={handleSaveClick}
-          disabled={isSaving || isCompilingCv || isCompilingCl}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'var(--accent)',
-            color: 'var(--accent-ink)',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 600,
-            cursor: (isSaving || isCompilingCv || isCompilingCl) ? 'not-allowed' : 'pointer',
-            opacity: (isSaving || isCompilingCv || isCompilingCl) ? 0.6 : 1,
-            marginBottom: '12px'
-          }}
-        >
-          {isSaving ? "Saving..." : "Approve & Compile"}
-        </button>
-      </div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className={styles.seg} role="tablist" aria-label="Document">
+            {tabs.map(t => (
+              <button key={t.id} role="tab" aria-selected={activeTab === t.id}
+                className={`${styles.segBtn} ${activeTab === t.id ? styles.segOn : ''}`}
+                onClick={() => setActiveTab(t.id)}>{t.label}</button>
+            ))}
+          </div>
+          <button className={`${styles.btn} ${styles.reviewApprove}`} style={{ minHeight: 44 }} onClick={handleSaveClick} disabled={isSaving || compiling}>
+            {isSaving ? "Saving…" : "Approve & save"}
+          </button>
+        </div>
+      </header>
 
-      <div className={styles.workbenchLayout} style={{ flex: 1, minHeight: 0 }}>
-        {/* LEFT PANE - Editor */}
-        <div className={`${styles.pane} ${styles.editorPane}`}>
-          
+      {showPreview && (
+        <div className={styles.viewToggle}>
+          <button className={`${styles.viewBtn} ${view === 'preview' ? styles.viewOn : ''}`} aria-pressed={view === 'preview'} onClick={() => setView('preview')}>Preview</button>
+          <button className={`${styles.viewBtn} ${view === 'edit' ? styles.viewOn : ''}`} aria-pressed={view === 'edit'} onClick={() => setView('edit')}>Edit</button>
+        </div>
+      )}
+
+      <div className={styles.review}>
+        <section aria-label={activeTab === "Job ad" ? "Job ad" : "Edit"} className={`${styles.editor} ${showPreview && view === 'preview' ? styles.hideSmall : ''}`}>
           {activeTab === "CV" && (
-            <div>
-              <div style={{ marginBottom: '32px' }}>
-                <h3 className={styles.sectionLabel}>Professional Summary</h3>
-                <textarea
-                  className={styles.editorInput}
-                  value={cvData.professional_summary || ""}
-                  onChange={(e) => handleCvSummaryChange(e.target.value)}
-                />
+            <>
+              <div className={styles.block}>
+                <label htmlFor="cv-summary" className={styles.label}>Professional summary</label>
+                <textarea id="cv-summary" className={styles.edit} value={cvData.professional_summary || ""} onChange={(e) => handleCvSummaryChange(e.target.value)} />
               </div>
-              {cvData.sections.map((sec: any, sIdx: number) => (
-                <div key={sIdx} className={profileStyles.sectionGroup} style={{ marginBottom: '32px' }}>
-                  <div className={profileStyles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <h2 className={profileStyles.sectionTitle} style={{ margin: 0 }}>{sec.title}</h2>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className={profileStyles.iconBtnSmall} onClick={() => moveSection(sIdx, 'up')} disabled={sIdx === 0} title="Move Section Up"><ArrowUp size={16} /></button>
-                      <button className={profileStyles.iconBtnSmall} onClick={() => moveSection(sIdx, 'down')} disabled={sIdx === cvData.sections.length - 1} title="Move Section Down"><ArrowDown size={16} /></button>
-                      <button className={profileStyles.iconBtnSmall} style={{ color: '#ef4444' }} onClick={() => deleteSection(sIdx)} title="Delete Section"><Trash2 size={16} /></button>
+              {cvData.sections.map((sec: any, sIdx: number) => {
+                const isSkills = sec.type === 'skills';
+                return (
+                  <div key={sIdx} className={styles.block}>
+                    <div className={styles.secHead}>
+                      <h2 className={styles.label}>{sec.title}</h2>
+                      <div className={styles.iconRow}>
+                        <button className={styles.icon} onClick={() => moveSection(sIdx, 'up')} disabled={sIdx === 0} aria-label={`Move ${sec.title} up`}><Up /></button>
+                        <button className={styles.icon} onClick={() => moveSection(sIdx, 'down')} disabled={sIdx === cvData.sections.length - 1} aria-label={`Move ${sec.title} down`}><Down /></button>
+                        <button className={`${styles.icon} ${styles.iconDanger}`} onClick={() => deleteSection(sIdx)} aria-label={`Delete ${sec.title}`}><Bin /></button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className={profileStyles.cardGroup} style={{ marginTop: '16px' }}>
                     {sec.items.map((item: any, iIdx: number) => {
-                      const isSkills = sec.type === 'skills';
-                      
                       let skillsList: string[] = [];
                       if (isSkills) {
                         if (item.bullets && item.bullets.length > 0) {
-                          skillsList = (item.bullets.length === 1 && item.bullets[0].includes(',')) 
-                            ? item.bullets[0].split(',') 
-                            : item.bullets;
+                          skillsList = (item.bullets.length === 1 && item.bullets[0].includes(',')) ? item.bullets[0].split(',') : item.bullets;
                         } else if (item.context) {
                           skillsList = item.context.split(',');
                         }
                       }
-                      
                       return (
-                        <div key={iIdx} className={profileStyles.itemCard}>
-                          <div className={profileStyles.itemLayout}>
-                            <div className={profileStyles.itemContent}>
-                              <div className={profileStyles.itemHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                  <h3 className={profileStyles.itemTitle}>
-                                    {item.url ? <a href={item.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline', color: 'inherit' }}>{item.title}</a> : item.title}
-                                  </h3>
-                                  {(item.subtitle || item.date) && (
-                                    <div className={profileStyles.itemMeta}>
-                                      {item.subtitle}{item.subtitle && item.date && " • "}{item.date}
-                                    </div>
-                                  )}
-                                </div>
-                                <div style={{ display: 'flex', gap: '4px' }}>
-                                  <button className={profileStyles.iconBtnSmall} onClick={() => moveItem(sIdx, iIdx, 'up')} disabled={iIdx === 0} title="Move Up"><ArrowUp size={14}/></button>
-                                  <button className={profileStyles.iconBtnSmall} onClick={() => moveItem(sIdx, iIdx, 'down')} disabled={iIdx === sec.items.length - 1} title="Move Down"><ArrowDown size={14}/></button>
-                                  <button className={profileStyles.iconBtnSmall} onClick={() => deleteItem(sIdx, iIdx)} title="Delete Item"><Trash2 size={14} color="#ef4444"/></button>
-                                </div>
+                        <div key={iIdx} className={styles.item}>
+                          <div className={styles.itemHead}>
+                            <div>
+                              <div className={styles.itemTitle}>
+                                {item.url ? <a href={item.url} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{item.title}</a> : item.title}
                               </div>
-                              
-                              {item.context && !isSkills && <p className={profileStyles.itemContext}>{item.context}</p>}
-                              
-                              {!isSkills && item.bullets && item.bullets.length > 0 && (
-                                <ul className={profileStyles.bullets}>
-                                  {item.bullets.map((b: string, bIdx: number) => (
-                                    <li key={bIdx}>{b}</li>
-                                  ))}
-                                </ul>
-                              )}
-
-                              {isSkills && skillsList.length > 0 && (
-                                 <div className={profileStyles.badges}>
-                                   {skillsList.map((b: string, bIdx: number) => {
-                                     if (!b.trim()) return null;
-                                     return <span key={bIdx} className={profileStyles.badge}>{b.trim()}</span>;
-                                   })}
-                                 </div>
-                              )}
+                              {(item.subtitle || item.date) && <div className={styles.itemMeta}>{item.subtitle}{item.subtitle && item.date && " · "}{item.date}</div>}
+                            </div>
+                            <div className={styles.iconRow}>
+                              <button className={styles.icon} onClick={() => moveItem(sIdx, iIdx, 'up')} disabled={iIdx === 0} aria-label="Move up"><Up /></button>
+                              <button className={styles.icon} onClick={() => moveItem(sIdx, iIdx, 'down')} disabled={iIdx === sec.items.length - 1} aria-label="Move down"><Down /></button>
+                              <button className={`${styles.icon} ${styles.iconDanger}`} onClick={() => deleteItem(sIdx, iIdx)} aria-label="Delete"><Bin /></button>
                             </div>
                           </div>
+                          {item.context && !isSkills && <p className={styles.itemContext}>{item.context}</p>}
+                          {!isSkills && (item.bullets || []).map((b: string, bIdx: number) => (
+                            <textarea key={bIdx} className={styles.edit} aria-label={`${item.title}, bullet ${bIdx + 1}`} value={b}
+                              onChange={(e) => handleBulletChange(sIdx, iIdx, bIdx, e.target.value)} />
+                          ))}
+                          {isSkills && skillsList.length > 0 && (
+                            <div className={styles.chips}>
+                              {skillsList.map((b: string, bIdx: number) => b.trim() ? <span key={bIdx} className={styles.chip}>{b.trim()}</span> : null)}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              ))}
-            </div>
+                );
+              })}
+            </>
           )}
 
-          {activeTab === "Cover Letter" && (
-            <div>
-              {["salutation", "hook", "match", "curiosity", "fit", "sign_off"].map((field) => (
-                <div key={field} style={{ marginBottom: '24px' }}>
-                  <h3 className={styles.sectionLabel}>{field.replace('_', ' ')}</h3>
-                  <textarea
-                    className={styles.editorInput}
-                    value={clData[field] || ""}
-                    onChange={(e) => handleClChange(field, e.target.value)}
-                  />
-                </div>
-              ))}
+          {activeTab === "Cover Letter" && CL_FIELDS.map(([field, label]) => (
+            <div key={field} className={styles.block}>
+              <label htmlFor={`cl-${field}`} className={styles.label}>{label}</label>
+              <textarea id={`cl-${field}`} className={styles.edit} value={clData[field] || ""} onChange={(e) => handleClChange(field, e.target.value)} />
             </div>
-          )}
+          ))}
 
-          {activeTab === "Reference & Feedback" && (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '32px' }}>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', background: 'rgba(0,0,0,0.4)', borderRadius: '12px', color: 'rgba(255,255,255,0.7)', fontSize: '14px', whiteSpace: 'pre-wrap' }}>
-                {jdText}
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>Global Feedback</h3>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    style={{ flex: '1 1 200px', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 16px', fontSize: '14px' }}
-                    placeholder="Require a structural rewrite? Tell the agent what to fix..."
-                    value={globalFeedback}
-                    onChange={(e) => setGlobalFeedback(e.target.value)}
-                  />
-                  <button
-                    onClick={submitFeedback}
-                    disabled={isSubmittingFeedback || !globalFeedback.trim()}
-                    className={styles.secondaryBtn}
-                    style={{ padding: '8px 16px', flex: '1 1 auto' }}
-                  >
-                    {isSubmittingFeedback ? "Applying..." : "Apply Feedback"}
-                  </button>
+          {activeTab === "Job ad" && <p className={styles.jdText}>{jdText}</p>}
+        </section>
+
+        {showPreview && (
+          <section aria-label="Preview" className={`${styles.previewCol} ${view === 'edit' ? styles.hideSmall : ''}`}>
+            <div className={`${styles.paper} ${styles.previewSheet}`}>
+              {pdfUrl ? (
+                <>
+                  <iframe src={`${pdfUrl}#toolbar=0&view=FitH`} title={`${activeTab === "CV" ? "CV" : "Cover letter"} preview`} className={styles.previewFrame} />
+                  <div className={styles.previewFallback}>
+                    <p>Phone browsers can&apos;t show the PDF inline.</p>
+                    <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className={styles.btn}>Open {activeTab === "CV" ? "CV" : "cover letter"} preview</a>
+                  </div>
+                </>
+              ) : compileError ? (
+                <div className={styles.compileError} role="alert">
+                  <strong>{activeTab === "CV" ? "CV" : "Cover letter"} didn&apos;t compile</strong>
+                  <span style={{ whiteSpace: 'pre-wrap' }}>{compileError}</span>
+                  <button className={styles.ghost} style={{ color: '#1a1a1c', borderColor: '#cfccc2' }} onClick={() => activeTab === "CV" ? compileCv(cvData) : compileCl(clData)}>Try again</button>
                 </div>
-              </div>
+              ) : (
+                <div className={styles.waitingSheet}>Building the PDF…</div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* RIGHT PANE - Live Preview */}
-        <div className={`${styles.pane} ${styles.previewPane}`} style={{ display: activeTab === "Reference & Feedback" ? 'none' : 'flex' }}>
-          <div className={styles.badge}>
-            <span className={styles.badgeItem}>
-              Live Preview
-            </span>
-            {(isCompilingCv || isCompilingCl) && (
-              <span className={`${styles.badgeItem} ${styles.badgeItemPulse}`}>
-                Compiling...
-              </span>
-            )}
-          </div>
-          <div className={styles.pdfContainer} style={{ position: 'relative' }}>
-            {activeTab === "CV" && cvPdfUrl && (
-              <>
-                <iframe src={`${cvPdfUrl}#toolbar=0&view=FitH`} className={styles.previewFrame} style={{ width: '100%', height: '100%', border: 'none' }} />
-                <div className={styles.previewFallback}>
-                  <p>Phone browsers can&apos;t show the PDF inline.</p>
-                  <a href={cvPdfUrl} target="_blank" rel="noopener noreferrer">Open CV preview</a>
-                </div>
-              </>
-            )}
-            {activeTab === "CV" && cvCompileError && (
-              <div style={{ padding: '24px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid #ef4444' }}>
-                <h3 style={{ fontWeight: 600, marginBottom: '8px' }}>CV Compilation Failed</h3>
-                <p style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>{cvCompileError}</p>
-                <button onClick={() => compileCv(cvData)} style={{ marginTop: '16px', padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Retry Compile</button>
-              </div>
-            )}
-            {activeTab === "Cover Letter" && clPdfUrl && (
-              <>
-                <iframe src={`${clPdfUrl}#toolbar=0&view=FitH`} className={styles.previewFrame} style={{ width: '100%', height: '100%', border: 'none' }} />
-                <div className={styles.previewFallback}>
-                  <p>Phone browsers can&apos;t show the PDF inline.</p>
-                  <a href={clPdfUrl} target="_blank" rel="noopener noreferrer">Open cover letter preview</a>
-                </div>
-              </>
-            )}
-            {activeTab === "Cover Letter" && clCompileError && (
-              <div style={{ padding: '24px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid #ef4444' }}>
-                <h3 style={{ fontWeight: 600, marginBottom: '8px' }}>Cover Letter Compilation Failed</h3>
-                <p style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>{clCompileError}</p>
-                <button onClick={() => compileCl(clData)} style={{ marginTop: '16px', padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Retry Compile</button>
-              </div>
-            )}
-          </div>
-        </div>
+            <div className={`${styles.paperLabel} ${styles.previewNote}`} aria-live="polite">{compiling ? "PDF preview · updating…" : "PDF preview · updates as you edit"}</div>
+          </section>
+        )}
       </div>
-      
+
+      <form className={styles.feedback} onSubmit={(e) => { e.preventDefault(); submitFeedback(); }}>
+        <label htmlFor="global-feedback" className={styles.label} style={{ whiteSpace: 'nowrap' }}>Feedback</label>
+        <input id="global-feedback" className={styles.feedbackInput} placeholder="Tell the writers what to change, e.g. lead with TriageSim"
+          value={globalFeedback} onChange={(e) => setGlobalFeedback(e.target.value)} />
+        <button type="submit" className={styles.ghost} disabled={isSubmittingFeedback || !globalFeedback.trim()}>
+          {isSubmittingFeedback ? "Redoing…" : "Redo drafts"}
+        </button>
+      </form>
+
       {showDisclaimer && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)' }}>
-          <div style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--line)', borderLeft: '4px solid #f59e0b', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: 'var(--text-primary)' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
-              <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>Review Your Documents</h2>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5', marginBottom: '24px' }}>
-              AI can make mistakes or hallucinate. Please review your CV and Cover Letter carefully to ensure all information is accurate and factual before finalizing your application.
-            </p>
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowDisclaimer(false)}
-                style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--line)', cursor: 'pointer', fontWeight: 500, transition: 'background 0.2s' }} 
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor='var(--surface-hover)'} 
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor='var(--surface)'}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={proceedWithSave}
-                style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: '#f59e0b', color: '#111827', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }} 
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor='#fbbf24'} 
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor='#f59e0b'}
-              >
-                Looks Good, Proceed
-              </button>
+        <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
+          <div className={styles.modal}>
+            <h2 id="disclaimer-title" className={styles.modalTitle}>Check before you send</h2>
+            <p className={styles.modalText}>AI can make mistakes. Read your CV and cover letter once more and make sure every detail is accurate before you save.</p>
+            <div className={styles.actions}>
+              <button className={styles.ghost} onClick={() => setShowDisclaimer(false)}>Cancel</button>
+              <button className={styles.btn} style={{ minHeight: 44 }} onClick={proceedWithSave}>Looks good, save</button>
             </div>
           </div>
         </div>

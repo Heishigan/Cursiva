@@ -7,6 +7,7 @@ import PasteJdStep from "@/components/pipeline/PasteJdStep";
 import StrategyStep from "@/components/pipeline/StrategyStep";
 import WorkbenchStep from "@/components/pipeline/WorkbenchStep";
 import DoneStep from "@/components/pipeline/DoneStep";
+import FlowRail from "@/components/pipeline/FlowRail";
 
 export default function PipelinePage() {
   const { getToken } = useAuth();
@@ -386,33 +387,13 @@ export default function PipelinePage() {
 
   return (
     <div className={styles.container}>
-      {/* Top Navigation Stepper */}
-      <nav className={styles.nav}>
-        <div className={styles.navContent}>
-          <div className={`${styles.stepItem} ${step >= 1 ? styles.stepItemActive : ''} ${step === 1 ? styles.stepCurrent : ''}`}>
-            <span className={styles.stepNumber} style={step === 1 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>1</span>
-            <span className={styles.stepLabel}>Paste JD</span>
-          </div>
-          <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 2 ? styles.stepItemActive : ''} ${step === 2 ? styles.stepCurrent : ''}`}>
-            <span className={styles.stepNumber} style={step === 2 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>2</span>
-            <span className={styles.stepLabel}>Strategy</span>
-          </div>
-          <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 3 ? styles.stepItemActive : ''} ${step === 3 ? styles.stepCurrent : ''}`}>
-            <span className={styles.stepNumber} style={step === 3 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>3</span>
-            <span className={styles.stepLabel}>Workbench</span>
-          </div>
-          <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 4 ? styles.stepItemActive : ''} ${step === 4 ? styles.stepCurrent : ''}`}>
-            <span className={styles.stepNumber} style={step === 4 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>4</span>
-            <span className={styles.stepLabel}>Done</span>
-          </div>
-        </div>
-      </nav>
+      {/* Progress rail */}
+      <div className={styles.nav}>
+        <FlowRail current={step === 4 ? 4 : step === 3 || (step === 2 && isProcessing) ? 3 : step} />
+      </div>
 
       {/* Main Content Area */}
-      <main className={`${styles.mainArea} ${(step >= 3 || isProcessing) ? styles.mainAreaLocked : ''}`}>
+      <main className={`${styles.mainArea} ${(step === 3 || isProcessing) ? styles.mainAreaLocked : ''}`}>
         {isProcessing ? (
           <Glassbox
             phase={step === 1 ? 'intake' : 'tailor'}

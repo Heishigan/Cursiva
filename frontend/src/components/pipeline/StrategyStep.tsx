@@ -1,4 +1,4 @@
-import styles from '@/app/dashboard/pipeline/pipeline.module.css';
+import styles from './flow.module.css';
 import { useState } from "react";
 
 export default function StrategyStep({ result, jobMetadata, onSubmit }: { result: any, jobMetadata?: any, onSubmit: (answers: string) => void }) {
@@ -41,138 +41,90 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
     return cleaned.replace(/^(High Fit|Moderate Fit|Low Fit)\.?\s*/i, '');
   })();
 
+  const role = jobMetadata?.role_name || 'Unknown role';
+  const company = jobMetadata?.company_name || 'Unknown company';
+  const eyebrow = [jobMetadata?.role_name, jobMetadata?.company_name, jobMetadata?.company_location].filter(Boolean).join(' · ');
+  const requirements: string[] = jobMetadata?.key_requirements || [];
+  const plan = cleanStrategyText(strategyPlanRaw);
+
   return (
-    <div className={`${styles.stepContainer} ${styles.animateFadeIn} ${styles.strategyLayout}`} style={{ maxWidth: '1200px', marginBottom: '48px' }}>
-      
-      {/* Left Column: Assessment and Strategy */}
-      <div style={{ flex: '2' }}>
-        <div style={{ marginBottom: '32px' }}>
-          <h2 className={styles.strategyTitle}>Strategist's Assessment</h2>
-        </div>
+    <div className={`${styles.page} ${styles.wide}`} style={{ paddingTop: 44 }}>
+      <header className={styles.head}>
+        {eyebrow && <div className={styles.eyebrow}>{eyebrow}</div>}
+        <h1 className={styles.title}>Pick your angle</h1>
+      </header>
 
-        <div className={styles.glassPanel} style={{ marginBottom: '32px' }}>
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 className={styles.sectionLabel} style={{ marginBottom: 0 }}>Fit Assessment</h3>
-              {fitLevel && (
-                <span style={{ 
-                  backgroundColor: fitLevel.toLowerCase().includes('high') ? 'rgba(74,222,128,0.2)' : fitLevel.toLowerCase().includes('moderate') ? 'rgba(250,204,21,0.2)' : 'rgba(239,68,68,0.2)',
-                  color: fitLevel.toLowerCase().includes('high') ? '#4ade80' : fitLevel.toLowerCase().includes('moderate') ? '#facc15' : '#ef4444',
-                  padding: '4px 12px',
-                  borderRadius: '9999px',
-                  fontSize: '12px',
-                  fontWeight: 600
-                }}>
-                  {fitLevel}
-                </span>
-              )}
-            </div>
-            <p className={styles.strategyText} style={{ marginBottom: 0 }}>
-              {fitText}
-            </p>
-          </div>
+      <div className={styles.strategy}>
+        <article className={`${styles.paper} ${styles.adCard}`} aria-label="Job ad summary">
+          <div className={styles.paperLabel}>Job ad, cleaned up</div>
           <div>
-            <h3 className={styles.sectionLabel}>Strategy Plan</h3>
-            <p className={styles.strategyText} style={{ marginBottom: 0 }}>
-              {cleanStrategyText(strategyPlanRaw)}
-            </p>
+            <div className={styles.adRole}>{role}</div>
+            <div className={styles.adMeta}>{[company, jobMetadata?.company_location].filter(Boolean).join(' · ')}</div>
           </div>
-        </div>
+          {jobMetadata?.job_summary && <p className={styles.adSummary}>{jobMetadata.job_summary}</p>}
+          <ul className={styles.reqs}>
+            {requirements.length > 0 ? requirements.map((req, idx) => <li key={idx}>{req}</li>) : <li>No specific requirements found.</li>}
+          </ul>
+          <div className={`${styles.eligible} ${jobMetadata?.eligibility_passed ? '' : styles.ineligible}`}>
+            {jobMetadata?.eligibility_passed ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            )}
+            {jobMetadata?.eligibility_passed ? 'Eligible to apply' : 'May not meet the eligibility requirements'}
+          </div>
+          {fitLevel && <div className={`${styles.stamp} ${styles.fitStamp}`}>{fitLevel}</div>}
+        </article>
 
-        <div className={styles.glassPanel} style={{ background: 'var(--surface)' }}>
-          <div>
-            <h3 style={{ fontSize: '20px', fontWeight: 500, marginBottom: '16px' }}>Strategic Approach</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-              Select one of the proposed agent strategies to emphasize in your application, or provide your own.
-            </p>
-            
-            <div className={styles.optionsContainer}>
-              {result?.strategic_options?.map((option: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedOption(option === selectedOption ? "" : option)}
-                  className={`${styles.optionBtn} ${selectedOption === option ? styles.optionBtnActive : ''}`}
-                >
-                  <div className={`${styles.radioCircle} ${selectedOption === option ? styles.radioCircleActive : ''}`}>
-                    {selectedOption === option && <div className={styles.radioDot} />}
-                  </div>
+        <section className={styles.strategyMain}>
+          <div className={styles.block}>
+            <h2 className={styles.label}>The Strategist&apos;s read</h2>
+            <p className={styles.read}>{fitText || plan}</p>
+            {fitText && plan && (
+              <details className={styles.details}>
+                <summary>Full strategy plan</summary>
+                <p>{plan}</p>
+              </details>
+            )}
+          </div>
+
+          {result?.strategic_options?.length > 0 && (
+            <fieldset className={styles.options}>
+              <legend className={styles.label}>Choose an angle</legend>
+              {result.strategic_options.map((option: string, idx: number) => (
+                <label key={idx} className={`${styles.option} ${selectedOption === option ? styles.optionOn : ''}`}>
+                  <input
+                    type="radio"
+                    name="strategy-angle"
+                    checked={selectedOption === option}
+                    onChange={() => setSelectedOption(option)}
+                    onClick={() => { if (selectedOption === option) setSelectedOption(""); }}
+                  />
                   <span>{option}</span>
-                </button>
+                </label>
               ))}
-            </div>
-          </div>
+            </fieldset>
+          )}
 
-          <div style={{ paddingTop: '24px', marginTop: '24px', borderTop: '1px solid var(--surface-border)' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>
-              Custom Instructions & Overrides
-            </h3>
+          <div className={styles.block}>
+            <label htmlFor="strategy-extra" className={styles.label}>Anything to add or avoid? (optional)</label>
             <textarea
-              className={styles.textarea}
-              style={{ height: '128px', minHeight: 'auto', padding: '16px' }}
-              placeholder="Anything else to emphasize or avoid..."
+              id="strategy-extra"
+              className={styles.field}
+              style={{ height: 96, resize: 'vertical' }}
+              placeholder="For example: mention my Swedish, keep the letter short"
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
             />
           </div>
-        </div>
 
-        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn-primary" onClick={handleSubmit} disabled={!selectedOption && !customInstructions}>
-            Generate Drafts &rarr;
-          </button>
-        </div>
+          <div className={styles.actions}>
+            <button className={styles.btn} onClick={handleSubmit} disabled={!selectedOption && !customInstructions}>
+              Write my drafts &rarr;
+            </button>
+          </div>
+        </section>
       </div>
-
-      {/* Right Column: Role at a Glance */}
-      <div style={{ flex: '1' }}>
-        <div className={styles.glassPanel} style={{ position: 'sticky', top: '100px', background: 'var(--surface)' }}>
-          <h3 className={styles.sectionLabel} style={{ borderBottom: '1px solid var(--surface-border)', paddingBottom: '12px', marginBottom: '16px' }}>
-            ROLE AT A GLANCE
-          </h3>
-          
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Company</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {jobMetadata?.company_name || 'Unknown Company'}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Role</div>
-            <div style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)' }}>
-              {jobMetadata?.role_name || 'Unknown Role'}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Key Details</div>
-            {jobMetadata?.job_summary && (
-              <p style={{ color: 'var(--text-primary)', fontSize: '14px', marginBottom: '12px', opacity: 0.9 }}>
-                {jobMetadata.job_summary}
-              </p>
-            )}
-            <ul style={{ listStyleType: 'disc', paddingLeft: '16px', color: 'var(--text-primary)', fontSize: '14px', marginTop: '8px', opacity: 0.9 }}>
-              {jobMetadata?.key_requirements?.map((req: string, idx: number) => (
-                <li key={idx} style={{ marginBottom: '6px' }}>{req}</li>
-              )) || <li>No specific requirements found.</li>}
-            </ul>
-          </div>
-
-          <div style={{ paddingTop: '16px', borderTop: '1px solid var(--surface-border)' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Eligibility</div>
-            {jobMetadata?.eligibility_passed ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', padding: '4px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 600 }}>
-                ✓ Eligible
-              </span>
-            ) : (
-              <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '4px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 600 }}>
-                ✕ Ineligible
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 }

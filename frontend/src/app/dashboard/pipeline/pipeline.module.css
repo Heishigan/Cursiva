@@ -586,3 +586,12 @@
   .stepItem:not(.stepCurrent) .stepLabel { display: none; }
   .navContent { justify-content: center; }
 }
+
+/* ---- Redesign shell (phase 2): quiet rail on top, each step owns its padding ---- */
+.container { height: 100dvh; min-height: 0; }
+.nav { position: static; flex-shrink: 0; background: var(--bg); backdrop-filter: none; border-bottom: 1px solid #1f1f23; }
+.mainArea { flex: 1; min-height: 0; height: auto; padding: 0; }
+@media (max-width: 1024px) {
+  .container { height: auto; min-height: 100dvh; }
+  .mainArea { height: auto; min-height: 0; padding: 0; }
+}
