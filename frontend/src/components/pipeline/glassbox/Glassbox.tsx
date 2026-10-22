@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Compass, FileText, Mail, ScanSearch, ShieldCheck, type LucideIcon } from "lucide-react";
 import styles from "./glassbox.module.css";
 
 /* Live view of the agents at work ("Glassbox", layout C: document assembly).
@@ -39,6 +40,14 @@ const LABELS: Record<AgentId, string> = {
   cv: "CV writer",
   checker: "Checker",
   letter: "Letter writer",
+};
+
+const ICONS: Record<AgentId, LucideIcon> = {
+  reader: ScanSearch,
+  strategist: Compass,
+  cv: FileText,
+  checker: ShieldCheck,
+  letter: Mail,
 };
 
 const WAITING: Record<AgentId, string> = {
@@ -131,9 +140,10 @@ function AgentCards({ stages, phase }: { stages: Stages; phase: "intake" | "tail
           : st === "failed" ? styles.agentFailed
           : styles.agentWorking;
         const say = !ev && st === "done" ? "Done" : sentence(ev, a);
+        const Icon = ICONS[a];
         return (
           <li key={a} className={`${styles.agent} ${cls}`}>
-            <span className={styles.avatar} aria-hidden="true">{LABELS[a].charAt(0)}</span>
+            <span className={styles.avatar} aria-hidden="true"><Icon size={18} strokeWidth={2} /></span>
             <span className={styles.agentText}>
               <span className={styles.agentName}>{LABELS[a]}</span>
               <span className={styles.agentSay}>{say}</span>

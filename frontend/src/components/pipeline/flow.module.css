@@ -67,7 +67,7 @@
 .option input { margin: 2px 0 0; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); }
 .option span { font-size: 14px; line-height: 1.5; color: var(--text); }
 .field { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text-strong); font: 400 14px/1.5 'Plus Jakarta Sans', sans-serif; padding: 12px 14px; }
-.field:focus { outline: none; border-color: #4a4a50; }
+
 .field::placeholder { color: var(--text-dim); }
 
 /* ---- Review ---- */
@@ -77,7 +77,7 @@
 .review { display: flex; gap: 28px; flex: 1; min-height: 0; }
 .editor { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow-y: auto; }
 .edit { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #141416; color: var(--text-strong); font: 400 13px/1.55 'Plus Jakarta Sans', sans-serif; padding: 10px 12px; resize: vertical; field-sizing: content; min-height: 44px; }
-.edit:focus { outline: none; border-color: #4a4a50; }
+
 .secHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .iconRow { display: flex; }
 .icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: var(--text-dim); cursor: pointer; }
@@ -155,3 +155,6 @@
   .reviewApprove { width: 100%; }
   .docs { gap: 32px; }
 }
+
+/* Accent outline on every text box while typing (same as the original job ad box). */
+.jdPaper:focus-within, .feedback:focus-within, .field:focus, .edit:focus { outline: none; box-shadow: 0 0 0 2px rgba(200, 242, 76, 0.5); }
