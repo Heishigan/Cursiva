@@ -30,6 +30,8 @@ export default function PipelinePage() {
   // Documents that arrive as a live token stream: 'streaming' while text is
   // coming in, 'done' once the finished draft has landed.
   const [liveDocs, setLiveDocs] = useState<LiveDocs>({});
+  // The application's original run (for feedback redos) and whether its free redo is still unused.
+  const [redo, setRedo] = useState<{ runId: string; free: boolean } | null>(null);
   const [genericForView, setGenericForView] = useState<CvDoc | null>(null);
   const handleProgress = (data: { type?: string; agent?: string; doc?: string; content?: unknown; partial?: boolean }) => {
     if (data.type === 'stage' && data.agent) {
@@ -148,6 +150,7 @@ export default function PipelinePage() {
       return;
     }
     setJdText(text);
+    setRedo(null);
     localStorage.setItem("cursiva_backup_jd", text);
     setIsProcessing(true);
     setLogs([]);
@@ -262,6 +265,7 @@ export default function PipelinePage() {
           sharpest_project_insight: strategyResult?.sharpest_project_insight || "",
           user_strategy_answers: userAnswers,
           user_feedback: feedback,
+          redo_of: feedback ? redo?.runId : undefined,
           thread_id: threadId
         })
       });
@@ -305,6 +309,7 @@ export default function PipelinePage() {
                 if (data.status === 'success') {
                   // Combine with generic personal info
                   const genericData = JSON.parse(genericCv);
+                  if (data.run_id) setRedo({ runId: data.run_id, free: !!data.free_redo_available });
                   const completeTailoredCv = {
                     ...data.tailored_cv,
                     personal_info: genericData.personal_info
@@ -408,8 +413,8 @@ export default function PipelinePage() {
           <>
             {step === 1 && <PasteJdStep initialText={jdText} onSubmit={submitJd} />}
             {step === 2 && <StrategyStep result={strategyResult} jobMetadata={jobMetadata} onSubmit={submitStrategy} />}
-            {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
-            {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); }} />}
+            {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} freeRedo={!!redo?.free} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
+            {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); setRedo(null); }} />}
           </>
         )}
       </main>

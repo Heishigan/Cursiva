@@ -10,7 +10,7 @@ const Up = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
 const Down = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>;
 const Bin = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>;
 
-export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback }: { data: any, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: any, clData: any) => void, onSubmitFeedback?: (feedback: string) => void }) {
+export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback, freeRedo = false }: { data: any, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: any, clData: any) => void, onSubmitFeedback?: (feedback: string) => void, freeRedo?: boolean }) {
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<"CV" | "Cover Letter" | "Job ad">("CV");
   const [view, setView] = useState<"preview" | "edit">("preview"); // small screens only
@@ -353,7 +353,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
         <input id="global-feedback" className={styles.feedbackInput} placeholder="Describe what you would like changed"
           value={globalFeedback} onChange={(e) => setGlobalFeedback(e.target.value)} />
         <button type="submit" className={styles.ghost} disabled={isSubmittingFeedback || !globalFeedback.trim()}>
-          {isSubmittingFeedback ? "Redoing…" : "Redo drafts"}
+          {isSubmittingFeedback ? "Redoing…" : freeRedo ? "Redo drafts (free)" : "Redo drafts · 1 credit"}
         </button>
       </form>
 
