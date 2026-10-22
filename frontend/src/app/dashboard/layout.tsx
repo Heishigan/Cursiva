@@ -177,7 +177,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {getStatusText()}
                 </div>
                 {credits !== null && credits <= 5 && (
-                  <Link href="/dashboard/settings" style={{ fontSize: '11px', color: '#6366f1', textDecoration: 'none', fontWeight: 600 }}>Top Up</Link>
+                  <Link href="/dashboard/settings" style={{ fontSize: '11px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Top Up</Link>
                 )}
               </div>
             ) : (

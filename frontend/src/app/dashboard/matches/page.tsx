@@ -304,7 +304,7 @@ export default function MatchesPage() {
                         <ExternalLink size={18} />
                       </a>
                     )}
-                    <button onClick={() => handleDraftApplication(job)} style={{ padding: '6px 12px', background: 'var(--accent-1)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button onClick={() => handleDraftApplication(job)} style={{ padding: '6px 12px', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Play size={14} /> Draft
                     </button>
                     <button onClick={() => confirmDelete([job.id])} className={styles.actionBtn} style={{ color: '#ef4444' }} title="Delete match">

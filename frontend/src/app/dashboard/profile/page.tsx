@@ -591,7 +591,7 @@ export default function ProfilePage() {
                 <p style={{ margin: 0 }}>Mobile browsers cannot preview PDFs directly.</p>
                 <button 
                   onClick={handleDownload} 
-                  style={{ padding: '10px 20px', background: 'var(--accent-gradient)', color: 'white', border: 'none', borderRadius: '99px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}
+                  style={{ padding: '10px 20px', background: 'var(--accent)', color: 'var(--accent-ink)', border: 'none', borderRadius: '99px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}
                 >
                   <Download size={18} /> Download PDF
                 </button>
