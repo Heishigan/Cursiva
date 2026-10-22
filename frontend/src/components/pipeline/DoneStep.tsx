@@ -40,7 +40,7 @@ export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, on
           <h1 className={styles.title}>Ready to send</h1>
           <p className={styles.subtitle}>{eyebrow ? `${eyebrow}. ` : ""}Saved to your dashboard, where you can open and edit it any time.</p>
         </div>
-        <button className={styles.link} onClick={onReset}>Start another application &rarr;</button>
+        <button className={styles.ghost} onClick={onReset}>Start another application</button>
       </header>
 
       <div className={styles.docs}>

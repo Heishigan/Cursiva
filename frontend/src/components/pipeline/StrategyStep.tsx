@@ -113,7 +113,7 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
 
           <div className={styles.actions}>
             <button className={styles.btn} onClick={handleSubmit} disabled={!selectedOption && !customInstructions}>
-              Write my drafts &rarr;
+              Write my drafts
             </button>
           </div>
         </section>

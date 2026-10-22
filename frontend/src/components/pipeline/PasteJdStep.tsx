@@ -52,7 +52,7 @@ export default function PasteJdStep({ onSubmit, initialText = "" }: PasteJdStepP
 
       <div className={styles.actions}>
         <button className={styles.btn} onClick={() => onSubmit(text)} disabled={!text.trim()}>
-          Read the job &rarr;
+          Read the job
         </button>
       </div>
     </div>

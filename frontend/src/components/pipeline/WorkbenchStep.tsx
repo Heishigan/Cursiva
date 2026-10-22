@@ -6,6 +6,21 @@ const CL_FIELDS: [string, string][] = [
   ["salutation", "Greeting"], ["hook", "Opening"], ["match", "Why you"],
   ["curiosity", "Why them"], ["fit", "Fit"], ["sign_off", "Sign-off"],
 ];
+/** Open a base64 PDF data URL in a new tab. Phone browsers refuse to open
+ *  data: URLs as a page (they show the raw string), but blob: URLs work. */
+function openPdf(dataUrl: string) {
+  try {
+    const b64 = dataUrl.split(",")[1] || "";
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const w = window.open(url, "_blank");
+    if (!w) window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch {
+    window.open(dataUrl, "_blank");
+  }
+}
+
 const Up = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6" /></svg>;
 const Down = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>;
 const Bin = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>;
@@ -341,7 +356,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                   <iframe src={`${pdfUrl}#toolbar=0&view=FitH`} title={`${activeTab === "CV" ? "CV" : "Cover letter"} preview`} className={styles.previewFrame} />
                   <div className={styles.previewFallback}>
                     <p>Phone browsers can&apos;t show the PDF inline.</p>
-                    <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className={styles.btn}>Open {activeTab === "CV" ? "CV" : "cover letter"} preview</a>
+                    <button type="button" className={styles.btn} onClick={() => openPdf(pdfUrl)}>Open {activeTab === "CV" ? "CV" : "cover letter"} preview</button>
                   </div>
                 </>
               ) : compileError ? (

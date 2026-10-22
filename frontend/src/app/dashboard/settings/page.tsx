@@ -108,7 +108,7 @@ function SettingsContent() {
           <h2 className={styles.cardTitle} style={{ margin: 0 }}>Billing & Credits</h2>
         </div>
         <p className={styles.cardDesc}>
-          Cursiva uses a simple Pay-As-You-Go model. You pay a flat rate of $5.00 for 15 tailored application credits. Generating a complete tailored CV and Cover Letter costs exactly 1 credit.
+          Cursiva uses a simple pay-as-you-go model: $5.00 for 15 credits. Each application (a tailored CV and cover letter) costs 1 credit and includes one free redo with feedback; further redos cost 1 credit each. If a run doesn't pass our quality checks, the credit is refunded automatically.
         </p>
 
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '24px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
