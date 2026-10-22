@@ -90,3 +90,21 @@ def test_quote_in_cv():
     assert checks.quote_in_cv("cut inference latency by 40%", t)
     assert not checks.quote_in_cv("Kubernetes expert", t)
     assert not checks.quote_in_cv("", t)
+
+
+# --- a redo that asks to remove a section or item ---
+def _without_section(cv, title):
+    return {**cv, "sections": [s for s in cv["sections"] if s["title"] != title]}
+
+
+def test_section_named_in_feedback_may_be_removed():
+    first = tailored()["sections"][0]["title"]
+    t = _without_section(tailored(), first)
+    assert any(i.code == "missing_section" for i in checks.find_issues(t, RAW))
+    assert not any(i.code == "missing_section" for i in checks.find_issues(t, RAW, removal_request=f"please remove the {first.lower()} section"))
+
+
+def test_section_not_named_in_feedback_is_still_required():
+    first = tailored()["sections"][0]["title"]
+    t = _without_section(tailored(), first)
+    assert any(i.code == "missing_section" for i in checks.find_issues(t, RAW, removal_request="make the summary shorter"))

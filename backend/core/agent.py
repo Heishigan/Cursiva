@@ -317,7 +317,8 @@ def reviewer_node(state: AgentState):
     # The Generic CV is the only source of facts; user instructions never count as facts.
     supplemental = ""
     fixed_cv, fix_log = checks.autofix_cv(state.get("tailored_cv") or {})
-    det_issues = checks.find_issues(fixed_cv, state.get("generic_cv_raw", ""), supplemental)
+    det_issues = checks.find_issues(fixed_cv, state.get("generic_cv_raw", ""), supplemental,
+                                    removal_request=state.get("user_feedback", "") or "")
     # Plain facts for the progress view (see progress.py).
     report = {"autofixed": fix_log, "rule_issues": len(det_issues), "fact_issues": 0, "llm_checked": False}
     if det_issues:
