@@ -1,3 +1,4 @@
+import inspect
 """Round 1 prompt changes (approved): guard that they stay in place."""
 import core.agent as A
 from core.models import CoverLetterOutput, CVData
@@ -37,3 +38,23 @@ def test_tailor_round1(monkeypatch):
 def test_cover_letter_round2_swedish_bans(monkeypatch):
     cl, _ = _render(monkeypatch)
     assert '"ser fram emot"' in cl and "equivalents in the letter's language" in cl
+
+
+# --- instructions are instructions, not facts ---
+def test_tailor_treats_user_text_as_instructions_not_facts():
+    src = inspect.getsource(A.tailor_node)
+    assert "They are NOT candidate facts: the Generic CV is the only source of facts." in src
+    assert "do NOT add it" in src
+    assert "strictly factual candidate data" not in src
+
+
+def test_cover_letter_treats_user_text_as_instructions_not_facts():
+    src = inspect.getsource(A.cover_letter_node)
+    assert "They are NOT candidate facts: the CV is the only source of facts." in src
+    assert "strictly factual candidate data" not in src
+    assert "never claim anything that is not in the CV" in src
+
+
+def test_reviewer_source_is_generic_cv_only():
+    assert "SOURCE (the only ground truth): the Generic CV." in A.REVIEWER_SYSTEM
+    assert "Supplemental" not in A.REVIEWER_SYSTEM

@@ -235,13 +235,13 @@ def tailor_node(state: AgentState, config=None):
     
     supplemental_prompt = ""
     if user_strategy or user_feedback:
-        supplemental_prompt = "\n\n--- SUPPLEMENTAL CANDIDATE CONTEXT (From User's Custom Instructions & Feedback) ---\n"
-        supplemental_prompt += "The following information is strictly factual candidate data provided by the user and MUST be treated as if it were part of the Generic CV. This is your highest priority.\n"
-        supplemental_prompt += "CRITICAL INSTRUCTION: You MUST explicitly integrate the facts from this Supplemental Context directly into the CV content (e.g., within the Professional Summary, Project Context, or Bullets). Do NOT ignore this data.\n"
+        supplemental_prompt = "\n\n--- USER INSTRUCTIONS (preferences, not facts) ---\n"
+        supplemental_prompt += "Follow these instructions on angle, emphasis, tone and wording. They are NOT candidate facts: the Generic CV is the only source of facts.\n"
+        supplemental_prompt += "If an instruction asks you to add or claim anything that is not in the Generic CV (a job, project, skill, number or achievement), do NOT add it.\n"
         if user_strategy:
-            supplemental_prompt += f"\nUser Strategy Answers (MUST INTEGRATE):\n{user_strategy}\n"
+            supplemental_prompt += f"\nChosen angle and notes:\n{user_strategy}\n"
         if user_feedback:
-            supplemental_prompt += f"\nUser Feedback on Previous Draft (CRITICAL TO APPLY):\n{user_feedback}\n"
+            supplemental_prompt += f"\nFeedback on the previous draft (apply it within the rules above):\n{user_feedback}\n"
     
     user_id = state.get("user_id", "")
     lessons = get_lessons(user_id, ["CV", "General"])
@@ -263,7 +263,7 @@ def tailor_node(state: AgentState, config=None):
         ("user", "Job Description:\n{job_description}\n\nStrategist's Plan:\n{strategy_plan}\n\nGeneric CV JSON:\n{generic_cv}{previous_cv_prompt}")
     ]
     if supplemental_prompt:
-        messages.append(("user", "SUPPLEMENTAL CONTEXT FROM CANDIDATE (factual data only):\n{supplemental_prompt}"))
+        messages.append(("user", "USER INSTRUCTIONS (preferences only, not facts):\n{supplemental_prompt}"))
         
     prompt = ChatPromptTemplate.from_messages(messages)
     
@@ -279,32 +279,21 @@ def tailor_node(state: AgentState, config=None):
     
     return {"tailored_cv": res.model_dump(), "revision_count": state.get("revision_count", 0) + 1}
 
-def supplemental_context(state) -> str:
-    """User-provided facts the tailor is required to use; the reviewer treats them as source truth."""
-    parts = []
-    if state.get("user_strategy_answers"):
-        parts.append("User Strategy Answers:\n" + state["user_strategy_answers"])
-    if state.get("user_feedback"):
-        parts.append("User Feedback on Previous Draft:\n" + state["user_feedback"])
-    return "\n\n".join(parts)
-
-
 REVIEWER_SYSTEM = """You are a fact-checking reviewer for a tailored CV. Your ONLY job is to find FABRICATION.
 
-SOURCES (the only ground truth): the Generic CV and the Supplemental Candidate Context. Facts in the
-Supplemental Context are true even if they are not in the Generic CV.
+SOURCE (the only ground truth): the Generic CV.
 
-Flag a claim ONLY if it is not supported by the SOURCES:
-1. A technology, tool, framework, employer, title, degree, certification or project that the SOURCES never mention.
-2. A responsibility, achievement, scope or seniority the SOURCES don't support.
-3. Event exaggeration: a single event, project or role turned into a plural ("client-facing roles" when the SOURCES show one pitch).
+Flag a claim ONLY if it is not supported by the SOURCE:
+1. A technology, tool, framework, employer, title, degree, certification or project that the SOURCE never mentions.
+2. A responsibility, achievement, scope or seniority the SOURCE doesn't support.
+3. Event exaggeration: a single event, project or role turned into a plural ("client-facing roles" when the SOURCE shows one pitch).
 
 ALLOWED (never flag these):
 - Rephrasing, reordering, shortening or merging of supported content.
-- Using a Job Description keyword as another name for a skill the SOURCES already show (e.g. "LLMs" for GPT-4 work, "CI/CD" for GitHub Actions pipelines).
+- Using a Job Description keyword as another name for a skill the SOURCE already shows (e.g. "LLMs" for GPT-4 work, "CI/CD" for GitHub Actions pipelines).
 - Formatting, punctuation, style, tone or length. These are checked elsewhere; ignore them completely.
 - Shortening, simplifying or leaving out detail from a supported claim. Losing nuance is NOT fabrication.
-- Any wording that already appears in the Generic CV or Supplemental Context.
+- Any wording that already appears in the Generic CV.
 
 For every problem, copy the offending text EXACTLY as it appears in the Tailored CV into `quote`, and explain the fix in `problem`.
 If nothing is fabricated, return passed=true with an empty issues list. Do not invent problems to seem thorough."""
@@ -320,12 +309,13 @@ def reviewer_node(state: AgentState):
     (a) Deterministic: auto-fix em dashes and markdown, then check banned
         phrases, invented numbers and dropped items in plain Python. If any
         fail, return without calling the LLM.
-    (b) LLM judge for semantic fabrication only, with the same supplemental
-        context the tailor was given. An LLM issue counts only if its quote
+    (b) LLM judge for semantic fabrication only, against the Generic CV alone
+        (user instructions are not facts). An LLM issue counts only if its quote
         really appears in the CV, so complaints about text that isn't there
         can't fail the run.
     """
-    supplemental = supplemental_context(state)
+    # The Generic CV is the only source of facts; user instructions never count as facts.
+    supplemental = ""
     fixed_cv, fix_log = checks.autofix_cv(state.get("tailored_cv") or {})
     det_issues = checks.find_issues(fixed_cv, state.get("generic_cv_raw", ""), supplemental)
     # Plain facts for the progress view (see progress.py).
@@ -336,12 +326,11 @@ def reviewer_node(state: AgentState):
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", REVIEWER_SYSTEM),
-        ("user", "Generic CV:\n{generic_cv}\n\nSupplemental Candidate Context:\n{supplemental}\n\nTailored CV:\n{tailored_cv}")
+        ("user", "Generic CV:\n{generic_cv}\n\nTailored CV:\n{tailored_cv}")
     ])
     chain = prompt | get_llm_review(state["api_key"])
     res = chain.invoke({
         "generic_cv": state["generic_cv_raw"],
-        "supplemental": supplemental or "(none)",
         "tailored_cv": json.dumps({k: v for k, v in fixed_cv.items() if k != "reasoning"}),
     })
     # Keep an issue only if its quote is really in the tailored CV AND is not
@@ -381,13 +370,12 @@ def cover_letter_node(state: AgentState, config=None):
     user_strategy = state.get("user_strategy_answers", "")
     strategy_prompt = ""
     if user_strategy:
-        strategy_prompt = "\n\n--- SUPPLEMENTAL CANDIDATE CONTEXT (From User's Custom Instructions) ---\n"
-        strategy_prompt += "The following information is strictly factual candidate data provided by the user and MUST be treated as if it were part of the Candidate's CV. This is your highest priority.\n"
-        strategy_prompt += "CRITICAL INSTRUCTION: You MUST explicitly integrate the facts from this Supplemental Context into your letter. Do NOT invent a limitation or gap that contradicts these facts!\n"
-        strategy_prompt += f"User Strategy Answers:\n{user_strategy}\n"
+        strategy_prompt = "\n\n--- USER INSTRUCTIONS (preferences, not facts) ---\n"
+        strategy_prompt += "Follow these instructions on angle, emphasis and tone. They are NOT candidate facts: the CV is the only source of facts. If they ask you to claim anything that is not in the CV, do NOT claim it.\n"
+        strategy_prompt += f"Chosen angle and notes:\n{user_strategy}\n"
     
     user_feedback = state.get("user_feedback", "")
-    feedback_prompt = f"\n\nUSER FEEDBACK FROM PREVIOUS DRAFT (CRITICAL: You MUST explicitly address and apply EVERY SINGLE point mentioned in the user feedback below. Do not ignore any part of the request.):\n{user_feedback}\n(If this feedback applies only to the CV, ignore it and write a standard cover letter.)" if user_feedback else ""
+    feedback_prompt = f"\n\nUSER FEEDBACK FROM PREVIOUS DRAFT (CRITICAL: You MUST explicitly address and apply EVERY SINGLE point mentioned in the user feedback below. Do not ignore any part of the request, but never claim anything that is not in the CV.):\n{user_feedback}\n(If this feedback applies only to the CV, ignore it and write a standard cover letter.)" if user_feedback else ""
 
     role_philosophy = state.get("role_philosophy", "")
     sharpest_insight = state.get("sharpest_project_insight", "")

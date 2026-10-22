@@ -38,9 +38,16 @@ def test_deterministic_failure_skips_llm(judge):
     assert judge.prompts == []
 
 
-def test_reviewer_sees_supplemental_context(judge):
+def test_user_instructions_are_not_facts_for_the_reviewer(judge):
+    # The note box and feedback are instructions only; the Generic CV is the only source of facts.
     A.reviewer_node(_state(tailored(), user_strategy_answers="I also used Kubernetes at Acme."))
-    assert "I also used Kubernetes at Acme." in judge.last
+    assert "I also used Kubernetes at Acme." not in judge.last
+
+
+def test_number_only_in_instructions_is_flagged(judge):
+    cv = tailored(professional_summary="ML engineer who shipped 12 models.")
+    out = A.reviewer_node(_state(cv, user_strategy_answers="Mention that I have shipped 12 models"))
+    assert "unsupported_number" in out["review_feedback"]
 
 
 def test_ungrounded_llm_issue_is_ignored(judge):
