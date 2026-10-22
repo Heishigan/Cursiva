@@ -106,7 +106,8 @@
   .agentName { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .agentSay { display: none; }
   .agentText { align-items: center; width: 100%; }
-  .status { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-size: 14px; color: var(--text); min-height: 1.5em; }
+  /* The active agent's sentence, in a box so it reads as part of the agent row. */
+  .status { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font-size: 14px; line-height: 1.45; color: var(--text); min-height: 1.5em; }
   .board { padding: 16px; }
 }
 
