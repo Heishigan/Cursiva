@@ -117,6 +117,14 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
     compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
   };
 
+  const handleContextChange = (sIdx: number, iIdx: number, value: string) => {
+    const newCv = { ...cvData, sections: cvData.sections.map((sec: any, si: number) => si !== sIdx ? sec : {
+      ...sec, items: sec.items.map((it: any, ii: number) => ii !== iIdx ? it : { ...it, context: value }) }) };
+    setCvData(newCv);
+    if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
+    compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
+  };
+
   const handleBulletChange = (sIdx: number, iIdx: number, bIdx: number, value: string) => {
     const newCv = { ...cvData, sections: cvData.sections.map((sec: any, si: number) => si !== sIdx ? sec : {
       ...sec, items: sec.items.map((it: any, ii: number) => ii !== iIdx ? it : {
@@ -293,7 +301,10 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                               <button className={`${styles.icon} ${styles.iconDanger}`} onClick={() => deleteItem(sIdx, iIdx)} aria-label="Delete"><Bin /></button>
                             </div>
                           </div>
-                          {item.context && !isSkills && <p className={styles.itemContext}>{item.context}</p>}
+                          {item.context && !isSkills && (
+                            <textarea className={styles.edit} aria-label={`${item.title}, description`} value={item.context}
+                              onChange={(e) => handleContextChange(sIdx, iIdx, e.target.value)} />
+                          )}
                           {!isSkills && (item.bullets || []).map((b: string, bIdx: number) => (
                             <textarea key={bIdx} className={styles.edit} aria-label={`${item.title}, bullet ${bIdx + 1}`} value={b}
                               onChange={(e) => handleBulletChange(sIdx, iIdx, bIdx, e.target.value)} />
