@@ -350,7 +350,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
 
       <form className={styles.feedback} onSubmit={(e) => { e.preventDefault(); submitFeedback(); }}>
         <label htmlFor="global-feedback" className={styles.label} style={{ whiteSpace: 'nowrap' }}>Feedback</label>
-        <input id="global-feedback" className={styles.feedbackInput} placeholder="Tell the writers what to change, e.g. lead with TriageSim"
+        <input id="global-feedback" className={styles.feedbackInput} placeholder="Describe what you would like changed"
           value={globalFeedback} onChange={(e) => setGlobalFeedback(e.target.value)} />
         <button type="submit" className={styles.ghost} disabled={isSubmittingFeedback || !globalFeedback.trim()}>
           {isSubmittingFeedback ? "Redoing…" : "Redo drafts"}
@@ -359,12 +359,17 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
 
       {showDisclaimer && (
         <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
-          <div className={styles.modal}>
-            <h2 id="disclaimer-title" className={styles.modalTitle}>Check before you send</h2>
+          <div className={`${styles.modal} ${styles.modalWarn}`}>
+            <h2 id="disclaimer-title" className={styles.modalTitle}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="m9 15 2 2 4-4" />
+              </svg>
+              Check before you send
+            </h2>
             <p className={styles.modalText}>AI can make mistakes. Read your CV and cover letter once more and make sure every detail is accurate before you save.</p>
-            <div className={styles.actions}>
-              <button className={styles.ghost} onClick={() => setShowDisclaimer(false)}>Cancel</button>
-              <button className={styles.btn} style={{ minHeight: 44 }} onClick={proceedWithSave}>Looks good, save</button>
+            <div className={styles.modalActions}>
+              <button className={styles.modalCancel} onClick={() => setShowDisclaimer(false)}>Cancel</button>
+              <button className={styles.modalConfirmWarn} onClick={proceedWithSave}>Looks good, save</button>
             </div>
           </div>
         </div>

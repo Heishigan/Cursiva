@@ -79,12 +79,6 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
           <div className={styles.block}>
             <h2 className={styles.label}>The Strategist&apos;s read</h2>
             <p className={styles.read}>{fitText || plan}</p>
-            {fitText && plan && (
-              <details className={styles.details}>
-                <summary>Full strategy plan</summary>
-                <p>{plan}</p>
-              </details>
-            )}
           </div>
 
           {result?.strategic_options?.length > 0 && (
@@ -111,7 +105,7 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
               id="strategy-extra"
               className={styles.field}
               style={{ height: 96, resize: 'vertical' }}
-              placeholder="For example: mention my Swedish, keep the letter short"
+              placeholder="Anything the writers should include or avoid"
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
             />

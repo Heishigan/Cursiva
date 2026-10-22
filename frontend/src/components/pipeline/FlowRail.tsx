@@ -19,13 +19,15 @@ export default function FlowRail({ current }: { current: number }) {
         })}
       </ol>
       <div className={styles.railPhone}>
-        <span>{String(current).padStart(2, "0")} {STEPS[current - 1]}</span>
-        <span className={styles.railBars} aria-hidden="true">
-          {STEPS.map((label, i) => (
-            <span key={label} className={`${styles.railBar} ${i + 1 === current ? styles.railBarNow : i + 1 < current ? styles.railBarDone : ""}`} />
-          ))}
+        <span>{STEPS[current - 1]}</span>
+        <span className={styles.railRight}>
+          <span className={styles.railBars} aria-hidden="true">
+            {STEPS.map((label, i) => (
+              <span key={label} className={`${styles.railBar} ${i + 1 === current ? styles.railBarNow : i + 1 < current ? styles.railBarDone : ""}`} />
+            ))}
+          </span>
+          <span className={styles.railOf}>Step {current} of {STEPS.length}</span>
         </span>
-        <span className={styles.railOf}>of 04</span>
       </div>
     </nav>
   );

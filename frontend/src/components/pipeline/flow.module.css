@@ -111,11 +111,18 @@
 .docSheet iframe { position: absolute; top: 0; left: 0; width: calc(100% + 24px); height: 100%; border: 0; display: block; pointer-events: none; }
 .fname { font: 500 12px/1.4 'Plus Jakarta Sans', sans-serif; color: var(--text-dim); word-break: break-all; }
 
-/* ---- Modal ---- */
-.overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, 0.75); }
-.modal { width: 100%; max-width: 460px; padding: 28px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 16px; }
-.modalTitle { margin: 0; font: 600 20px 'Plus Jakarta Sans', sans-serif; color: var(--text-strong); }
-.modalText { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-dim); }
+/* ---- Modal: same look as the site's other confirmation dialogs ---- */
+.overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
+.modal { width: 420px; max-width: 100%; padding: 32px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-2); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+.modalWarn { border-left: 4px solid var(--warning); }
+.modalTitle { margin: 0 0 16px; display: flex; align-items: center; gap: 12px; font: 600 1.25rem 'Plus Jakarta Sans', sans-serif; color: var(--text-strong); }
+.modalWarn .modalTitle svg { color: var(--warning); flex-shrink: 0; }
+.modalText { margin: 0 0 32px; font-size: 15px; line-height: 1.5; color: var(--text-dim); }
+.modalActions { display: flex; gap: 16px; justify-content: flex-end; flex-wrap: wrap; }
+.modalCancel { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text-strong); font: 500 15px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: background 0.2s; }
+.modalCancel:hover { background: var(--surface-hover); }
+.modalConfirmWarn { padding: 10px 20px; border-radius: 8px; border: 0; background: var(--warning); color: #111827; font: 600 15px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: opacity 0.2s; }
+.modalConfirmWarn:hover { opacity: 0.9; }
 
 @media (max-width: 1024px) {
   .review { flex-direction: column; }
@@ -137,7 +144,8 @@
   .railBar { width: 18px; height: 3px; border-radius: 2px; background: #34343a; }
   .railBarDone { background: #a5a5aa; }
   .railBarNow { background: var(--accent); }
-  .railOf { color: var(--text-dim); }
+  .railRight { display: flex; align-items: center; gap: 12px; }
+  .railOf { color: var(--text-dim); font-weight: 500; }
   .page { padding: 24px 16px 24px; gap: 20px; }
   .jdPaper { padding: 16px 18px 18px; }
   .actions > .btn { width: 100%; }

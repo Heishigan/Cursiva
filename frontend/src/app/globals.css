@@ -17,6 +17,7 @@
   --accent: #c8f24c;
   --accent-ink: #14180a;
   --danger: #e0847f;
+  --warning: #e6c15a;
 
   /* Tinted Accent Surfaces */
   --accent-tint-bg: rgba(200, 242, 76, 0.12);
