@@ -81,14 +81,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
              localStorage.removeItem(`generic_cv_json_${user.id}`);
           }
         } else {
-          // Non-success response from backend (401, 500, etc.) — treat as new user and redirect to onboarding
+          // A failed request (401 during a token refresh, 500, backend restarting)
+          // says nothing about whether the user has a CV. Redirecting to onboarding
+          // here bounced users between pages; stay put and retry on the next route.
           console.warn('[layout] Profile fetch returned non-success:', data);
-          window.location.href = '/onboarding';
         }
       } catch(e) {
-        // Network error or cold-start timeout — treat as new user and redirect to onboarding
         console.error('[layout] Profile fetch failed:', e);
-        window.location.href = '/onboarding';
       }
     };
     

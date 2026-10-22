@@ -548,3 +548,50 @@
 .mobilePdfFallback {
   display: none;
 }
+
+/* ---- Responsive fixes (phase 2) ---- */
+.mainArea { height: calc(100dvh - 64px); }
+.mainAreaLocked { overflow-y: hidden; }
+.previewFallback { display: none; }
+
+@media (max-width: 1024px) {
+  /* Let long, stacked content scroll with the page instead of being clipped. */
+  .mainArea { height: auto; min-height: calc(100dvh - 64px); padding: 16px; }
+  .mainAreaLocked { overflow-y: visible; }
+  .workbenchRoot { overflow: visible !important; flex: none !important; }
+  .workbenchLayout { height: auto; flex: none !important; }
+  .editorPane { overflow-y: visible; }
+  .previewPane { min-height: 320px; }
+  .workbenchTabs { flex-wrap: wrap; row-gap: 8px; }
+  .workbenchTabs > div { gap: 20px !important; overflow-x: auto; max-width: 100%; }
+  .approveBtn { width: 100%; min-height: 44px; }
+  .previewFrame { display: none; }
+  .previewFallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100%; min-height: 280px; padding: 24px; text-align: center; color: rgba(255, 255, 255, 0.8); }
+  .previewFallback a { padding: 10px 16px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+}
+
+@media (max-width: 768px) {
+  .navContent { gap: 12px; padding: 0 16px; }
+  .stepDivider { width: 16px; flex-shrink: 0; }
+  .stepContainer { margin-top: 24px; }
+  .title { font-size: 28px; }
+  .textarea { height: 50dvh; min-height: 240px; padding: 16px; }
+  .primaryBtn { width: 100%; }
+  .strategyTitle { font-size: 24px; }
+  .glassPanel { padding: 16px; }
+}
+
+@media (max-width: 520px) {
+  /* Phone stepper: numbers only, label for the current step. */
+  .stepItem:not(.stepCurrent) .stepLabel { display: none; }
+  .navContent { justify-content: center; }
+}
+
+/* ---- Redesign shell (phase 2): quiet rail on top, each step owns its padding ---- */
+.container { height: 100dvh; min-height: 0; }
+.nav { position: static; flex-shrink: 0; background: var(--bg); backdrop-filter: none; border-bottom: 1px solid #1f1f23; }
+.mainArea { flex: 1; min-height: 0; height: auto; padding: 0; }
+@media (max-width: 1024px) {
+  .container { height: auto; min-height: 100dvh; }
+  .mainArea { height: auto; min-height: 0; padding: 0; }
+}

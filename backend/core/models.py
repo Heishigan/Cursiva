@@ -95,6 +95,7 @@ class AgentState(TypedDict):
     tailored_cv: dict
     cover_letter_parts: dict
     review_feedback: str
+    review_report: dict
     revision_count: int
     user_feedback: str
     custom_instructions: str

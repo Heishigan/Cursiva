@@ -16,7 +16,7 @@ class FakeGraph:
         self.events = events or []
         self.exc = exc
 
-    def stream(self, state, config=None):
+    def stream(self, state, config=None, **kwargs):
         for e in self.events:
             yield e
         if self.exc:
@@ -168,3 +168,68 @@ def test_stale_running_runs_are_swept(app_module, db):
     db.commit()
     assert credits.sweep_stale_runs() == 1
     assert get_credits("user_A") == 1
+
+
+# --- one free feedback redo per application ---
+REDO = {**BODY, "user_feedback": "Lead with the thesis"}
+
+
+def _first_run(client, app_module, monkeypatch, credits_left=1):
+    set_credits("user_A", credits_left)
+    monkeypatch.setattr(app_module, "tailor_app", FakeGraph(PASS_EVENTS))
+    res = _results(client.post("/api/tailor", json=BODY))[-1]
+    assert res["status"] == "success" and res["free_redo_available"] is True
+    return res["run_id"]
+
+
+def test_first_redo_is_free_and_second_costs_a_credit(client, app_module, monkeypatch, db):
+    root = _first_run(client, app_module, monkeypatch)
+    assert get_credits("user_A") == 0
+    res = _results(client.post("/api/tailor", json={**REDO, "redo_of": root}))[-1]
+    assert res["status"] == "success" and res["run_id"] == root and res["free_redo_available"] is False
+    assert get_credits("user_A") == 0
+    # The free redo is used up; with no credits left the next one is refused.
+    assert client.post("/api/tailor", json={**REDO, "redo_of": root}).status_code == 402
+    set_credits("user_A", 1)
+    assert _results(client.post("/api/tailor", json={**REDO, "redo_of": root}))[-1]["status"] == "success"
+    assert get_credits("user_A") == 0
+    free = [r for r in _runs(db) if r.free]
+    assert len(free) == 1 and free[0].parent_run_id == root
+
+
+def test_failed_free_redo_gives_the_free_redo_back_not_a_credit(client, app_module, monkeypatch):
+    root = _first_run(client, app_module, monkeypatch)
+    monkeypatch.setattr(app_module, "tailor_app", FakeGraph([{"tailor": {"revision_count": 3, "tailored_cv": {}}},
+                                                            {"reviewer": {"review_feedback": "bad"}}]))
+    res = _results(client.post("/api/tailor", json={**REDO, "redo_of": root}))[-1]
+    assert res["status"] == "failed_review" and "free redo is still available" in res["message"]
+    assert get_credits("user_A") == 0
+    monkeypatch.setattr(app_module, "tailor_app", FakeGraph(PASS_EVENTS))
+    assert _results(client.post("/api/tailor", json={**REDO, "redo_of": root}))[-1]["status"] == "success"
+    assert get_credits("user_A") == 0
+
+
+def test_redo_for_a_different_job_ad_is_not_free(client, app_module, monkeypatch):
+    root = _first_run(client, app_module, monkeypatch)
+    assert client.post("/api/tailor", json={**REDO, "job_description": "another job", "redo_of": root}).status_code == 402
+
+
+def test_redo_without_feedback_is_not_free(client, app_module, monkeypatch):
+    root = _first_run(client, app_module, monkeypatch)
+    assert client.post("/api/tailor", json={**BODY, "redo_of": root}).status_code == 402
+
+
+def test_redo_of_someone_elses_run_is_not_free(client, app_module, monkeypatch):
+    root = _first_run(client, app_module, monkeypatch)
+    app_module.app.dependency_overrides[app_module.get_current_user_id] = lambda: "user_B"
+    set_credits("user_B", 0)
+    assert client.post("/api/tailor", json={**REDO, "redo_of": root}).status_code == 402
+
+
+def test_redo_after_the_window_is_not_free(client, app_module, monkeypatch, db):
+    from models import GenerationRun
+    root = _first_run(client, app_module, monkeypatch)
+    run = db.get(GenerationRun, root)
+    run.created_at = datetime.datetime.utcnow() - datetime.timedelta(hours=credits.REDO_WINDOW_HOURS + 1)
+    db.commit()
+    assert client.post("/api/tailor", json={**REDO, "redo_of": root}).status_code == 402

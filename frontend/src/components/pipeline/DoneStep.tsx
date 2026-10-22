@@ -1,68 +1,60 @@
-import styles from '@/app/dashboard/pipeline/pipeline.module.css';
+import styles from './flow.module.css';
+
+function DownloadIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 4v12m-5-5 5 5 5-5M5 20h14" />
+    </svg>
+  );
+}
+
+function Sheet({ url, label }: { url: string; label: string }) {
+  return (
+    <div className={`${styles.paper} ${styles.docSheet}`} aria-label={`${label} preview`}>
+      {url ? (
+        <>
+          <iframe src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} title={`${label} preview`} className={styles.previewFrame} tabIndex={-1} />
+          <div className={styles.previewFallback}>{label}</div>
+        </>
+      ) : (
+        <div className={styles.waitingSheet} style={{ padding: 24 }}>No {label === "CV" ? "CV" : label.toLowerCase()} generated.</div>
+      )}
+    </div>
+  );
+}
 
 export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, onReset }: { cvPdfUrl: string, clPdfUrl: string, jobMetadata?: any, userName?: string, onReset: () => void }) {
   const cleanStr = (s?: string) => (s || "").replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
   const namePart = cleanStr(userName) || "User";
   const rolePart = cleanStr(jobMetadata?.role_name) || "Role";
   const companyPart = cleanStr(jobMetadata?.company_name) || "Company";
-  
+
   const cvFilename = `${namePart}_${rolePart}_${companyPart}_CV.pdf`;
   const clFilename = `${namePart}_${rolePart}_${companyPart}_CoverLetter.pdf`;
+  const eyebrow = [jobMetadata?.role_name, jobMetadata?.company_name].filter(Boolean).join(' · ');
 
   return (
-    <div className={styles.animateFadeIn} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-          Application Ready
-        </h2>
-        <p style={{ color: 'var(--text-secondary)' }}>
-          Your documents have been compiled and saved. You can always view or edit this application later from your Dashboard.
-        </p>
-      </div>
-
-      <div style={{ padding: '16px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderLeft: '4px solid var(--accent)', borderRadius: '8px', color: 'var(--text-primary)', marginBottom: '24px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-        <span style={{ color: 'var(--accent)', marginRight: '8px' }}>✓</span> PDF compilation complete.
-      </div>
-
-      <div className={styles.workbenchLayout}>
-        <div className={styles.pane} style={{ padding: '8px', background: '#525659', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', letterSpacing: '2px', padding: '8px 12px', fontWeight: 600 }}>
-            Tailored CV
-          </div>
-          {cvPdfUrl ? (
-            <>
-              <iframe src={`${cvPdfUrl}#toolbar=1&view=FitH`} className={styles.pdfFrame} />
-              <div className={styles.mobilePdfFallback}>
-                <p>Mobile browsers cannot preview PDFs.</p>
-              </div>
-              <a href={cvPdfUrl} download={cvFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent)', color: 'var(--accent-ink)', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download CV</a>
-            </>
-          ) : (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>No CV generated.</div>
-          )}
+    <div className={`${styles.page} ${styles.medium}`} style={{ gap: 36 }}>
+      <header className={styles.headRow}>
+        <div className={styles.head}>
+          <h1 className={styles.title}>Ready to send</h1>
+          <p className={styles.subtitle}>{eyebrow ? `${eyebrow}. ` : ""}Saved to your dashboard, where you can open and edit it any time.</p>
         </div>
+        <button className={styles.link} onClick={onReset}>Start another application &rarr;</button>
+      </header>
 
-        <div className={styles.pane} style={{ padding: '8px', background: '#525659', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', letterSpacing: '2px', padding: '8px 12px', fontWeight: 600 }}>
-            Cover Letter
-          </div>
-          {clPdfUrl ? (
-            <>
-              <iframe src={`${clPdfUrl}#toolbar=1&view=FitH`} className={styles.pdfFrame} />
-              <div className={styles.mobilePdfFallback}>
-                <p>Mobile browsers cannot preview PDFs.</p>
-              </div>
-              <a href={clPdfUrl} download={clFilename} style={{ marginTop: '12px', padding: '10px 16px', background: 'var(--accent)', color: 'var(--accent-ink)', textDecoration: 'none', borderRadius: '6px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>Download Cover Letter</a>
-            </>
-          ) : (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>No Cover Letter generated.</div>
-          )}
+      <div className={styles.docs}>
+        <div className={styles.doc}>
+          <Sheet url={cvPdfUrl} label="CV" />
+          <div className={styles.fname}>{cvFilename}</div>
+          {cvPdfUrl && <a href={cvPdfUrl} download={cvFilename} className={styles.btn}><DownloadIcon />Download CV</a>}
+        </div>
+        <div className={styles.doc}>
+          <Sheet url={clPdfUrl} label="Cover letter" />
+          <div className={styles.fname}>{clFilename}</div>
+          {clPdfUrl && <a href={clPdfUrl} download={clFilename} className={styles.ghost}><DownloadIcon />Download cover letter</a>}
         </div>
       </div>
-
-
-
     </div>
   );
 }

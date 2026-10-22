@@ -1,0 +1,163 @@
+/* Pipeline redesign: one quiet shell for every step.
+   Dark ground, off-white "paper" for documents, lime accent, three typefaces
+   (Anton for titles, Plus Jakarta Sans for everything else, as on the dashboard). */
+
+/* ---- Progress rail (replaces the numbered stepper) ---- */
+.rail { list-style: none; margin: 0; padding: 0 16px; display: flex; justify-content: center; gap: 32px; font: 600 14px/1 'Plus Jakarta Sans', sans-serif; }
+.railItem { display: flex; align-items: center; gap: 8px; padding: 22px 0 20px; border-bottom: 2px solid transparent; color: var(--text-dim); white-space: nowrap; }
+.railDone { color: #a5a5aa; }
+.railNow { color: var(--text-strong); border-bottom-color: var(--accent); }
+.railNum { color: var(--text-faint); font-weight: 500; }
+.railPhone { display: none; }
+
+/* ---- Page frame ---- */
+.page { width: 100%; margin: 0 auto; padding: 48px 24px 40px; display: flex; flex-direction: column; gap: 28px; }
+.narrow { max-width: 880px; }
+.medium { max-width: 1040px; }
+.wide { max-width: 1240px; padding-top: 32px; padding-bottom: 24px; gap: 20px; }
+.head { display: flex; flex-direction: column; gap: 0.5rem; }
+.headRow { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 20px; flex-wrap: wrap; }
+/* Same heading as the dashboard ("Good afternoon, …"): Anton title, plain dim subtitle. */
+.title { margin: 0; font-family: 'Anton', sans-serif; font-size: clamp(2.2rem, 5vw, 3rem); line-height: 1.1; text-transform: uppercase; color: var(--text-strong); }
+.subtitle { margin: 0; font-size: 1rem; line-height: 1.55; color: var(--text-dim); max-width: 62ch; }
+.lede { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-dim); max-width: 60ch; }
+.label { margin: 0; font: 600 0.95rem/1.3 'Plus Jakarta Sans', sans-serif; color: var(--text-dim); }
+
+/* ---- Buttons ---- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: 600 15px 'Plus Jakarta Sans', sans-serif; text-decoration: none; cursor: pointer; transition: filter 0.15s ease, opacity 0.15s ease; }
+.btn:hover:not(:disabled) { filter: brightness(1.06); color: var(--accent-ink); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid #34343a; border-radius: 8px; background: transparent; color: var(--text-strong); font: 600 14px 'Plus Jakarta Sans', sans-serif; text-decoration: none; cursor: pointer; }
+.ghost:hover:not(:disabled) { border-color: #4a4a50; color: var(--text-strong); }
+.ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+.link { background: none; border: 0; padding: 0; color: var(--accent); font: 600 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+.actions { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+
+/* ---- Paper (documents) ---- */
+.paper { position: relative; background: var(--mock-resume-paper); color: var(--mock-resume-text); border-radius: 4px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); }
+.stamp { position: absolute; padding: 4px 12px; border-radius: 999px; background: var(--accent-tint-bg); border: 1px solid var(--accent-tint-border); color: var(--accent); font: 600 12px/1.4 'Plus Jakarta Sans', sans-serif; pointer-events: none; }
+
+/* ---- Job ad ---- */
+.jdPaper { padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: var(--border-standard); border-radius: var(--radius-lg); box-shadow: none; }
+.jdInput { width: 100%; height: min(52vh, 420px); min-height: 220px; resize: none; border: 0; outline: none; background: transparent; color: var(--text-strong); font: 400 15px/1.65 'Plus Jakarta Sans', sans-serif; padding: 0; }
+.jdInput::placeholder { color: var(--text-dim); }
+
+/* ---- Strategy ---- */
+.strategy { display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; }
+.adCard { flex: 0 1 360px; min-width: 280px; padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 16px; position: relative; background: var(--surface); border: var(--border-standard); border-radius: var(--radius-lg); color: var(--text); box-shadow: none; }
+.adRole { font: 700 17px/1.3 'Plus Jakarta Sans', sans-serif; color: var(--text-strong); padding-right: 120px; }
+.adMeta { font-size: 13px; color: var(--text-dim); }
+.adSummary { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text); }
+.reqs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.reqs li { position: relative; padding-left: 18px; font-size: 13px; line-height: 1.45; }
+.reqs li::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 6px; height: 6px; border-radius: 3px; background: var(--accent); }
+.eligible { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; font-size: 13px; color: var(--accent); }
+.ineligible { color: var(--danger); }
+.fitStamp { right: 20px; top: 20px; }
+.strategyMain { flex: 1 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.block { display: flex; flex-direction: column; gap: 10px; }
+.read { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text); white-space: pre-line; }
+.details summary { cursor: pointer; color: #a5a5aa; font-size: 13px; }
+.details p { margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: #a5a5aa; white-space: pre-line; }
+.options { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.options legend { margin-bottom: 12px; }
+.option { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+.option:hover { border-color: #34343a; }
+.optionOn { border-color: rgba(200, 242, 76, 0.55); background: #191a14; }
+.option input { margin: 2px 0 0; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); }
+.option span { font-size: 14px; line-height: 1.5; color: var(--text); }
+.field { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text-strong); font: 400 14px/1.5 'Plus Jakarta Sans', sans-serif; padding: 12px 14px; }
+
+.field::placeholder { color: var(--text-dim); }
+
+/* ---- Review ---- */
+.seg { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.segBtn { min-height: 36px; padding: 0 16px; border: 0; border-radius: 7px; background: transparent; color: var(--text-dim); font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer; white-space: nowrap; }
+.segOn { background: #26262b; color: var(--text-strong); }
+.review { display: flex; gap: 28px; flex: 1; min-height: 0; }
+.editor { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow-y: auto; }
+.edit { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #141416; color: var(--text-strong); font: 400 13px/1.55 'Plus Jakarta Sans', sans-serif; padding: 10px 12px; resize: vertical; field-sizing: content; min-height: 44px; }
+
+.secHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.iconRow { display: flex; }
+.icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: var(--text-dim); cursor: pointer; }
+.icon:hover:not(:disabled) { background: #26262b; color: var(--text-strong); }
+.icon:disabled { opacity: 0.3; cursor: default; }
+.iconDanger:hover:not(:disabled) { color: var(--danger); }
+.item { border-top: 1px solid #1f1f23; padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.itemHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.itemTitle { font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--text-strong); }
+.itemMeta { font-size: 12px; color: var(--text-dim); }
+.itemContext { margin: 0; font-size: 13px; color: var(--text-dim); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 4px 10px; border-radius: 999px; background: #26262b; color: var(--text); font-size: 12px; }
+.jdText { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text); white-space: pre-wrap; }
+.previewCol { flex: 0 1 460px; min-width: 300px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.previewSheet { width: 100%; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.previewFrame { width: 100%; height: 100%; border: 0; display: block; }
+.previewNote { font-size: 13px; color: var(--text-dim); }
+.previewFallback { display: none; }
+.compileError { margin: 20px; padding: 16px; border-radius: 8px; border: 1px solid var(--danger); background: rgba(224, 132, 127, 0.1); color: #8a2f2a; font-size: 14px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.waitingSheet { margin: auto; color: #6f6d64; font-size: 13px; }
+.feedback { display: flex; gap: 10px; align-items: center; padding: 8px 8px 8px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); flex-wrap: wrap; }
+.feedbackInput { flex: 1 1 260px; min-width: 0; height: 44px; border: 0; outline: none; background: transparent; color: var(--text-strong); font: 400 14px 'Plus Jakarta Sans', sans-serif; }
+.feedbackInput::placeholder { color: var(--text-dim); }
+.viewToggle { display: none; }
+
+/* ---- Done ---- */
+.docs { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; }
+.doc { width: min(320px, 100%); display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.docSheet { width: 100%; aspect-ratio: 1 / 1.3; overflow: hidden; position: relative; }
+.docSheet iframe { position: absolute; top: 0; left: 0; width: calc(100% + 24px); height: 100%; border: 0; display: block; pointer-events: none; }
+.fname { font: 500 12px/1.4 'Plus Jakarta Sans', sans-serif; color: var(--text-dim); word-break: break-all; }
+
+/* ---- Modal: same look as the site's other confirmation dialogs ---- */
+.overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
+.modal { width: 420px; max-width: 100%; padding: 32px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-2); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+.modalWarn { border-left: 4px solid var(--warning); }
+.modalTitle { margin: 0 0 16px; display: flex; align-items: center; gap: 12px; font: 600 1.25rem 'Plus Jakarta Sans', sans-serif; color: var(--text-strong); }
+.modalWarn .modalTitle svg { color: var(--warning); flex-shrink: 0; }
+.modalText { margin: 0 0 32px; font-size: 15px; line-height: 1.5; color: var(--text-dim); }
+.modalActions { display: flex; gap: 16px; justify-content: flex-end; flex-wrap: wrap; }
+.modalCancel { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text-strong); font: 500 15px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: background 0.2s; }
+.modalCancel:hover { background: var(--surface-hover); }
+.modalConfirmWarn { padding: 10px 20px; border-radius: 8px; border: 0; background: var(--warning); color: #111827; font: 600 15px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: opacity 0.2s; }
+.modalConfirmWarn:hover { opacity: 0.9; }
+
+@media (max-width: 1024px) {
+  .review { flex-direction: column; }
+  .viewToggle { display: flex; border-bottom: 1px solid var(--line); }
+  .viewBtn { flex: 1; height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-dim); font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+  .viewOn { color: var(--text-strong); border-bottom-color: var(--accent); }
+  .hideSmall { display: none !important; }
+  .editor { overflow: visible; }
+  .previewCol { flex: none; min-width: 0; width: 100%; }
+  .previewSheet { min-height: 60vh; }
+  .previewFrame { display: none; }
+  .previewFallback { margin: auto; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; font-size: 14px; }
+}
+
+@media (max-width: 720px) {
+  .rail { display: none; }
+  .railPhone { display: flex; justify-content: space-between; align-items: center; padding: 16px; font: 600 13px 'Plus Jakarta Sans', sans-serif; color: var(--text-strong); }
+  .railBars { display: flex; gap: 6px; }
+  .railBar { width: 18px; height: 3px; border-radius: 2px; background: #34343a; }
+  .railBarDone { background: #a5a5aa; }
+  .railBarNow { background: var(--accent); }
+  .railRight { display: flex; align-items: center; gap: 12px; }
+  .railOf { color: var(--text-dim); font-weight: 500; }
+  .page { padding: 24px 16px 24px; gap: 20px; }
+  .jdPaper { padding: 16px 18px 18px; }
+  .actions > .btn { width: 100%; }
+  .headRow > div:last-child { width: 100%; }
+  .seg { width: 100%; }
+  .segBtn { flex: 1; padding: 0 8px; }
+  .reviewApprove { width: 100%; }
+  .docs { gap: 32px; }
+  .strategy { gap: 28px; }
+  .adCard { flex: 1 1 100%; min-width: 0; }
+  .strategyMain { flex-basis: 100%; }
+}
+
+/* Accent outline on every text box while typing (same as the original job ad box). */
+.jdPaper:focus-within, .feedback:focus-within, .field:focus, .edit:focus { outline: none; box-shadow: 0 0 0 2px rgba(200, 242, 76, 0.5); }

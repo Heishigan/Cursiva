@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 import uvicorn
 import uuid
+import hashlib
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -114,6 +115,8 @@ class TailorRequest(BaseModel):
     # instead of regenerating from scratch.
     previous_tailored_cv: Optional[dict] = None
     thread_id: Optional[str] = None  # unused (no checkpointer); kept for client compatibility
+    # Set on a feedback redo: the run_id returned by the run being revised.
+    redo_of: Optional[str] = Field(None, max_length=64)
 
 from fastapi.responses import StreamingResponse
 
@@ -134,6 +137,7 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
     # event loop and stall every other request on the instance.
     def event_generator():
         yield f"data: {json.dumps({'type': 'status', 'message': 'Setting up and extracting requirements...'})}\n\n"
+        yield progress.stage("reader", "working", "Reading the job ad")
         setup_result = setup_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         
         if setup_result.get("setup_failed"):
@@ -142,6 +146,9 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
 
         company_name = setup_result.get("company_name", "").strip()
         role_name = setup_result.get("role_name", "").strip()
+        reqs = setup_result.get("key_requirements") or []
+        yield progress.stage("reader", "done", f"{len(reqs)} key requirements found",
+                             requirements=reqs, company=company_name, role=role_name)
         
         if company_name and role_name and not req.override_eligibility:
             # The request-scoped session is already closed once the body
@@ -161,6 +168,7 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
             return
             
         yield f"data: {json.dumps({'type': 'status', 'message': 'Strategist analyzing fit and formulating plan...'})}\n\n"
+        yield progress.stage("strategist", "working", "Matching your experience to the role")
         try:
             strategy_result = strategist_node({"job_description": req.job_description, "generic_cv_raw": req.generic_cv_raw, "api_key": os.environ.get("OPENAI_API_KEY"), "user_id": user_id})
         except Exception:
@@ -168,6 +176,10 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
             yield _sse({'type': 'result', 'status': 'error', 'reason': "The strategist step failed. Please try again in a minute."})
             return
         
+        fit = progress.fit_label(strategy_result.get("strategy_plan", ""))
+        angles = len(strategy_result.get("strategic_options") or [])
+        yield progress.stage("strategist", "done", " · ".join(x for x in (fit, f"{angles} angles proposed") if x),
+                             fit=fit, angles=angles)
         yield f"data: {json.dumps({'type': 'result', 'status': 'success', 'metadata': setup_result, 'strategy': strategy_result})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
@@ -175,6 +187,8 @@ def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_
 from sqlalchemy import text
 import credits
 import trial
+import progress
+from core.agent import MAX_REVISIONS
 import usage
 from langchain_core.callbacks import UsageMetadataCallbackHandler
 
@@ -183,6 +197,15 @@ FAILED_REVIEW_MESSAGE = (
     "and your credit has been refunded. Try adjusting your answers or feedback and run it again."
 )
 ERROR_MESSAGE = "Something went wrong while generating your documents. Your credit has been refunded."
+FREE_REDO_ERROR_MESSAGE = "Something went wrong while revising your documents. Your free redo is still available."
+FREE_REDO_FAILED_MESSAGE = (
+    "We couldn't produce a revision that passed our quality checks. Your free redo is still available, "
+    "so you can adjust your feedback and try again."
+)
+
+
+def _jd_hash(job_description: str) -> str:
+    return hashlib.sha256((job_description or "").strip().encode("utf-8")).hexdigest()
 
 
 @app.post("/api/tailor")
@@ -191,10 +214,18 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
     if req.previous_tailored_cv is not None and len(json.dumps(req.previous_tailored_cv)) > 100_000:
         raise HTTPException(status_code=413, detail="Previous CV draft is too large.")
     credits.sweep_stale_runs()
-    try:
-        run_id = credits.charge_for_run(user_id)
-    except credits.InsufficientCredits:
-        raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+    jd_hash = _jd_hash(req.job_description)
+    # A feedback redo of a successful run for the same job ad gets one free
+    # attempt per application; any other run (or a second redo) costs a credit.
+    root_id = credits.resolve_redo_root(user_id, req.redo_of, jd_hash) if req.user_feedback else None
+    run_id = credits.open_free_redo(user_id, root_id, jd_hash) if root_id else None
+    is_free = run_id is not None
+    if not is_free:
+        try:
+            run_id = credits.charge_for_run(user_id, jd_hash=jd_hash, parent_run_id=root_id)
+        except credits.InsufficientCredits:
+            raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+    application_run_id = root_id or run_id
 
     # Plain (sync) generator on purpose: Starlette iterates it in a worker
     # thread. An async generator here would run the blocking LLM calls on the
@@ -236,7 +267,17 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             }
             if req.user_feedback and req.previous_tailored_cv:
                 initial_state["tailored_cv"] = req.previous_tailored_cv
-            for event in tailor_app.stream(initial_state, config={"callbacks": [usage_cb]}):
+            yield progress.stage("cv", "working", "Tailoring your CV to the role", revision=1)
+            stream = tailor_app.stream(initial_state,
+                                       config={"callbacks": [usage_cb], "configurable": {"stream_drafts": True}},
+                                       stream_mode=["updates", "custom"])
+            for item in stream:
+                mode, event = item if isinstance(item, tuple) else ("updates", item)
+                if mode == "custom":
+                    dp = event.get("draft_partial") if isinstance(event, dict) else None
+                    if dp and dp.get("doc") in ("cv", "letter"):
+                        yield progress.draft(dp["doc"], dp.get("content") or {}, partial=True)
+                    continue
                 for node_name, node_state in event.items():
                     final_state.update(node_state)
                     if node_name == "tailor":
@@ -244,22 +285,47 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
                         tailored_cv = node_state.get("tailored_cv", {})
                         reasoning = tailored_cv.get("reasoning", "Modifying content to match the provided strategy...") if isinstance(tailored_cv, dict) else "Modifying content..."
                         yield _sse({'type': 'status', 'message': f'Tailoring CV (Revision {rev_count}): {reasoning}'})
+                        changes = progress.cv_changes(req.generic_cv_raw, tailored_cv)
+                        yield progress.stage("cv", "done", progress.cv_summary(changes), revision=rev_count, **changes)
+                        yield progress.draft("cv", {k: v for k, v in tailored_cv.items() if k != "reasoning"})
+                        yield progress.stage("checker", "working", "Checking every claim against your CV",
+                                             numbers=progress.numbers_in(tailored_cv))
                     elif node_name == "reviewer":
                         feedback = node_state.get("review_feedback", "")
+                        report = node_state.get("review_report") or {}
+                        fixed = report.get("autofixed") or []
                         if feedback and feedback != "PASS":
                             failure_reasons.append(feedback)
                             short_feedback = feedback.split('.')[0] if '.' in feedback else feedback
                             yield _sse({'type': 'status', 'message': f'Reviewer found issues: {short_feedback}'})
+                            issues = report.get("rule_issues", 0) + report.get("fact_issues", 0)
+                            if final_state.get("revision_count", 0) < MAX_REVISIONS:
+                                yield progress.stage("checker", "retry", f"Sent back: {issues} issue{'s' if issues != 1 else ''} to fix",
+                                                     issues=issues, autofixed=fixed)
+                                yield progress.stage("cv", "working", "Fixing what the checker flagged",
+                                                     revision=final_state.get("revision_count", 0) + 1)
+                            else:
+                                yield progress.stage("checker", "failed", "Still not right after 3 attempts",
+                                                     issues=issues, autofixed=fixed)
                         else:
                             yield _sse({'type': 'status', 'message': 'Reviewer checked constraints: Passed!'})
+                            done_bits = ["Passed all checks"] + [f.capitalize() for f in fixed]
+                            yield progress.stage("checker", "done", " · ".join(done_bits), autofixed=fixed)
+                            fixed_cv = node_state.get("tailored_cv") or {}
+                            yield progress.draft("cv", {k: v for k, v in fixed_cv.items() if k != "reasoning"})
+                            yield progress.stage("letter", "working", "Writing your cover letter")
                     elif node_name == "cover_letter":
                         yield _sse({'type': 'status', 'message': 'Generating Cover Letter based on the tailored CV and company context...'})
+                        parts = node_state.get("cover_letter_parts") or {}
+                        lf = progress.letter_facts(parts)
+                        yield progress.stage("letter", "done", f"{lf['paragraphs']} paragraphs · {lf['words']} words", **lf)
+                        yield progress.draft("letter", parts)
 
             if final_state.get("review_feedback") != "PASS":
                 credits.refund_run(run_id, "failed_review", metrics=metrics("failed_review"))
                 outcome = "failed_review"
                 yield _sse({'type': 'result', 'status': 'failed_review', 'refunded': True,
-                            'message': FAILED_REVIEW_MESSAGE,
+                            'message': FREE_REDO_FAILED_MESSAGE if is_free else FAILED_REVIEW_MESSAGE,
                             'issues': final_state.get('review_feedback') or '',
                             'revision_count': final_state.get('revision_count')})
                 return
@@ -272,7 +338,9 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             yield _sse({'type': 'result', 'status': 'success', 'tailored_cv': final_state.get('tailored_cv'),
                         'cover_letter_parts': final_state.get('cover_letter_parts', {}),
                         'revision_count': final_state.get('revision_count'),
-                        'review_feedback': final_state.get('review_feedback')})
+                        'review_feedback': final_state.get('review_feedback'),
+                        'run_id': application_run_id,
+                        'free_redo_available': credits.free_redo_available(application_run_id)})
         except GeneratorExit:
             # Client disconnected before an outcome was recorded.
             if outcome is None:
@@ -284,7 +352,8 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             if outcome is None:
                 credits.refund_run(run_id, "error", f"{type(e).__name__}: {e}", metrics=metrics("error"))
                 outcome = "error"
-                yield _sse({'type': 'result', 'status': 'error', 'refunded': True, 'message': ERROR_MESSAGE})
+                yield _sse({'type': 'result', 'status': 'error', 'refunded': True,
+                            'message': FREE_REDO_ERROR_MESSAGE if is_free else ERROR_MESSAGE})
         finally:
             if outcome is None:
                 credits.refund_run(run_id, "error", "stream closed without an outcome", metrics=metrics("error"))
@@ -533,29 +602,43 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
 @app.post("/api/user/profile")
 @limiter.limit("20/minute")
 def update_user_profile(request: Request, req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    # Compute the (slow) embedding once, outside the transaction.
+    embedding_json = None
+    if req.cv_data_json is not None and req.cv_data_json.strip():
+        try:
+            from langchain_openai import OpenAIEmbeddings
+            embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.environ.get("OPENAI_API_KEY"))
+            embedding_json = json.dumps(embedder.embed_query(req.cv_data_json))
+        except Exception as e:
+            logger.warning("Failed to generate CV embedding: %s", type(e).__name__)
+
+    def apply(profile):
+        if req.cv_data_json is not None:
+            if req.cv_data_json.strip() == "":
+                profile.cv_data_json = None
+                profile.cv_embedding_json = None
+            else:
+                profile.cv_data_json = req.cv_data_json
+                profile.cv_embedding_json = embedding_json
+        if req.strict_eligibility is not None:
+            profile.strict_eligibility = req.strict_eligibility
+
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     if not profile:
         profile = UserProfile(clerk_id=user_id, credits=trial.starting_credits_for_new_profile(db, user_id))
         db.add(profile)
-    
-    if req.cv_data_json is not None:
-        if req.cv_data_json.strip() == "":
-             profile.cv_data_json = None
-             profile.cv_embedding_json = None
-        else:
-             profile.cv_data_json = req.cv_data_json
-             try:
-                 from langchain_openai import OpenAIEmbeddings
-                 embedder = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.environ.get("OPENAI_API_KEY"))
-                 embedding = embedder.embed_query(req.cv_data_json)
-                 profile.cv_embedding_json = json.dumps(embedding)
-             except Exception as e:
-                 print(f"Failed to generate CV embedding: {e}")
-                 profile.cv_embedding_json = None
-    if req.strict_eligibility is not None:
-        profile.strict_eligibility = req.strict_eligibility
-
-    db.commit()
+    apply(profile)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two saves raced to create the same new profile (e.g. layout and
+        # onboarding on first sign-in). The other one won: update its row.
+        db.rollback()
+        profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+        if profile is None:
+            raise HTTPException(status_code=409, detail="Please try again.")
+        apply(profile)
+        db.commit()
     return {"status": "success"}
 
 class JobApplicationCreate(BaseModel):

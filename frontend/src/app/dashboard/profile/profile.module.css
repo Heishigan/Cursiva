@@ -632,3 +632,24 @@
     display: none;
   }
 }
+
+/* ---- Responsive fixes (phase 2) ---- */
+.avatar { color: var(--accent-ink); }
+
+/* Touch screens have no hover: keep edit/delete buttons visible. */
+@media (hover: none) {
+  .iconBtnSmall { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .splitLayout { padding: 1rem; gap: 1rem; }
+  .card { padding: 1.25rem; }
+  .itemCard { padding: 1rem; }
+  /* The 40px icon column cost ~60px of every card's width on a phone. */
+  .itemLayout { gap: 0; }
+  .itemIconBox { display: none; }
+  .bullets { padding-left: 1.1rem; }
+  .avatar { width: 48px; height: 48px; }
+  .rightColumn { min-height: 260px; }
+  .iconBtnSmall { min-width: 36px; min-height: 36px; }
+}

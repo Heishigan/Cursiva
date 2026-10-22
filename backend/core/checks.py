@@ -107,7 +107,10 @@ def _phrase_in(phrase: str, text: str) -> bool:
     return re.search(r"\b" + re.escape(phrase) + r"\b", text) is not None
 
 
-def find_issues(tailored: dict, generic_cv_raw: str, supplemental: str = "") -> list[Issue]:
+def find_issues(tailored: dict, generic_cv_raw: str, supplemental: str = "", removal_request: str = "") -> list[Issue]:
+    """`removal_request` is the user's feedback on a redo: a section or item it
+    names by title may be left out (the user asked for it), anything else
+    must still be kept."""
     issues: list[Issue] = []
     source = _norm(cv_text(_safe_json(generic_cv_raw)) + "\n" + (generic_cv_raw or "") + "\n" + (supplemental or ""))
     summary = _norm(tailored.get("professional_summary", ""))
@@ -128,11 +131,17 @@ def find_issues(tailored: dict, generic_cv_raw: str, supplemental: str = "") -> 
                             "These numbers or metrics don't appear in the candidate's CV or supplemental context and must be "
                             f"removed or corrected to the exact source value: {', '.join(new_numbers)}"))
 
-    issues.extend(_dropped_items(tailored, _safe_json(generic_cv_raw)))
+    issues.extend(_dropped_items(tailored, _safe_json(generic_cv_raw), removal_request))
     return issues
 
 
-def _dropped_items(tailored: dict, generic: dict) -> list[Issue]:
+def _named_in(title: str, text: str) -> bool:
+    t = _norm(title).strip()
+    return bool(t) and _phrase_in(t, text)
+
+
+def _dropped_items(tailored: dict, generic: dict, removal_request: str = "") -> list[Issue]:
+    asked = _norm(removal_request)
     out = []
     t_secs = {_norm(s.get("title", "")): s for s in tailored.get("sections", []) or []}
     for g in generic.get("sections", []) or []:
@@ -141,10 +150,13 @@ def _dropped_items(tailored: dict, generic: dict) -> list[Issue]:
         t = t_secs.get(_norm(g.get("title", "")))
         g_items = g.get("items", []) or []
         if t is None:
+            if _named_in(g.get("title", ""), asked):
+                continue  # the user asked for this section to go
             out.append(Issue("missing_section", f'The section "{g.get("title")}" from the original CV is missing. Include it with all its items.'))
             continue
         t_titles = {_norm(i.get("title", "")) for i in t.get("items", []) or []}
-        missing = [i.get("title", "") for i in g_items if _norm(i.get("title", "")) not in t_titles]
+        missing = [i.get("title", "") for i in g_items
+                   if _norm(i.get("title", "")) not in t_titles and not _named_in(i.get("title", ""), asked)]
         if missing:
             out.append(Issue("missing_items", f'Section "{g.get("title")}" is missing these original items (keep every item and its title unchanged): {"; ".join(missing)}'))
     return out
@@ -166,3 +178,36 @@ def quote_in_cv(quote: str, cv: dict) -> bool:
     """
     q = _norm(quote).strip(" .\"'")
     return len(q) >= 3 and q in _norm(cv_text(cv))
+
+
+_WORD_RE = re.compile(r"[a-z0-9åäöéü%+#]+(?:[.-][a-z0-9]+)*")
+
+
+def _source_segments(generic_cv_raw: str, supplemental: str = "") -> list[str]:
+    cv = _safe_json(generic_cv_raw)
+    segs = [cv.get("professional_summary", "")]
+    for sec in cv.get("sections", []) or []:
+        for it in sec.get("items", []) or []:
+            segs += [it.get("title", ""), it.get("subtitle", ""), it.get("context", "")]
+            segs += list(it.get("bullets", []) or [])
+    segs += re.split(r"[\n.]+", supplemental or "")
+    return [_norm(s) for s in segs if s and s.strip()]
+
+
+def quote_in_source(quote: str, generic_cv_raw: str, supplemental: str = "", threshold: float = 0.85) -> bool:
+    """True if a reviewer's quote is (nearly) the user's own text.
+
+    The user's own CV and supplemental answers are ground truth, so a quote
+    that is in them, or overlaps one of their lines by at least `threshold`
+    of its words, can never be a fabrication.
+    """
+    q = _norm(quote).strip(" .\"'")
+    if len(q) < 3:
+        return False
+    segs = _source_segments(generic_cv_raw, supplemental)
+    if any(q in s for s in segs):
+        return True
+    qw = set(_WORD_RE.findall(q))
+    if len(qw) < 5:
+        return False
+    return any(len(qw & set(_WORD_RE.findall(s))) / len(qw) >= threshold for s in segs)

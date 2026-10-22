@@ -38,9 +38,16 @@ def test_deterministic_failure_skips_llm(judge):
     assert judge.prompts == []
 
 
-def test_reviewer_sees_supplemental_context(judge):
+def test_user_instructions_are_not_facts_for_the_reviewer(judge):
+    # The note box and feedback are instructions only; the Generic CV is the only source of facts.
     A.reviewer_node(_state(tailored(), user_strategy_answers="I also used Kubernetes at Acme."))
-    assert "I also used Kubernetes at Acme." in judge.last
+    assert "I also used Kubernetes at Acme." not in judge.last
+
+
+def test_number_only_in_instructions_is_flagged(judge):
+    cv = tailored(professional_summary="ML engineer who shipped 12 models.")
+    out = A.reviewer_node(_state(cv, user_strategy_answers="Mention that I have shipped 12 models"))
+    assert "unsupported_number" in out["review_feedback"]
 
 
 def test_ungrounded_llm_issue_is_ignored(judge):
@@ -49,11 +56,39 @@ def test_ungrounded_llm_issue_is_ignored(judge):
 
 
 def test_grounded_llm_issue_fails(judge):
-    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="Wrote tests", problem="exaggerated")])
-    fb = A.reviewer_node(_state(tailored()))["review_feedback"]
-    assert fb != "PASS" and "Wrote tests" in fb
+    cv = tailored()
+    cv["sections"][0]["items"][1]["bullets"][0] = "Wrote tests and led the QA team."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="led the QA team", problem="exaggerated")])
+    fb = A.reviewer_node(_state(cv))["review_feedback"]
+    assert fb != "PASS" and "led the QA team" in fb
 
 
 def test_reviewer_prompt_has_no_style_rules(judge):
     A.reviewer_node(_state(tailored()))
     assert "ignore them completely" in judge.last
+
+
+def test_issue_on_users_own_wording_is_ignored(judge):
+    # Regression for the Thule run: the judge flagged the user's original bullet as fabricated.
+    own = "Cut inference latency by 40% with batching."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote=own, problem="not supported")])
+    assert A.reviewer_node(_state(tailored()))["review_feedback"] == "PASS"
+
+
+def test_simplified_own_bullet_is_ignored(judge):
+    cv = tailored()
+    cv["sections"][0]["items"][0]["bullets"][0] = "Cut inference latency by 40% using batching."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="Cut inference latency by 40% using batching", problem="omits detail")])
+    assert A.reviewer_node(_state(cv))["review_feedback"] == "PASS"
+
+
+def test_new_claim_still_fails(judge):
+    cv = tailored()
+    cv["sections"][0]["items"][0]["bullets"][0] = "Led a team of engineers building Kubernetes clusters."
+    judge.box["result"] = ReviewResult(passed=False, issues=[ReviewIssue(quote="Led a team of engineers building Kubernetes clusters", problem="invented")])
+    assert A.reviewer_node(_state(cv))["review_feedback"] != "PASS"
+
+
+def test_reviewer_prompt_allows_simplification(judge):
+    A.reviewer_node(_state(tailored()))
+    assert "Losing nuance is NOT fabrication." in judge.last

@@ -9,7 +9,7 @@ from tests.conftest import set_credits
 
 
 class _SlowGraph:
-    def stream(self, state, config=None):
+    def stream(self, state, config=None, **kwargs):
         time.sleep(2.0)  # stands in for a blocking GPT-4o call
         yield {"tailor": {"revision_count": 1, "tailored_cv": {}}}
         yield {"reviewer": {"review_feedback": "PASS"}}

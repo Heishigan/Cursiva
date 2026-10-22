@@ -11,12 +11,15 @@ import logging
 import uuid
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
 STALE_RUN_MINUTES = 15
+FREE_REDOS_PER_APPLICATION = 1  # enforced by a unique index; raising it needs a schema change
+REDO_WINDOW_HOURS = 24
 
 
 class InsufficientCredits(Exception):
@@ -27,7 +30,7 @@ def _now():
     return datetime.datetime.utcnow()
 
 
-def charge_for_run(user_id: str) -> str:
+def charge_for_run(user_id: str, jd_hash: str | None = None, parent_run_id: str | None = None) -> str:
     """Atomically take one credit and open a run. Raises InsufficientCredits."""
     run_id = str(uuid.uuid4())
     with SessionLocal() as db:
@@ -39,11 +42,66 @@ def charge_for_run(user_id: str) -> str:
             db.rollback()
             raise InsufficientCredits()
         db.execute(
-            text("INSERT INTO generation_runs (id, clerk_id, status, refunded, created_at) "
-                 "VALUES (:id, :uid, 'running', :f, :now)"),
-            {"id": run_id, "uid": user_id, "f": False, "now": _now()},
+            text("INSERT INTO generation_runs (id, clerk_id, status, refunded, created_at, free, jd_hash, parent_run_id) "
+                 "VALUES (:id, :uid, 'running', :f, :now, :f, :jd, :parent)"),
+            {"id": run_id, "uid": user_id, "f": False, "now": _now(), "jd": jd_hash, "parent": parent_run_id},
         )
         db.commit()
+    return run_id
+
+
+def resolve_redo_root(user_id: str, redo_of: str | None, jd_hash: str) -> str | None:
+    """The original paid run a redo belongs to, or None if the redo isn't valid.
+
+    Valid means: the user's own run (or a redo of it), successful, for the same
+    job ad, and started within the redo window.
+    """
+    if not redo_of:
+        return None
+    with SessionLocal() as db:
+        row = db.execute(text("SELECT id, clerk_id, parent_run_id FROM generation_runs WHERE id = :id"),
+                         {"id": redo_of}).first()
+        if not row or row.clerk_id != user_id:
+            return None
+        root_id = row.parent_run_id or row.id
+        root = db.execute(text("SELECT clerk_id, status, jd_hash, created_at FROM generation_runs WHERE id = :id"),
+                          {"id": root_id}).first()
+    if not root or root.clerk_id != user_id or root.status != "success" or not root.jd_hash or root.jd_hash != jd_hash:
+        return None
+    created = root.created_at
+    if isinstance(created, str):
+        created = datetime.datetime.fromisoformat(created)
+    if created < _now() - datetime.timedelta(hours=REDO_WINDOW_HOURS):
+        return None
+    return root_id
+
+
+def free_redo_available(root_id: str | None) -> bool:
+    if not root_id:
+        return False
+    with SessionLocal() as db:
+        used = db.execute(
+            text("SELECT COUNT(*) FROM generation_runs WHERE parent_run_id = :root AND free = :t AND refunded = :f"),
+            {"root": root_id, "t": True, "f": False},
+        ).scalar()
+    return (used or 0) < FREE_REDOS_PER_APPLICATION
+
+
+def open_free_redo(user_id: str, root_id: str, jd_hash: str) -> str | None:
+    """Open a free redo run for an application, or None if its free redo is used."""
+    if not free_redo_available(root_id):
+        return None
+    run_id = str(uuid.uuid4())
+    try:
+        with SessionLocal() as db:
+            db.execute(
+                text("INSERT INTO generation_runs (id, clerk_id, status, refunded, created_at, free, jd_hash, parent_run_id) "
+                     "VALUES (:id, :uid, 'running', :f, :now, :t, :jd, :root)"),
+                {"id": run_id, "uid": user_id, "f": False, "t": True, "now": _now(), "jd": jd_hash, "root": root_id},
+            )
+            db.commit()
+    except IntegrityError:
+        return None  # another request took the free redo first
     return run_id
 
 
@@ -96,8 +154,11 @@ def refund_run(run_id: str, status: str, error: str | None = None, metrics: dict
             if res.rowcount != 1:
                 db.rollback()
                 return False
-            owner = db.execute(text("SELECT clerk_id FROM generation_runs WHERE id = :id"), {"id": run_id}).scalar()
-            db.execute(text("UPDATE user_profiles SET credits = credits + 1 WHERE clerk_id = :uid"), {"uid": owner})
+            run = db.execute(text("SELECT clerk_id, free FROM generation_runs WHERE id = :id"), {"id": run_id}).first()
+            # A free redo took no credit, so none is given back; closing it as
+            # refunded makes the free redo available again.
+            if not run.free:
+                db.execute(text("UPDATE user_profiles SET credits = credits + 1 WHERE clerk_id = :uid"), {"uid": run.clerk_id})
             db.commit()
             logger.info("Refunded run %s (%s)", run_id, status)
             return True

@@ -2,6 +2,9 @@ import os
 import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from langgraph.config import get_stream_writer
+import time
 from langgraph.graph import StateGraph, END
 
 from .models import (
@@ -33,6 +36,46 @@ def get_llm_json(api_key: str): return get_llm(api_key).with_structured_output(C
 def get_llm_review(api_key: str): return get_llm(api_key, temperature=0).with_structured_output(ReviewResult)
 def get_llm_setup(api_key: str): return get_llm(api_key).with_structured_output(JobMetadata)
 def get_llm_cl_out(api_key: str): return get_llm_cl(api_key).with_structured_output(CoverLetterOutput)
+
+# --- LIVE DRAFT STREAMING ---
+# When the caller sets configurable.stream_drafts, the CV and letter are
+# streamed token by token and partial JSON is pushed to the graph's custom
+# stream so the UI can show the text as it is written. Any streaming failure
+# falls back to the normal (non-streamed) structured call.
+DRAFT_EMIT_INTERVAL_S = 0.15
+
+
+def _stream_enabled(config) -> bool:
+    return bool(((config or {}).get("configurable") or {}).get("stream_drafts"))
+
+
+def get_llm_stream(api_key: str, schema_cls, temperature: float):
+    return ChatOpenAI(model="gpt-4o", temperature=temperature, api_key=api_key,
+                      timeout=LLM_TIMEOUT_S, max_retries=LLM_MAX_RETRIES,
+                      streaming=True, stream_usage=True).bind(
+        response_format={"type": "json_schema", "json_schema": {
+            "name": schema_cls.__name__, "schema": schema_cls.model_json_schema(), "strict": False}})
+
+
+def run_structured(prompt, values, schema_cls, api_key, temperature, fallback_llm, config, doc, strip_keys=()):
+    if _stream_enabled(config):
+        try:
+            writer = get_stream_writer()
+            last, last_emit = None, 0.0
+            chain = prompt | get_llm_stream(api_key, schema_cls, temperature) | JsonOutputParser()
+            for partial in chain.stream(values, config=config):
+                if not isinstance(partial, dict):
+                    continue
+                last = partial
+                now = time.monotonic()
+                if now - last_emit >= DRAFT_EMIT_INTERVAL_S:
+                    writer({"draft_partial": {"doc": doc, "content": {k: v for k, v in partial.items() if k not in strip_keys}}})
+                    last_emit = now
+            return schema_cls.model_validate(last)
+        except Exception:
+            logger.warning("Streaming %s draft failed; falling back to a normal call", doc, exc_info=True)
+    return (prompt | fallback_llm).invoke(values)
+
 
 # --- LESSONS MECHANIC ---
 def get_lessons(user_id: str, scope_filter=None):
@@ -145,7 +188,7 @@ def strategist_node(state: AgentState):
         "revision_count": state.get("revision_count", 0)
     }
 
-def tailor_node(state: AgentState):
+def tailor_node(state: AgentState, config=None):
     cv_context = state.get("generic_cv_raw", "")
     
     order_str = '"Work Experience", then "Education", then "Projects", then "Skills"'
@@ -167,7 +210,7 @@ def tailor_node(state: AgentState):
     3. CV ORDERING: The final `sections` array MUST be strictly ordered as follows: {order_str}. Do NOT deviate from this order.
     4. For the 'projects' section ONLY: select the most relevant projects for this role, at most 5. If the generic CV has 5 or fewer projects, keep all of them. If it contains a thesis or final-year degree project, keep it. NEVER invent, split or duplicate projects to reach a number. Order the selected projects so the most relevant appear first.
     5. For ALL OTHER sections: You MUST include every single item from the generic CV exactly as they appear (do not delete or add items). **CRITICAL:** You MUST preserve the exact original top-to-bottom order of the items, AND the exact original top-to-bottom order of the bullet points within each item, exactly as they appear in the generic CV. Do NOT reorder them. You are encouraged to carefully rephrase their bullet points to match the exact ATS keywords from the Job Description, but ONLY if the keywords logically align with the candidate's existing experience.
-    6. ATS KEYWORD STRATEGY: If the generic CV already demonstrates a related skill, you should adjust the phrasing to explicitly include the JD's exact keyword. You may only inject ATS keywords if they logically fit into the existing narrative of the item. Do NOT fundamentally change the story, scope, or technical achievements of any item. 
+    6. ATS KEYWORD STRATEGY: If the generic CV already demonstrates a related skill, you should adjust the phrasing to explicitly include the JD's exact keyword. You may only inject ATS keywords if they logically fit into the existing narrative of the item. Do NOT fundamentally change the story, scope, or technical achievements of any item. Go through the JD's key requirements one by one: wherever the generic CV or Supplemental Context already shows that skill, use the JD's wording for it at least once (in the summary or a relevant bullet). If the JD is in a different language than the CV, use the standard term in the CV's language (e.g. "AI agents" for "AI-agenter"). Never add a skill the candidate doesn't show.
     7. The original item's authenticity must never be compromised. 
     8. NEVER change the 'Tools Used' or similar context line (e.g., "ReactJS, Firebase, Agile, Git" MUST remain identical). Only weave keywords into the bullet points.
     9. NO MARKDOWN FORMATTING: Do NOT use markdown bolding (e.g. **keyword**) or italics anywhere in your output. Output raw, plain text only.
@@ -192,13 +235,13 @@ def tailor_node(state: AgentState):
     
     supplemental_prompt = ""
     if user_strategy or user_feedback:
-        supplemental_prompt = "\n\n--- SUPPLEMENTAL CANDIDATE CONTEXT (From User's Custom Instructions & Feedback) ---\n"
-        supplemental_prompt += "The following information is strictly factual candidate data provided by the user and MUST be treated as if it were part of the Generic CV. This is your highest priority.\n"
-        supplemental_prompt += "CRITICAL INSTRUCTION: You MUST explicitly integrate the facts from this Supplemental Context directly into the CV content (e.g., within the Professional Summary, Project Context, or Bullets). Do NOT ignore this data.\n"
+        supplemental_prompt = "\n\n--- USER INSTRUCTIONS (preferences, not facts) ---\n"
+        supplemental_prompt += "Follow these instructions on angle, emphasis, tone and wording. They are NOT candidate facts: the Generic CV is the only source of facts.\n"
+        supplemental_prompt += "If an instruction asks you to add or claim anything that is not in the Generic CV (a job, project, skill, number or achievement), do NOT add it.\n"
         if user_strategy:
-            supplemental_prompt += f"\nUser Strategy Answers (MUST INTEGRATE):\n{user_strategy}\n"
+            supplemental_prompt += f"\nChosen angle and notes:\n{user_strategy}\n"
         if user_feedback:
-            supplemental_prompt += f"\nUser Feedback on Previous Draft (CRITICAL TO APPLY):\n{user_feedback}\n"
+            supplemental_prompt += f"\nFeedback on the previous draft (apply it within the rules above):\n{user_feedback}\n"
     
     user_id = state.get("user_id", "")
     lessons = get_lessons(user_id, ["CV", "General"])
@@ -220,12 +263,11 @@ def tailor_node(state: AgentState):
         ("user", "Job Description:\n{job_description}\n\nStrategist's Plan:\n{strategy_plan}\n\nGeneric CV JSON:\n{generic_cv}{previous_cv_prompt}")
     ]
     if supplemental_prompt:
-        messages.append(("user", "SUPPLEMENTAL CONTEXT FROM CANDIDATE (factual data only):\n{supplemental_prompt}"))
+        messages.append(("user", "USER INSTRUCTIONS (preferences only, not facts):\n{supplemental_prompt}"))
         
     prompt = ChatPromptTemplate.from_messages(messages)
     
-    chain = prompt | get_llm_json(state["api_key"])
-    res = chain.invoke({
+    res = run_structured(prompt, {
         "job_description": state.get("job_description", ""),
         "strategy_plan": state.get("strategy_plan", ""),
         "generic_cv": cv_context,
@@ -233,34 +275,25 @@ def tailor_node(state: AgentState):
         "rules": rules,
         "supplemental_prompt": supplemental_prompt,
         "lessons_prompt": lessons_prompt
-    })
+    }, CVData, state["api_key"], 0.2, get_llm_json(state["api_key"]), config, doc="cv", strip_keys=("reasoning",))
     
     return {"tailored_cv": res.model_dump(), "revision_count": state.get("revision_count", 0) + 1}
 
-def supplemental_context(state) -> str:
-    """User-provided facts the tailor is required to use; the reviewer treats them as source truth."""
-    parts = []
-    if state.get("user_strategy_answers"):
-        parts.append("User Strategy Answers:\n" + state["user_strategy_answers"])
-    if state.get("user_feedback"):
-        parts.append("User Feedback on Previous Draft:\n" + state["user_feedback"])
-    return "\n\n".join(parts)
-
-
 REVIEWER_SYSTEM = """You are a fact-checking reviewer for a tailored CV. Your ONLY job is to find FABRICATION.
 
-SOURCES (the only ground truth): the Generic CV and the Supplemental Candidate Context. Facts in the
-Supplemental Context are true even if they are not in the Generic CV.
+SOURCE (the only ground truth): the Generic CV.
 
-Flag a claim ONLY if it is not supported by the SOURCES:
-1. A technology, tool, framework, employer, title, degree, certification or project that the SOURCES never mention.
-2. A responsibility, achievement, scope or seniority the SOURCES don't support.
-3. Event exaggeration: a single event, project or role turned into a plural ("client-facing roles" when the SOURCES show one pitch).
+Flag a claim ONLY if it is not supported by the SOURCE:
+1. A technology, tool, framework, employer, title, degree, certification or project that the SOURCE never mentions.
+2. A responsibility, achievement, scope or seniority the SOURCE doesn't support.
+3. Event exaggeration: a single event, project or role turned into a plural ("client-facing roles" when the SOURCE shows one pitch).
 
 ALLOWED (never flag these):
 - Rephrasing, reordering, shortening or merging of supported content.
-- Using a Job Description keyword as another name for a skill the SOURCES already show (e.g. "LLMs" for GPT-4 work, "CI/CD" for GitHub Actions pipelines).
+- Using a Job Description keyword as another name for a skill the SOURCE already shows (e.g. "LLMs" for GPT-4 work, "CI/CD" for GitHub Actions pipelines).
 - Formatting, punctuation, style, tone or length. These are checked elsewhere; ignore them completely.
+- Shortening, simplifying or leaving out detail from a supported claim. Losing nuance is NOT fabrication.
+- Any wording that already appears in the Generic CV.
 
 For every problem, copy the offending text EXACTLY as it appears in the Tailored CV into `quote`, and explain the fix in `problem`.
 If nothing is fabricated, return passed=true with an empty issues list. Do not invent problems to seem thorough."""
@@ -276,35 +309,44 @@ def reviewer_node(state: AgentState):
     (a) Deterministic: auto-fix em dashes and markdown, then check banned
         phrases, invented numbers and dropped items in plain Python. If any
         fail, return without calling the LLM.
-    (b) LLM judge for semantic fabrication only, with the same supplemental
-        context the tailor was given. An LLM issue counts only if its quote
+    (b) LLM judge for semantic fabrication only, against the Generic CV alone
+        (user instructions are not facts). An LLM issue counts only if its quote
         really appears in the CV, so complaints about text that isn't there
         can't fail the run.
     """
-    supplemental = supplemental_context(state)
-    fixed_cv, _fix_log = checks.autofix_cv(state.get("tailored_cv") or {})
-    det_issues = checks.find_issues(fixed_cv, state.get("generic_cv_raw", ""), supplemental)
+    # The Generic CV is the only source of facts; user instructions never count as facts.
+    supplemental = ""
+    fixed_cv, fix_log = checks.autofix_cv(state.get("tailored_cv") or {})
+    det_issues = checks.find_issues(fixed_cv, state.get("generic_cv_raw", ""), supplemental,
+                                    removal_request=state.get("user_feedback", "") or "")
+    # Plain facts for the progress view (see progress.py).
+    report = {"autofixed": fix_log, "rule_issues": len(det_issues), "fact_issues": 0, "llm_checked": False}
     if det_issues:
-        return {"tailored_cv": fixed_cv, "review_feedback": _format_issues(str(i) for i in det_issues)}
+        return {"tailored_cv": fixed_cv, "review_report": report,
+                "review_feedback": _format_issues(str(i) for i in det_issues)}
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", REVIEWER_SYSTEM),
-        ("user", "Generic CV:\n{generic_cv}\n\nSupplemental Candidate Context:\n{supplemental}\n\nTailored CV:\n{tailored_cv}")
+        ("user", "Generic CV:\n{generic_cv}\n\nTailored CV:\n{tailored_cv}")
     ])
     chain = prompt | get_llm_review(state["api_key"])
     res = chain.invoke({
         "generic_cv": state["generic_cv_raw"],
-        "supplemental": supplemental or "(none)",
         "tailored_cv": json.dumps({k: v for k, v in fixed_cv.items() if k != "reasoning"}),
     })
-    grounded = [i for i in (res.issues or []) if checks.quote_in_cv(i.quote, fixed_cv)]
+    # Keep an issue only if its quote is really in the tailored CV AND is not
+    # (near-)verbatim the user's own text: the user's own CV can't be fabricated.
+    grounded = [i for i in (res.issues or []) if checks.quote_in_cv(i.quote, fixed_cv)
+                and not checks.quote_in_source(i.quote, state.get("generic_cv_raw", ""), supplemental)]
+    report["llm_checked"] = True
     if res.passed or not grounded:
-        return {"tailored_cv": fixed_cv, "review_feedback": "PASS"}
-    return {"tailored_cv": fixed_cv,
+        return {"tailored_cv": fixed_cv, "review_report": report, "review_feedback": "PASS"}
+    report["fact_issues"] = len(grounded)
+    return {"tailored_cv": fixed_cv, "review_report": report,
             "review_feedback": _format_issues(f'[fabrication] "{i.quote}": {i.problem}' for i in grounded)}
 
 
-def cover_letter_node(state: AgentState):
+def cover_letter_node(state: AgentState, config=None):
     if not state.get("generate_cover_letter"):
         return {"cover_letter_parts": {}}
 
@@ -329,13 +371,12 @@ def cover_letter_node(state: AgentState):
     user_strategy = state.get("user_strategy_answers", "")
     strategy_prompt = ""
     if user_strategy:
-        strategy_prompt = "\n\n--- SUPPLEMENTAL CANDIDATE CONTEXT (From User's Custom Instructions) ---\n"
-        strategy_prompt += "The following information is strictly factual candidate data provided by the user and MUST be treated as if it were part of the Candidate's CV. This is your highest priority.\n"
-        strategy_prompt += "CRITICAL INSTRUCTION: You MUST explicitly integrate the facts from this Supplemental Context into your letter. Do NOT invent a limitation or gap that contradicts these facts!\n"
-        strategy_prompt += f"User Strategy Answers:\n{user_strategy}\n"
+        strategy_prompt = "\n\n--- USER INSTRUCTIONS (preferences, not facts) ---\n"
+        strategy_prompt += "Follow these instructions on angle, emphasis and tone. They are NOT candidate facts: the CV is the only source of facts. If they ask you to claim anything that is not in the CV, do NOT claim it.\n"
+        strategy_prompt += f"Chosen angle and notes:\n{user_strategy}\n"
     
     user_feedback = state.get("user_feedback", "")
-    feedback_prompt = f"\n\nUSER FEEDBACK FROM PREVIOUS DRAFT (CRITICAL: You MUST explicitly address and apply EVERY SINGLE point mentioned in the user feedback below. Do not ignore any part of the request.):\n{user_feedback}\n(If this feedback applies only to the CV, ignore it and write a standard cover letter.)" if user_feedback else ""
+    feedback_prompt = f"\n\nUSER FEEDBACK FROM PREVIOUS DRAFT (CRITICAL: You MUST explicitly address and apply EVERY SINGLE point mentioned in the user feedback below. Do not ignore any part of the request, but never claim anything that is not in the CV.):\n{user_feedback}\n(If this feedback applies only to the CV, ignore it and write a standard cover letter.)" if user_feedback else ""
 
     role_philosophy = state.get("role_philosophy", "")
     sharpest_insight = state.get("sharpest_project_insight", "")
@@ -347,17 +388,19 @@ def cover_letter_node(state: AgentState):
     cl_messages = [
         ("system", """You are writing a cover letter for a job application. Write exactly 6 paragraphs.
 
+LANGUAGE: Detect the language of the Job Description. Write the WHOLE letter in that language: greeting, every paragraph and sign-off. Never mix languages. If the user's custom instructions name a language, use that instead.
+
 DELIVERABLE OVERRIDE: Before generating the standard framework below, scan the Job Description for any explicit structural deliverable requests (e.g., "describe your most complex project", "answer these 3 questions", "explain your philosophy on X"). If the JD requests specific answers, you MUST fulfill those requirements within the body of the cover letter. Fulfilling the JD's explicit instructions takes absolute precedence over the standard 6-paragraph framework below.
 
 FRAMEWORK:
-1. Salutation: Match the language of the Job Description. If the JD is in Swedish, use a Swedish greeting (e.g. "Hej [Company]-team,"). If the JD is in English, use an English greeting (e.g. "Dear Hiring Team,"). If the user provided custom instructions for a specific greeting, YOU MUST USE THEIR EXACT GREETING.
+1. Salutation: In the letter's language (e.g. "Hej [Company]-team," for Swedish, "Dear Hiring Team," for English). If the user provided custom instructions for a specific greeting, YOU MUST USE THEIR EXACT GREETING.
 2. Hook: Why THIS company's specific industry and business (as described in the Job Description) is compelling.
    Read the Job Description. The Hook is about THEIR world: their sector, their mission, their problem space.
    Do NOT write about the candidate's project topics or academic domains.
-3. Match: Connect the role's philosophy ({role_philosophy}) to the candidate's sharpest project insight ({sharpest_insight}) directly. The match should feel conceptual, not just technical overlap. Include concrete metrics only if they exist in the Candidate's CV. DO NOT INVENT OR ROUND METRICS. If you use a metric, COPY IT EXACTLY AS WRITTEN in the Candidate's CV. Use them only in service of the conceptual point, not as a standalone credential dump.
+3. Match: Connect the role's philosophy ({role_philosophy}) to the candidate's sharpest project insight ({sharpest_insight}) directly. The match should feel conceptual, not just technical overlap. Include concrete metrics only if they exist in the Candidate's CV. DO NOT INVENT OR ROUND METRICS. If you use a metric, COPY IT EXACTLY AS WRITTEN in the Candidate's CV. Use them only in service of the conceptual point, not as a standalone credential dump. Anchor this paragraph in at least one concrete result from the CV (a number, a scale or a named outcome), copied exactly as written. A claim with no concrete detail does not count.
 4. Curiosity: One specific technical challenge in this role the candidate wants to explore. Frame as genuine curiosity, not a solution pitch. The curiosity should reveal something about the candidate's own working style or instincts, not just name a topic. CRITICAL: Do NOT name specific tools, technologies, or vendor platforms from the Job Description in this paragraph unless they are also explicitly listed in the candidate's CV data. Express curiosity conceptually, about a problem or design tension, not by citing a JD tool stack the candidate hasn't worked with.
-5. Fit: Short close referencing this company's actual mission and work environment. State availability. Include exactly one honest limitation or gap, framed plainly. After stating the honest limitation, immediately reframe by naming the specific underlying skill that still transfers despite the gap. End with a natural, varied transition to the sign-off. Do NOT use any phrase starting with 'Let's...' or 'I look forward to...'. Simply state your interest in their specific problem space.
-6. Sign-off and Name: Match the language of the Job Description. If Swedish, use "Vänliga hälsningar,\n\n{candidate_name}". If English, use "Best regards,\n\n{candidate_name}". If the user provided custom instructions for a specific sign-off, YOU MUST USE THEIR EXACT SIGN-OFF.
+5. Fit: Short close referencing this company's actual mission and work environment. State availability. Mention a limitation ONLY if the Job Description lists a hard requirement the CV clearly does not meet. Then state it plainly in one sentence and name the specific skill that transfers. If there is no such gap, do not invent one. End with a natural, varied transition to the sign-off. Do NOT use any phrase starting with 'Let's...' or 'I look forward to...'. Simply state your interest in their specific problem space.
+6. Sign-off and Name: In the letter's language. Swedish: "Vänliga hälsningar,\n\n{candidate_name}". English: "Best regards,\n\n{candidate_name}". If the user provided custom instructions for a specific sign-off, YOU MUST USE THEIR EXACT SIGN-OFF.
 
 VOICE AND RHYTHM (this is what makes it sound human, follow it exactly):
 - Use contractions throughout: "I'm," "don't," "that's," "isn't." A cover letter with zero contractions reads as AI-generated.
@@ -374,9 +417,11 @@ BANNED PHRASES (reject and rewrite if any appear):
 - "I believe that," "I am confident that"
 - Any sentence starting with "Moreover," "Furthermore," "Additionally" as a paragraph opener
 - Closing with "I look forward to the opportunity to discuss" verbatim, use a more specific, direct ask instead
+- "no small feat," "truly," "transformative," "seamless," "aligns perfectly," "eager to contribute," "innovative journey," "not only ... but also"
+- These bans also apply to their equivalents in the letter's language. Swedish examples: "spännande", "innovativa lösningar", "ser fram emot", "verkligen gör skillnad", "avgörande", "effektivt".
 
 RULES:
-- Each paragraph 40-60 words. Total 180-220 words.
+- Hook, Match, Curiosity and Fit: 40-60 words each (160-240 words in total, excluding greeting and sign-off).
 - EXPLICIT GROUNDING CONSTRAINT: Every substantive claim about the company/role MUST strictly cite or paraphrase a specific line from the provided Job Description text. Do not infer company focus from title keywords alone. Do not invent details about their products. Do NOT invent or fabricate the company's beliefs, values, or philosophies. Any claim about what the company values MUST be explicitly stated in the Job Description text. Base everything exclusively on the provided Job Description.
 - NO HALLUCINATIONS: You are strictly forbidden from inventing metrics, percentages, tools, frameworks, or outcomes that are not explicitly written in the candidate's provided CV. If the JD mentions a tool the candidate has not used, you must either use the candidate's actual tool or omit the reference entirely. This rule applies to ALL four paragraphs including the Curiosity paragraph. Do NOT name any tool, technology, or platform that appears only in the Job Description and not in the candidate's CV data. 
 - EXCEPTION TO NO HALLUCINATIONS: You may include outside tools, languages, or facts ONLY IF the user explicitly requested them in the USER'S CUSTOM INSTRUCTIONS below. In that case, prioritize the user's instructions over the CV.
@@ -388,8 +433,7 @@ RULES:
         cl_messages.append(("user", "USER'S CUSTOM INSTRUCTIONS, LESSONS AND FEEDBACK:{lessons_prompt}{strategy_prompt}{feedback_prompt}"))
     prompt = ChatPromptTemplate.from_messages(cl_messages)
 
-    chain = prompt | get_llm_cl_out(state["api_key"])
-    res = chain.invoke({
+    res = run_structured(prompt, {
         "company_name": state.get("company_name", ""),
         "role_name": state.get("role_name", ""),
         "job_description": state.get("job_description", ""),
@@ -401,7 +445,7 @@ RULES:
         "lessons_prompt": lessons_prompt,
         "strategy_prompt": strategy_prompt,
         "feedback_prompt": feedback_prompt
-    })
+    }, CoverLetterOutput, state["api_key"], 0.5, get_llm_cl_out(state["api_key"]), config, doc="letter")
     return {"cover_letter_parts": res.model_dump(), "user_feedback": ""}
 
 MAX_REVISIONS = 3

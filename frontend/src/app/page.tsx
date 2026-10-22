@@ -148,10 +148,10 @@ export default function Home() {
             <div className={styles.resumeContainer}>
               <div className={styles.resumeImageWrapper}>
                 <Image
-                  src="/jakes-resume-annotated.jpg"
-                  alt="Jake's LaTeX Resume ATS Annotations"
-                  width={3712}
-                  height={4608}
+                  src="/jakes-resume.jpg"
+                  alt="A CV in Jake's Resume LaTeX format"
+                  width={1700}
+                  height={2000}
                   priority
                   className={styles.resumeImage}
                 />

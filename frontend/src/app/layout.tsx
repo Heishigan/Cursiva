@@ -27,6 +27,10 @@ export default function RootLayout({
               colorPrimary: "#c8f24c",
               colorBackground: "#111113",
               borderRadius: "9px",
+              colorForeground: "#f0efe9",
+              colorMutedForeground: "#8f8f93",
+              colorInput: "#1c1c1f",
+              colorInputForeground: "#f0efe9",
             },
             elements: {
               card: {

@@ -2,11 +2,12 @@
 import styles from './pipeline.module.css';
 import { useState, useRef, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import AgentWorkflow from "@/components/pipeline/AgentWorkflow";
+import Glassbox, { type Stages, type StageEvent, type CvDoc, type LetterDoc, type LiveDocs } from "@/components/pipeline/glassbox/Glassbox";
 import PasteJdStep from "@/components/pipeline/PasteJdStep";
 import StrategyStep from "@/components/pipeline/StrategyStep";
 import WorkbenchStep from "@/components/pipeline/WorkbenchStep";
 import DoneStep from "@/components/pipeline/DoneStep";
+import FlowRail from "@/components/pipeline/FlowRail";
 
 export default function PipelinePage() {
   const { getToken } = useAuth();
@@ -22,7 +23,39 @@ export default function PipelinePage() {
   const [tailoredData, setTailoredData] = useState<any>(null);
   const [finalPdfs, setFinalPdfs] = useState({ cvUrl: "", clUrl: "" });
   
-  const [logs, setLogs] = useState<string[]>([]);
+  const [, setLogs] = useState<string[]>([]); // legacy status messages (kept for debugging)
+  // Live progress for the Glassbox view (structured events from the backend).
+  const [stages, setStages] = useState<Stages>({});
+  const [drafts, setDrafts] = useState<{ cv?: CvDoc; letter?: LetterDoc }>({});
+  // Documents that arrive as a live token stream: 'streaming' while text is
+  // coming in, 'done' once the finished draft has landed.
+  const [liveDocs, setLiveDocs] = useState<LiveDocs>({});
+  // The application's original run (for feedback redos) and whether its free redo is still unused.
+  const [redo, setRedo] = useState<{ runId: string; free: boolean } | null>(null);
+  const [genericForView, setGenericForView] = useState<CvDoc | null>(null);
+  const handleProgress = (data: { type?: string; agent?: string; doc?: string; content?: unknown; partial?: boolean }) => {
+    if (data.type === 'stage' && data.agent) {
+      const ev = data as unknown as StageEvent;
+      setStages(prev => ({ ...prev, [ev.agent]: ev }));
+      return true;
+    }
+    if (data.type === 'draft' && (data.doc === 'cv' || data.doc === 'letter')) {
+      const doc = data.doc;
+      if (data.partial) {
+        // Keep the previous draft on screen until the new one has real text.
+        const c = (data.content || {}) as Record<string, unknown>;
+        const hasText = Object.values(c).some(v => (typeof v === 'string' ? v.trim() !== '' : Array.isArray(v) && v.length > 0));
+        if (!hasText) return true;
+        setLiveDocs(prev => (prev[doc] === 'streaming' ? prev : { ...prev, [doc]: 'streaming' }));
+      } else {
+        setLiveDocs(prev => (prev[doc] === 'streaming' ? { ...prev, [doc]: 'done' } : prev));
+      }
+      setDrafts(prev => ({ ...prev, [doc]: data.content }));
+      return true;
+    }
+    return false;
+  };
+  const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   const [isProcessing, setIsProcessing] = useState(false);
   const [eligibilityWarning, setEligibilityWarning] = useState<string | null>(null);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -117,9 +150,12 @@ export default function PipelinePage() {
       return;
     }
     setJdText(text);
+    setRedo(null);
     localStorage.setItem("cursiva_backup_jd", text);
     setIsProcessing(true);
     setLogs([]);
+    setStages({});
+    setDrafts({});
     setEligibilityWarning(null);
     
     try {
@@ -164,13 +200,16 @@ export default function PipelinePage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.substring(6));
-              if (data.type === 'status') {
+              if (handleProgress(data)) {
+                // handled by the Glassbox view
+              } else if (data.type === 'status') {
                 setLogs(prev => [...prev, data.message]);
               } else if (data.type === 'result') {
                 streamCompleted = true;
                 if (data.status === 'success') {
                   setJobMetadata(data.metadata);
                   setStrategyResult(data.strategy);
+                  await pause(900); // let the last step land before moving on
                   setStep(2);
                 } else {
                   setEligibilityWarning(data.reason);
@@ -198,10 +237,15 @@ export default function PipelinePage() {
   const submitStrategy = async (userAnswers: string, feedback: string = "") => {
     setIsProcessing(true);
     setLogs([]);
+    // Keep the reader and strategist results so their cards stay "done".
+    setStages(prev => ({ reader: prev.reader, strategist: prev.strategist }));
+    setDrafts({});
+    setLiveDocs({});
     
     try {
       const token = await getToken();
       const genericCv = await loadGenericCv(token);
+      try { setGenericForView(JSON.parse(genericCv)); } catch { setGenericForView(null); }
       const threadId = "thread_" + Math.random().toString(36).substring(7);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/tailor`, {
@@ -221,6 +265,7 @@ export default function PipelinePage() {
           sharpest_project_insight: strategyResult?.sharpest_project_insight || "",
           user_strategy_answers: userAnswers,
           user_feedback: feedback,
+          redo_of: feedback ? redo?.runId : undefined,
           thread_id: threadId
         })
       });
@@ -255,13 +300,16 @@ export default function PipelinePage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.substring(6));
-              if (data.type === 'status') {
+              if (handleProgress(data)) {
+                // handled by the Glassbox view
+              } else if (data.type === 'status') {
                 setLogs(prev => [...prev, data.message]);
               } else if (data.type === 'result') {
                 finalResult = data;
                 if (data.status === 'success') {
                   // Combine with generic personal info
                   const genericData = JSON.parse(genericCv);
+                  if (data.run_id) setRedo({ runId: data.run_id, free: !!data.free_redo_available });
                   const completeTailoredCv = {
                     ...data.tailored_cv,
                     personal_info: genericData.personal_info
@@ -286,6 +334,7 @@ export default function PipelinePage() {
                     company: jobMetadata?.company_name || "Company",
                     role: jobMetadata?.role_name || "Role"
                   });
+                  await pause(800); // let the CHECKED stamp land
                   setStep(3);
                 }
               }
@@ -343,46 +392,29 @@ export default function PipelinePage() {
 
   return (
     <div className={styles.container}>
-      {/* Top Navigation Stepper */}
-      <nav className={styles.nav}>
-        <div className={styles.navContent}>
-          <div className={`${styles.stepItem} ${step >= 1 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 1 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>1</span>
-            Paste JD
-          </div>
-          <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 2 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 2 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>2</span>
-            Strategy
-          </div>
-          <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 3 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 3 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>3</span>
-            Workbench
-          </div>
-          <div className={styles.stepDivider} />
-          <div className={`${styles.stepItem} ${step >= 4 ? styles.stepItemActive : ''}`}>
-            <span className={styles.stepNumber} style={step === 4 ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}>4</span>
-            Done
-          </div>
-        </div>
-      </nav>
+      {/* Progress rail */}
+      <div className={styles.nav}>
+        <FlowRail current={step === 4 ? 4 : step === 3 || (step === 2 && isProcessing) ? 3 : step} />
+      </div>
 
       {/* Main Content Area */}
-      <main className={styles.mainArea} style={{ overflowY: (step >= 3 || isProcessing) ? 'hidden' : 'auto' }}>
+      <main className={`${styles.mainArea} ${(step === 3 || isProcessing) ? styles.mainAreaLocked : ''}`}>
         {isProcessing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '64px', height: '100%' }}>
-            <h2 className={`${styles.strategyTitle} ${styles.agentsTitle}`} style={{ marginBottom: '16px' }}>
-              Agents at Work
-            </h2>
-            <AgentWorkflow logs={logs} activePipelinePhase={step === 1 ? 'intake' : 'tailor'} />
-          </div>
+          <Glassbox
+            phase={step === 1 ? 'intake' : 'tailor'}
+            stages={stages}
+            drafts={drafts}
+            live={liveDocs}
+            genericCv={genericForView}
+            company={jobMetadata?.company_name}
+            role={jobMetadata?.role_name}
+          />
         ) : (
           <>
             {step === 1 && <PasteJdStep initialText={jdText} onSubmit={submitJd} />}
             {step === 2 && <StrategyStep result={strategyResult} jobMetadata={jobMetadata} onSubmit={submitStrategy} />}
-            {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
-            {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); }} />}
+            {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} freeRedo={!!redo?.free} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
+            {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); setRedo(null); }} />}
           </>
         )}
       </main>

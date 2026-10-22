@@ -1,0 +1,133 @@
+/* Glassbox: minimal live view of the agents at work.
+   Uses only the site's tokens: dark ground, off-white paper, lime accent. */
+
+.wrap {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  flex: 1;
+}
+
+.header { display: flex; flex-direction: column; gap: 0.5rem; }
+.title { margin: 0; font-family: 'Anton', sans-serif; font-size: clamp(2.2rem, 5vw, 3rem); line-height: 1.1; text-transform: uppercase; color: var(--text-strong); }
+.subtitle { margin: 0; font-size: 1rem; line-height: 1.55; color: var(--text-dim); }
+
+/* Layout C: agent cards on the left, the documents on a board on the right */
+.stage { display: flex; gap: 28px; flex: 1; min-height: 0; }
+.side { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+.agents { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.agent { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); transition: opacity 0.3s ease, border-color 0.3s ease, background 0.3s ease; }
+.agentIdle { opacity: 0.45; }
+.agentWorking { border-color: rgba(200, 242, 76, 0.4); background: #191a14; }
+.agentFailed { border-color: var(--danger); }
+.avatar { width: 36px; height: 36px; border-radius: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--text-dim); font: 700 13px 'Plus Jakarta Sans', sans-serif; }
+.agentWorking .avatar { background: var(--accent); color: var(--accent-ink); animation: breathe 1.2s ease-in-out infinite; }
+.agentDone .avatar { background: #2d3418; color: var(--accent); }
+.agentFailed .avatar { background: var(--danger); color: #fff; }
+.agentText { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.agentName { font-size: 14px; font-weight: 600; color: var(--text-strong); }
+.agentSay { font-size: 13px; line-height: 1.45; color: var(--text-dim); }
+.status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
+
+.board { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 28px; border-radius: 14px; border: 1px solid var(--line); background-color: #141416; background-image: radial-gradient(#1f1f23 1px, transparent 1px); background-size: 22px 22px; overflow: hidden; }
+
+.papers { display: flex; gap: 24px; justify-content: center; align-items: center; flex: 1; min-height: 0; }
+.paper {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 420px;
+  height: clamp(380px, 62vh, 600px);
+  background: var(--mock-resume-paper);
+  color: var(--mock-resume-text);
+  border-radius: 4px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.4s ease, filter 0.4s ease;
+}
+.paperSingle { max-width: 520px; padding-bottom: 12px; }
+.paperIdle { opacity: 0.55; }
+.paperDim .paperBody { opacity: 0.55; }
+.paperBody { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 26px 40px; scrollbar-width: none; transition: opacity 0.4s ease; }
+.paperBody::-webkit-scrollbar { display: none; }
+
+/* CV content: small, document-like */
+.cvName { font-family: Georgia, 'Times New Roman', serif; font-size: 17px; text-align: center; margin: 4px 0 8px; }
+.cvSummary, .cvBullet, .letterPara { font-family: Georgia, 'Times New Roman', serif; font-size: 11.5px; line-height: 1.5; margin: 0 0 6px; border-radius: 2px; }
+.cvBullet { padding-left: 12px; position: relative; }
+.cvBullet::before { content: ""; position: absolute; left: 2px; top: 0.62em; width: 4px; height: 4px; border-radius: 2px; background: #6b6960; }
+.cvSection { font-family: Georgia, serif; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #4a4842; border-bottom: 1px solid #cfccc2; padding-bottom: 3px; margin: 12px 0 6px; }
+.cvItem { display: flex; justify-content: space-between; gap: 8px; font-family: Georgia, serif; font-size: 11.5px; font-weight: 700; margin: 6px 0 3px; }
+.cvSub { font-weight: 400; font-style: italic; color: #6b6960; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.changed { background: rgba(200, 242, 76, 0.45); box-shadow: 0 0 0 2px rgba(200, 242, 76, 0.45); }
+.letterPara { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; margin-bottom: 10px; white-space: pre-line; }
+
+.reqList { list-style: none; margin: 0; padding: 26px 26px 24px; display: flex; flex-direction: column; gap: 10px; }
+.reqList li { font-size: 14px; line-height: 1.45; padding-left: 20px; position: relative; }
+.reqList li::before { content: ""; position: absolute; left: 0; top: 0.45em; width: 8px; height: 8px; border-radius: 2px; background: #4d6b12; }
+
+/* Skeleton while a writer is working */
+.skeleton { display: flex; flex-direction: column; gap: 7px; padding-top: 8px; }
+.skLine { height: 7px; border-radius: 2px; background: #dcd9cf; }
+.skLine[style*="width: 0%"] { height: 6px; background: transparent; }
+.skLive { animation: shimmer 1.4s ease-in-out infinite; }
+
+.reveal { animation: reveal 0.35s ease both; }
+.caret { display: inline-block; width: 2px; height: 1em; margin-left: 1px; vertical-align: -0.12em; background: #4d6b12; animation: blink 0.9s steps(1) infinite; }
+
+/* Checker */
+.scan { position: absolute; left: 0; right: 0; height: 56px; pointer-events: none; background: linear-gradient(rgba(200, 242, 76, 0), rgba(200, 242, 76, 0.28), rgba(200, 242, 76, 0)); animation: scan 1.6s linear infinite; }
+.stamp { position: absolute; right: 18px; bottom: 16px; padding: 4px 12px; border-radius: 999px; background: #e7f0c9; border: 1px solid #4d6b12; color: #3b5210; font: 600 12px/1.4 'Plus Jakarta Sans', sans-serif; transform: scale(1.3); opacity: 0; transition: transform 0.35s cubic-bezier(0.2, 1.6, 0.4, 1), opacity 0.25s ease; pointer-events: none; }
+.stampOn { opacity: 1; transform: scale(1); }
+.note { position: absolute; left: 16px; right: 16px; bottom: 16px; padding: 8px 12px; border-radius: 6px; background: #1c1c1f; color: var(--text); font-size: 12px; }
+.waiting { margin-top: 16px; font-size: 13px; color: #8f8c82; text-align: center; }
+
+.footnote { margin: 0; font-size: 12px; color: var(--text-faint); text-align: center; }
+
+/* Tabs only on small screens */
+.tabs { display: none; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); align-self: flex-start; }
+.tab { min-height: 36px; padding: 0 16px; border: 0; border-radius: 6px; background: transparent; color: var(--text-dim); font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer; }
+.tabOn { background: var(--surface-2); color: var(--text-strong); }
+
+
+@media (max-width: 1000px) {
+  .stage { flex-direction: column; gap: 16px; }
+  .side { width: auto; }
+  /* Cards become a compact row; the active agent's sentence shows below. */
+  .agents { flex-direction: row; gap: 6px; }
+  .agent { flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; text-align: center; }
+  .avatar { width: 30px; height: 30px; border-radius: 15px; font-size: 12px; }
+  .agentName { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .agentSay { display: none; }
+  .agentText { align-items: center; width: 100%; }
+  /* The active agent's sentence, in a box so it reads as part of the agent row. */
+  .status { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font-size: 14px; line-height: 1.45; color: var(--text); min-height: 1.5em; }
+  .board { padding: 16px; }
+}
+
+@media (max-width: 720px) {
+  .wrap { padding: 24px 16px 16px; gap: 14px; }
+  .tabs { display: flex; }
+  .papers { gap: 0; }
+  .paper { max-width: none; height: clamp(340px, 54vh, 520px); }
+  .paperHiddenMobile { display: none; }
+  .board { padding: 12px; background-image: none; }
+  .agentName { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .skLive, .scan, .agentWorking .avatar, .caret { animation: none; }
+  .stamp { transition: none; }
+}
+
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes shimmer { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes scan { from { top: -56px; } to { top: 100%; } }
