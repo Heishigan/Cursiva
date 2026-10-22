@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, JSON, Boolean, Float
+from sqlalchemy import Column, String, Text, Integer, JSON, Boolean, Float, Index, false, text
 from database import Base
 
 class UserProfile(Base):
@@ -71,6 +71,19 @@ class GenerationRun(Base):
     prompt_tokens = Column(Integer, nullable=True)
     completion_tokens = Column(Integer, nullable=True)
     cost_usd = Column(Float, nullable=True)
+    # Redo bookkeeping: a feedback redo points at the original paid run of the
+    # same application (same job ad hash). One redo per application is free.
+    parent_run_id = Column(String, nullable=True, index=True)
+    free = Column(Boolean, nullable=False, default=False, server_default=false())
+    jd_hash = Column(String, nullable=True)
+
+    __table_args__ = (
+        # At most one live free redo per original run (also closes the race
+        # where two redo requests arrive at once).
+        Index("uq_generation_runs_one_free_redo", "parent_run_id", unique=True,
+              sqlite_where=text("free = 1 AND refunded = 0"),
+              postgresql_where=text("free = true AND refunded = false")),
+    )
 
 
 class StripeEvent(Base):

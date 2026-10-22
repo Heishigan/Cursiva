@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 import uvicorn
 import uuid
+import hashlib
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -114,6 +115,8 @@ class TailorRequest(BaseModel):
     # instead of regenerating from scratch.
     previous_tailored_cv: Optional[dict] = None
     thread_id: Optional[str] = None  # unused (no checkpointer); kept for client compatibility
+    # Set on a feedback redo: the run_id returned by the run being revised.
+    redo_of: Optional[str] = Field(None, max_length=64)
 
 from fastapi.responses import StreamingResponse
 
@@ -194,6 +197,15 @@ FAILED_REVIEW_MESSAGE = (
     "and your credit has been refunded. Try adjusting your answers or feedback and run it again."
 )
 ERROR_MESSAGE = "Something went wrong while generating your documents. Your credit has been refunded."
+FREE_REDO_ERROR_MESSAGE = "Something went wrong while revising your documents. Your free redo is still available."
+FREE_REDO_FAILED_MESSAGE = (
+    "We couldn't produce a revision that passed our quality checks. Your free redo is still available, "
+    "so you can adjust your feedback and try again."
+)
+
+
+def _jd_hash(job_description: str) -> str:
+    return hashlib.sha256((job_description or "").strip().encode("utf-8")).hexdigest()
 
 
 @app.post("/api/tailor")
@@ -202,10 +214,18 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
     if req.previous_tailored_cv is not None and len(json.dumps(req.previous_tailored_cv)) > 100_000:
         raise HTTPException(status_code=413, detail="Previous CV draft is too large.")
     credits.sweep_stale_runs()
-    try:
-        run_id = credits.charge_for_run(user_id)
-    except credits.InsufficientCredits:
-        raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+    jd_hash = _jd_hash(req.job_description)
+    # A feedback redo of a successful run for the same job ad gets one free
+    # attempt per application; any other run (or a second redo) costs a credit.
+    root_id = credits.resolve_redo_root(user_id, req.redo_of, jd_hash) if req.user_feedback else None
+    run_id = credits.open_free_redo(user_id, root_id, jd_hash) if root_id else None
+    is_free = run_id is not None
+    if not is_free:
+        try:
+            run_id = credits.charge_for_run(user_id, jd_hash=jd_hash, parent_run_id=root_id)
+        except credits.InsufficientCredits:
+            raise HTTPException(status_code=402, detail="Insufficient credits. Please top up your account.")
+    application_run_id = root_id or run_id
 
     # Plain (sync) generator on purpose: Starlette iterates it in a worker
     # thread. An async generator here would run the blocking LLM calls on the
@@ -305,7 +325,7 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
                 credits.refund_run(run_id, "failed_review", metrics=metrics("failed_review"))
                 outcome = "failed_review"
                 yield _sse({'type': 'result', 'status': 'failed_review', 'refunded': True,
-                            'message': FAILED_REVIEW_MESSAGE,
+                            'message': FREE_REDO_FAILED_MESSAGE if is_free else FAILED_REVIEW_MESSAGE,
                             'issues': final_state.get('review_feedback') or '',
                             'revision_count': final_state.get('revision_count')})
                 return
@@ -318,7 +338,9 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             yield _sse({'type': 'result', 'status': 'success', 'tailored_cv': final_state.get('tailored_cv'),
                         'cover_letter_parts': final_state.get('cover_letter_parts', {}),
                         'revision_count': final_state.get('revision_count'),
-                        'review_feedback': final_state.get('review_feedback')})
+                        'review_feedback': final_state.get('review_feedback'),
+                        'run_id': application_run_id,
+                        'free_redo_available': credits.free_redo_available(application_run_id)})
         except GeneratorExit:
             # Client disconnected before an outcome was recorded.
             if outcome is None:
@@ -330,7 +352,8 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             if outcome is None:
                 credits.refund_run(run_id, "error", f"{type(e).__name__}: {e}", metrics=metrics("error"))
                 outcome = "error"
-                yield _sse({'type': 'result', 'status': 'error', 'refunded': True, 'message': ERROR_MESSAGE})
+                yield _sse({'type': 'result', 'status': 'error', 'refunded': True,
+                            'message': FREE_REDO_ERROR_MESSAGE if is_free else ERROR_MESSAGE})
         finally:
             if outcome is None:
                 credits.refund_run(run_id, "error", "stream closed without an outcome", metrics=metrics("error"))
