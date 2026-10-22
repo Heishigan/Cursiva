@@ -154,6 +154,9 @@
   .segBtn { flex: 1; padding: 0 8px; }
   .reviewApprove { width: 100%; }
   .docs { gap: 32px; }
+  .strategy { gap: 28px; }
+  .adCard { flex: 1 1 100%; min-width: 0; }
+  .strategyMain { flex-basis: 100%; }
 }
 
 /* Accent outline on every text box while typing (same as the original job ad box). */
