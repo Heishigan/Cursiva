@@ -77,7 +77,7 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
 
         <section className={styles.strategyMain}>
           <div className={styles.block}>
-            <h2 className={styles.label}>The Strategist&apos;s read</h2>
+            <h2 className={styles.label}>Fit check</h2>
             <p className={styles.read}>{fitText || plan}</p>
           </div>
 
