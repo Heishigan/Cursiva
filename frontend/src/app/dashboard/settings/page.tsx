@@ -2,8 +2,10 @@
 import { useState, useEffect, Suspense } from "react";
 import styles from "./settings.module.css";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { CreditCard, Zap } from "lucide-react";
+import { CreditCard, FileText, Zap } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { CV_TEMPLATES, DEFAULT_CV_TEMPLATE, isCvTemplateId, type CvTemplateId } from "@/config/cvTemplates";
 
 function SettingsContent() {
   const { user, isLoaded } = useUser();
@@ -13,6 +15,8 @@ function SettingsContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState("");
   const [strictEligibility, setStrictEligibility] = useState<boolean>(true);
+  const [design, setDesign] = useState<CvTemplateId | null>(null);
+  const [designNote, setDesignNote] = useState("");
 
   useEffect(() => {
     if (searchParams.get("success")) {
@@ -36,6 +40,7 @@ function SettingsContent() {
         if (data.status === "success") {
           setCredits(data.data.credits !== undefined ? data.data.credits : null);
           setStrictEligibility(data.data.strict_eligibility !== undefined ? data.data.strict_eligibility : true);
+          setDesign(isCvTemplateId(data.data.cv_template) ? data.data.cv_template : DEFAULT_CV_TEMPLATE);
         }
       } catch (e) {
         console.error("Failed to check profile", e);
@@ -62,6 +67,27 @@ function SettingsContent() {
     } catch (e) {
       console.error("Failed to update strict eligibility", e);
       setStrictEligibility(!newVal); // revert on failure
+    }
+  };
+
+  const chooseDesign = async (id: CvTemplateId) => {
+    if (id === design) return;
+    const previous = design;
+    setDesign(id);
+    setDesignNote("");
+    try {
+      const token = await getToken();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
+        method: "POST",
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv_template: id })
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setDesignNote("Saved");
+    } catch (e) {
+      console.error("Failed to save the design", e);
+      setDesign(previous);
+      setDesignNote("Couldn't save. Try again.");
     }
   };
 
@@ -130,6 +156,42 @@ function SettingsContent() {
           {isLoading ? "Redirecting to Stripe..." : "Top Up 15 Credits - $5.00"}
         </button>
       </div>
+
+      <section id="design" className={styles.card} style={{ marginTop: '24px' }} aria-labelledby="design-title">
+        <div className={styles.designHead}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <FileText size={24} color="var(--accent)" aria-hidden="true" />
+            <h2 id="design-title" className={styles.cardTitle} style={{ margin: 0 }}>CV &amp; cover letter design</h2>
+          </div>
+          <span className={styles.designNote} aria-live="polite">{designNote}</span>
+        </div>
+        <p className={styles.cardDesc}>
+          Every new CV and cover letter uses this design. Applications you have already saved keep theirs. All five are single column and readable by applicant tracking systems.
+        </p>
+        <div className={styles.designGrid} role="radiogroup" aria-labelledby="design-title">
+          {CV_TEMPLATES.map((t) => {
+            const on = design === t.id;
+            return (
+              <button key={t.id} type="button" role="radio" aria-checked={on} disabled={design === null}
+                className={`${styles.designOption} ${on ? styles.designOn : ""}`} onClick={() => chooseDesign(t.id)}>
+                <span className={styles.designSheet}>
+                  <Image src={`/templates/${t.id}.jpg`} alt="" width={992} height={1403} sizes="(max-width: 600px) 45vw, 150px" />
+                  {on && (
+                    <span className={styles.designCheck} aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                    </span>
+                  )}
+                </span>
+                <span className={styles.designName}>{t.name}</span>
+                <span className={styles.designBlurb}>{t.blurb}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className={styles.designCredit}>
+          Classic is based on <a href="https://github.com/jakegut/resume" target="_blank" rel="noreferrer">Jake&apos;s Resume</a>.
+        </p>
+      </section>
 
       <div className={styles.card} style={{ marginTop: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>

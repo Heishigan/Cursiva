@@ -1,4 +1,4 @@
-// CV templates the user can pick. Ids must match backend/cv_templates.py.
+// CV and cover letter designs, chosen once in Settings. Ids must match backend/cv_templates.py.
 // Images in /public/templates are renders of the same sample CV in each style.
 export type CvTemplateId = "classic" | "modern" | "editorial" | "technical" | "signature";
 
@@ -23,18 +23,5 @@ export const DEFAULT_CV_TEMPLATE: CvTemplateId = "classic";
 export const isCvTemplateId = (v: unknown): v is CvTemplateId =>
   typeof v === "string" && CV_TEMPLATES.some((t) => t.id === v);
 
-const prefKey = (userId?: string | null) => `cursiva_cv_template_${userId || "anon"}`;
-
-/** The user's last-picked template (a per-browser convenience; the real choice is saved with each application). */
-export function loadTemplatePref(userId?: string | null): CvTemplateId {
-  try {
-    const v = typeof window !== "undefined" ? window.localStorage.getItem(prefKey(userId)) : null;
-    return isCvTemplateId(v) ? v : DEFAULT_CV_TEMPLATE;
-  } catch {
-    return DEFAULT_CV_TEMPLATE;
-  }
-}
-
-export function saveTemplatePref(id: CvTemplateId, userId?: string | null) {
-  try { window.localStorage.setItem(prefKey(userId), id); } catch { /* storage unavailable */ }
-}
+export const cvTemplateName = (id: unknown): string =>
+  (CV_TEMPLATES.find((t) => t.id === id) ?? CV_TEMPLATES[0]).name;

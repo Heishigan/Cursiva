@@ -1,7 +1,8 @@
 import styles from './flow.module.css';
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from '@clerk/nextjs';
-import { CV_TEMPLATES, isCvTemplateId, loadTemplatePref, saveTemplatePref, type CvTemplateId } from '@/config/cvTemplates';
+import Link from 'next/link';
+import { cvTemplateName } from '@/config/cvTemplates';
 
 const CL_FIELDS: [string, string][] = [
   ["salutation", "Greeting"], ["hook", "Opening"], ["match", "Why you"],
@@ -30,20 +31,9 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<"CV" | "Cover Letter" | "Job ad">("CV");
   const [view, setView] = useState<"preview" | "edit">("preview"); // small screens only
-  // The chosen template travels inside the CV data, so it is saved with the application
-  // and every later compile of that CV uses it.
-  const [cvData, setCvData] = useState(() => ({
-    ...data.cv,
-    template: isCvTemplateId(data.cv?.template) ? data.cv.template : loadTemplatePref(),
-  }));
-  const chooseTemplate = (id: CvTemplateId) => {
-    if (id === cvData.template) return;
-    const newCv = { ...cvData, template: id };
-    setCvData(newCv);
-    saveTemplatePref(id);
-    if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
-    compileCv(newCv);
-  };
+  // The design comes from Settings: the server compiles with it and says which one it
+  // used, and it is then kept in the CV data so the saved application keeps its look.
+  const [cvData, setCvData] = useState(data.cv);
   const [clData, setClData] = useState(data.cl);
   const [isSaving, setIsSaving] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -87,6 +77,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
          return;
       }
       setCvPdfUrl(`data:application/pdf;base64,${data.pdf_base64}`);
+      if (data.template) setCvData((prev: typeof data.cv) => (prev.template === data.template ? prev : { ...prev, template: data.template }));
     } catch (e: any) {
       console.error(e);
       setCvCompileError(e.message || "Failed to contact backend.");
@@ -120,7 +111,8 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
           personal_info: cvData.personal_info,
           company_name: data.company || "",
           company_location: clPayload.company_location || "Sweden",
-          cover_letter_paragraphs: paragraphs
+          cover_letter_paragraphs: paragraphs,
+          template: cvData.template
         })
       });
       const resData = await res.json();
@@ -255,6 +247,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   const showPreview = activeTab !== "Job ad";
   const pdfUrl = activeTab === "CV" ? cvPdfUrl : clPdfUrl;
   const compileError = activeTab === "CV" ? cvCompileError : clCompileError;
+  const activeCompiling = activeTab === "CV" ? isCompilingCv : isCompilingCl;
   const eyebrow = [data.role, data.company].filter(Boolean).join(" · ");
 
 
@@ -364,20 +357,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
 
         {showPreview && (
           <section aria-label="Preview" className={`${styles.previewCol} ${view === 'edit' ? styles.hideSmall : ''}`}>
-            {activeTab === "CV" && (
-              <div className={styles.templatePicker} role="radiogroup" aria-label="CV template">
-                {CV_TEMPLATES.map(t => (
-                  <button key={t.id} type="button" role="radio" aria-checked={cvData.template === t.id}
-                    className={`${styles.templateOption} ${cvData.template === t.id ? styles.templateOn : ''}`}
-                    onClick={() => chooseTemplate(t.id)} disabled={isCompilingCv && cvData.template !== t.id} title={t.blurb}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/templates/${t.id}-thumb.png`} alt="" width={48} height={68} className={styles.templateThumb} />
-                    <span>{t.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className={`${styles.paper} ${styles.previewSheet}`}>
+            <div className={`${styles.paper} ${styles.previewSheet}`} aria-busy={activeCompiling}>
               {pdfUrl ? (
                 <>
                   <iframe src={`${pdfUrl}#toolbar=0&view=FitH`} title={`${activeTab === "CV" ? "CV" : "Cover letter"} preview`} className={styles.previewFrame} />
@@ -392,11 +372,17 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                   <span style={{ whiteSpace: 'pre-wrap' }}>{compileError}</span>
                   <button className={styles.ghost} style={{ color: '#1a1a1c', borderColor: '#cfccc2' }} onClick={() => activeTab === "CV" ? compileCv(cvData) : compileCl(clData)}>Try again</button>
                 </div>
-              ) : (
-                <div className={styles.waitingSheet}>Building the PDF…</div>
+              ) : null}
+              {(activeCompiling || (!pdfUrl && !compileError)) && (
+                <div className={`${styles.throbber} ${pdfUrl ? styles.throbberOver : ''}`} role="status">
+                  <span className={styles.spinner} aria-hidden="true" />
+                  <span className={styles.srOnly}>{pdfUrl ? "Updating the PDF" : "Building the PDF"}</span>
+                </div>
               )}
             </div>
-            <div className={styles.previewNote} aria-live="polite">{compiling ? "Updating the PDF…" : "The PDF updates as you edit."}</div>
+            <div className={styles.previewNote}>
+              Design: {cvTemplateName(cvData.template)} · <Link href="/dashboard/settings#design" className={styles.previewLink}>Change in Settings</Link>
+            </div>
           </section>
         )}
       </div>
