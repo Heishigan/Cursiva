@@ -161,3 +161,11 @@
 
 /* Accent outline on every text box while typing (same as the original job ad box). */
 .jdPaper:focus-within, .feedback:focus-within, .field:focus, .edit:focus { outline: none; box-shadow: 0 0 0 2px rgba(200, 242, 76, 0.5); }
+
+/* Template picker above the CV preview */
+.templatePicker { width: 100%; display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: thin; }
+.templateOption { flex: 1 0 64px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text-dim); font: 600 12px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; }
+.templateOption:hover:not(:disabled) { border-color: #4a4a50; color: var(--text-strong); }
+.templateOption:disabled { opacity: 0.5; cursor: wait; }
+.templateOn { border-color: var(--accent); color: var(--text-strong); box-shadow: 0 0 0 1px var(--accent); }
+.templateThumb { width: 48px; height: 68px; object-fit: cover; object-position: top; border-radius: 3px; background: #fff; display: block; }

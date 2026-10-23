@@ -1,9 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Show, UserButton } from "@clerk/nextjs";
-import { CheckCircle2, ExternalLink } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import styles from "./page.module.css";
 import Footer from "@/components/Footer";
+import TemplateStack from "@/components/landing/TemplateStack";
 import Logo from "@/components/Logo";
 
 export default function Home() {
@@ -118,9 +118,9 @@ export default function Home() {
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2 className={`${styles.sectionTitle} font-anton`}>WHY JAKE'S RESUME FORMAT?</h2>
+            <h2 className={`${styles.sectionTitle} font-anton`}>FIVE TEMPLATES. ALL ATS-SAFE.</h2>
             <p className={styles.sectionSubtitle} style={{ marginLeft: 0, textAlign: 'left', marginBottom: '40px' }}>
-              We exclusively compile your tailored CV and Cover Letter into the legendary "Jake's Resume" LaTeX template and a standard business format. Here is why:
+              Pick the style that fits you: the legendary "Jake's Resume" format or one of four originals. Every one is compiled with LaTeX, and your cover letter comes in a clean, standard business format. Here is why:
             </p>
           </div>
           <div className={styles.grid2}>
@@ -128,11 +128,11 @@ export default function Home() {
               <ul className={styles.featureList}>
                 <li className={styles.featureItem}>
                   <CheckCircle2 size={20} className={styles.checkIcon} />
-                  <span><span className={styles.featureTitle}>100% ATS Parser Compatibility.</span> Complex columns, icons, and graphic templates confuse Applicant Tracking Systems. Jake's format is perfectly structured text.</span>
+                  <span><span className={styles.featureTitle}>100% ATS Parser Compatibility.</span> Complex columns, icons, and graphic templates confuse Applicant Tracking Systems. Every Cursiva template is single column, perfectly structured text.</span>
                 </li>
                 <li className={styles.featureItem}>
                   <CheckCircle2 size={20} className={styles.checkIcon} />
-                  <span><span className={styles.featureTitle}>High Readability.</span> Recruiters scan resumes in 6 seconds. This academic-grade format directs eyes straight to your bolded job titles, companies, and impact metrics.</span>
+                  <span><span className={styles.featureTitle}>High Readability.</span> Recruiters scan resumes in 6 seconds. Each template directs eyes straight to your job titles, companies, and impact metrics.</span>
                 </li>
                 <li className={styles.featureItem}>
                   <CheckCircle2 size={20} className={styles.checkIcon} />
@@ -145,31 +145,7 @@ export default function Home() {
               </ul>
             </div>
             
-            <div className={styles.resumeContainer}>
-              <div className={styles.resumeImageWrapper}>
-                <Image
-                  src="/jakes-resume.jpg"
-                  alt="A CV in Jake's Resume LaTeX format"
-                  width={1700}
-                  height={2000}
-                  priority
-                  className={styles.resumeImage}
-                />
-              </div>
-
-              {/* Bottom Right Citation Link */}
-              <div className={styles.resumeFooterRow}>
-                <a
-                  href="https://github.com/jakegut/resume"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.githubCitation}
-                >
-                  <span>github.com/jakegut/resume</span>
-                  <ExternalLink size={12} />
-                </a>
-              </div>
-            </div>
+            <TemplateStack />
           </div>
         </section>
 

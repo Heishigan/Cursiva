@@ -1,6 +1,7 @@
 import styles from './flow.module.css';
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from '@clerk/nextjs';
+import { CV_TEMPLATES, isCvTemplateId, loadTemplatePref, saveTemplatePref, type CvTemplateId } from '@/config/cvTemplates';
 
 const CL_FIELDS: [string, string][] = [
   ["salutation", "Greeting"], ["hook", "Opening"], ["match", "Why you"],
@@ -29,7 +30,20 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<"CV" | "Cover Letter" | "Job ad">("CV");
   const [view, setView] = useState<"preview" | "edit">("preview"); // small screens only
-  const [cvData, setCvData] = useState(data.cv);
+  // The chosen template travels inside the CV data, so it is saved with the application
+  // and every later compile of that CV uses it.
+  const [cvData, setCvData] = useState(() => ({
+    ...data.cv,
+    template: isCvTemplateId(data.cv?.template) ? data.cv.template : loadTemplatePref(),
+  }));
+  const chooseTemplate = (id: CvTemplateId) => {
+    if (id === cvData.template) return;
+    const newCv = { ...cvData, template: id };
+    setCvData(newCv);
+    saveTemplatePref(id);
+    if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
+    compileCv(newCv);
+  };
   const [clData, setClData] = useState(data.cl);
   const [isSaving, setIsSaving] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -350,6 +364,19 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
 
         {showPreview && (
           <section aria-label="Preview" className={`${styles.previewCol} ${view === 'edit' ? styles.hideSmall : ''}`}>
+            {activeTab === "CV" && (
+              <div className={styles.templatePicker} role="radiogroup" aria-label="CV template">
+                {CV_TEMPLATES.map(t => (
+                  <button key={t.id} type="button" role="radio" aria-checked={cvData.template === t.id}
+                    className={`${styles.templateOption} ${cvData.template === t.id ? styles.templateOn : ''}`}
+                    onClick={() => chooseTemplate(t.id)} disabled={isCompilingCv && cvData.template !== t.id} title={t.blurb}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/templates/${t.id}-thumb.png`} alt="" width={48} height={68} className={styles.templateThumb} />
+                    <span>{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <div className={`${styles.paper} ${styles.previewSheet}`}>
               {pdfUrl ? (
                 <>
