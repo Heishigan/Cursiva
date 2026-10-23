@@ -21,7 +21,8 @@ from sqlalchemy.orm import Session
 import stripe
 from fastapi import Request
 
-from core.models import FullCVData
+from core.models import FullCVData, CompileCVRequest
+from cv_templates import template_file
 from core.agent import setup_node, strategist_node, tailor_app, extract_lesson
 
 from database import engine, get_db, SessionLocal
@@ -449,8 +450,8 @@ def sanitize_url(url: str) -> str:
 
 @app.post("/api/compile_cv")
 @limiter.limit("20/minute")
-def compile_cv(request: Request, req: FullCVData, user_id: str = Depends(get_current_user_id)):
-    data = req.model_dump()
+def compile_cv(request: Request, req: CompileCVRequest, user_id: str = Depends(get_current_user_id)):
+    data = req.model_dump(exclude={"template"})
     
     # Ensure URLs have https:// prefix for valid LaTeX hyperlinks and sanitize
     if 'personal_info' in data and data['personal_info']:
@@ -471,7 +472,7 @@ def compile_cv(request: Request, req: FullCVData, user_id: str = Depends(get_cur
     template_dir = os.path.join(os.path.dirname(__file__), 'templates')
     try:
         jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
-        template = jinja_env.get_template('cv_template.tex')
+        template = jinja_env.get_template(template_file(req.template))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {str(e)}")
 

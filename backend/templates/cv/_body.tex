@@ -1,0 +1,53 @@
+%% Shared body: the same JSON fields as classic.tex. Each template only defines
+%% \cvheader{name}{contacts}{first name}{rest of name}, \cvsection{title},
+%% \cvitem{title}{date}{subtitle and context joined}{subtitle}{context}, \cvskillsep,
+%% and the cvbullets and cvskills environments.
+\pagestyle{empty}
+\frenchspacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\begin{document}
+{%- set full = personal_info.get('name', '') -%}
+{%- set parts = full.split(' ', 1) -%}
+\cvheader{ {{- full -}} }{
+{%- set ns = namespace(first=true) -%}
+{%- for key in ['location', 'phone', 'email', 'github', 'linkedin', 'portfolio'] -%}
+{%- set val = personal_info.get(key, '') -%}
+{%- if val -%}
+{%- if not ns.first %}\cvsep {% endif -%}
+{%- if key == 'email' -%}\href{mailto:{{ val }}}{ {{- val -}} }
+{%- elif key in ['github', 'linkedin', 'portfolio'] -%}\href{ {{- val -}} }{ {{- val|replace('https://', '')|replace('http://', '')|replace('www.', '') -}} }
+{%- else -%}{{ val }}{%- endif -%}
+{%- set ns.first = false -%}
+{%- endif -%}
+{%- endfor -%}
+}{ {{- parts[0] -}} }{ {{- parts[1] if parts|length > 1 else '' -}} }
+
+{% if professional_summary %}
+\cvsection{Professional Summary}
+{{ professional_summary }}
+{% endif %}
+
+{% for section in sections %}
+\cvsection{ {{- section.title -}} }
+{% if section.type == 'skills' %}
+\begin{cvskills}
+{% for item in section['items'] %}
+\cvskill{ {{- item.title -}} }{ {%- if item.bullets %}{{ item.bullets | join('\\cvskillsep{} ') }}{% elif item.context %}{{ item.context }}{% endif -%} }
+{% endfor %}
+\end{cvskills}
+{% else %}
+{% for item in section['items'] %}
+\cvitem{ {%- if item.url %}\href{ {{- item.url -}} }{ {{- item.title -}} }{% else %}{{ item.title }}{% endif -%} }{ {{- item.date -}} }{ {%- if item.subtitle and item.subtitle|trim %}{{ item.subtitle }}{% endif %}{% if (item.subtitle and item.subtitle|trim) and (item.context and item.context|trim) %}\cvsubsep {% endif %}{% if item.context and item.context|trim %}{{ item.context }}{% endif -%} }{ {{- item.subtitle -}} }{ {{- item.context -}} }
+{% if item.bullets %}
+\begin{cvbullets}
+{% for bullet in item.bullets %}
+\item {{ bullet }}
+{% endfor %}
+\end{cvbullets}
+{% endif %}
+\cvitemend
+{% endfor %}
+{% endif %}
+{% endfor %}
+\end{document}

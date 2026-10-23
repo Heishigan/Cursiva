@@ -1,5 +1,6 @@
 from typing import TypedDict, List, Optional
 from pydantic import BaseModel, Field
+from cv_templates import TemplateId, DEFAULT_TEMPLATE
 
 # --- PYDANTIC MODELS ---
 class PersonalInfo(BaseModel):
@@ -49,6 +50,10 @@ class FullCVData(BaseModel):
     personal_info: PersonalInfo
     professional_summary: str
     sections: List[Section]
+
+class CompileCVRequest(FullCVData):
+    # Which CV template to compile with; unknown ids are rejected (422).
+    template: TemplateId = DEFAULT_TEMPLATE
 
 class CVData(BaseModel):
     reasoning: str = Field(description="Explain your logic for selecting and tailoring items across all sections, and how you injected ATS keywords naturally.")
