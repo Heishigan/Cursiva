@@ -14,10 +14,10 @@
 \definecolor{hair}{HTML}{D4D4D8}
 \hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, pdftitle={ {{- personal_info.get('name', '') }} {{ 'Cover Letter' if document == 'letter' else 'CV' }}}, pdfauthor={ {{- personal_info.get('name', '') -}} }}
 {% raw %}
-\newcommand{\cvsep}{\enspace{\color{hair}/}\enspace\allowbreak}
+\newcommand{\cvsep}{\discretionary{}{}{\hbox{\enspace{\color{hair}/}\enspace}}}
 \newcommand{\cvskillsep}{,}
 \newcommand{\cvsubsep}{\enspace/\enspace}
-\newcommand{\cvheader}[4]{{\fontsize{22}{26}\selectfont\fontseries{sb}\selectfont #1}\par\vspace{5pt}{\small\ttfamily\color{muted}\raggedright #2\par}\vspace{4pt}}
+\newcommand{\cvheader}[4]{{\centering{\fontsize{22}{26}\selectfont\fontseries{sb}\selectfont #1}\par\vspace{5pt}{\small\ttfamily\color{muted}#2}\par}\vspace{4pt}}
 \newcommand{\cvsection}[1]{\par\vspace{10pt}{\color{accent}\rule[-1.5pt]{3pt}{11pt}}\hspace{7pt}{\fontseries{sb}\selectfont\color{accent}#1}\hspace{8pt}{\color{hair}\leaders\hrule height 2.6pt depth -2.2pt\hfill}\par\vspace{5pt}}
 \newcommand{\cvitem}[5]{\par{\fontseries{sb}\selectfont #1}\hfill{\small\ttfamily\color{muted}#2}\par{\small\color{muted}#3}\par}
 \newcommand{\cvitemend}{\par\vspace{6pt}}

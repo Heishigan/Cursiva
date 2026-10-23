@@ -1,8 +1,12 @@
 {#- The name and contact line, shared by the CV and the cover letter. Each contact
-    detail is kept whole; the line may only wrap between details (at \cvsep). -#}
+    detail is kept whole; the line may only wrap between details,
+    and the separator is dropped where it wraps (\cvsep is a \discretionary). -#}
+%% Centred contact line. If it has to wrap, the finite stretch on both sides
+%% makes TeX balance the two lines instead of leaving one detail alone.
+\providecommand{\cvcontactline}[1]{\begingroup\leftskip=0pt plus 0.5\linewidth\rightskip=0pt plus 0.5\linewidth\parfillskip=0pt\parindent=0pt\noindent #1\par\endgroup}
 {%- set full = personal_info.get('name', '') -%}
 {%- set parts = full.split(' ', 1) -%}
-\cvheader{ {{- full -}} }{
+\cvheader{ {{- full -}} }{\cvcontactline{
 {%- set ns = namespace(first=true) -%}
 {%- for key in ['location', 'phone', 'email', 'github', 'linkedin', 'portfolio'] -%}
 {%- set val = personal_info.get(key, '') -%}
@@ -14,4 +18,4 @@
 {%- set ns.first = false -%}
 {%- endif -%}
 {%- endfor -%}
-}{ {{- parts[0] -}} }{ {{- parts[1] if parts|length > 1 else '' -}} }
+}}{ {{- parts[0] -}} }{ {{- parts[1] if parts|length > 1 else '' -}} }

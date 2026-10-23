@@ -11,7 +11,7 @@
 \definecolor{accent}{HTML}{7A2E2E}
 \hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, pdftitle={ {{- personal_info.get('name', '') }} {{ 'Cover Letter' if document == 'letter' else 'CV' }}}, pdfauthor={ {{- personal_info.get('name', '') -}} }}
 {% raw %}
-\newcommand{\cvsep}{\enspace{\color{accent}\textperiodcentered}\enspace\allowbreak}
+\newcommand{\cvsep}{\discretionary{}{}{\hbox{\enspace{\color{accent}\textperiodcentered}\enspace}}}
 \newcommand{\cvskillsep}{,}
 \newcommand{\cvsubsep}{, }
 \newcommand{\cvheader}[4]{\begin{center}{\fontsize{26}{30}\selectfont\color{accent}\textsc{\textls{#1}}}\par\vspace{6pt}{\itshape #2}\end{center}\vspace{-4pt}}
