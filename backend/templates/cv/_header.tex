@@ -1,0 +1,17 @@
+{#- The name and contact line, shared by the CV and the cover letter. Each contact
+    detail is kept whole; the line may only wrap between details (at \cvsep). -#}
+{%- set full = personal_info.get('name', '') -%}
+{%- set parts = full.split(' ', 1) -%}
+\cvheader{ {{- full -}} }{
+{%- set ns = namespace(first=true) -%}
+{%- for key in ['location', 'phone', 'email', 'github', 'linkedin', 'portfolio'] -%}
+{%- set val = personal_info.get(key, '') -%}
+{%- if val -%}
+{%- if not ns.first %}\cvsep {% endif -%}
+{%- if key == 'email' -%}\href{mailto:{{ val }}}{ {{- val -}} }
+{%- elif key in ['github', 'linkedin', 'portfolio'] -%}\href{ {{- val -}} }{ {{- val|replace('https://', '')|replace('http://', '')|replace('www.', '') -}} }
+{%- else -%}\mbox{ {{- val -}} }{%- endif -%}
+{%- set ns.first = false -%}
+{%- endif -%}
+{%- endfor -%}
+}{ {{- parts[0] -}} }{ {{- parts[1] if parts|length > 1 else '' -}} }

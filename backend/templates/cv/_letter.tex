@@ -1,0 +1,26 @@
+%% Cover letter body for the four newer designs: the same header as the CV,
+%% then the company, the date and the letter. Uses the styling of the file
+%% that includes it (rendered with document="letter"), margins included, so the
+%% header lines up exactly as on the CV.
+{% include 'cv/_unicode.tex' %}
+\pagestyle{empty}
+\frenchspacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\begin{document}
+{% include 'cv/_header.tex' %}
+
+\vspace{22pt}
+\noindent\begin{minipage}[t]{0.62\linewidth}\raggedright
+\textbf{ {{- company_name -}} }\par
+{{ company_location }}
+\end{minipage}\hfill\begin{minipage}[t]{0.34\linewidth}\raggedleft
+\today
+\end{minipage}\par
+\vspace{24pt}
+\fontsize{10.5}{15.5}\selectfont
+{% for paragraph in cover_letter_paragraphs %}
+{{ paragraph }}\par
+\vspace{10pt}
+{% endfor %}
+\end{document}

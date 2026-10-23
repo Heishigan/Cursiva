@@ -2,7 +2,8 @@
 \documentclass[a4paper,10.5pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[default]{sourcesanspro}
+%% Source Sans was renamed (sourcesanspro -> sourcesans, 2026); use whichever is installed.
+\IfFileExists{sourcesans.sty}{\usepackage[default]{sourcesans}}{\usepackage[default]{sourcesanspro}}
 \usepackage[letterspace=80]{microtype}
 \usepackage[a4paper, top=1.6cm, bottom=1.6cm, left=1.8cm, right=1.8cm]{geometry}
 \usepackage{enumitem}
@@ -10,9 +11,9 @@
 \usepackage{hyperref}
 \definecolor{accent}{HTML}{0F766E}
 \definecolor{muted}{HTML}{5B6470}
-\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, pdftitle={ {{- personal_info.get('name', '') -}} CV}, pdfauthor={ {{- personal_info.get('name', '') -}} }}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, pdftitle={ {{- personal_info.get('name', '') }} {{ 'Cover Letter' if document == 'letter' else 'CV' }}}, pdfauthor={ {{- personal_info.get('name', '') -}} }}
 {% raw %}
-\newcommand{\cvsep}{\enspace{\color{accent}|}\enspace}
+\newcommand{\cvsep}{\enspace{\color{accent}|}\enspace\allowbreak}
 \newcommand{\cvskillsep}{,}
 \newcommand{\cvsubsep}{\enspace·\enspace}
 \newcommand{\cvheader}[4]{{\fontsize{24}{28}\selectfont\bfseries #1}\par\vspace{5pt}{\small\color{muted}#2}\par\vspace{2pt}}
@@ -23,4 +24,4 @@
 \newenvironment{cvskills}{\begin{tabular}{@{}p{3.3cm}p{\dimexpr\linewidth-3.3cm-2\tabcolsep\relax}@{}}}{\end{tabular}}
 \newcommand{\cvskill}[2]{\textbf{#1} & #2 \\[3pt]}
 {% endraw %}
-{% include 'cv/_body.tex' %}
+{% include 'cv/_letter.tex' if document == 'letter' else 'cv/_body.tex' %}

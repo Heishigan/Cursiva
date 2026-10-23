@@ -22,7 +22,7 @@ import stripe
 from fastapi import Request
 
 from core.models import FullCVData, CompileCVRequest
-from cv_templates import template_file
+from cv_templates import TemplateId, template_file, resolve_template, letter_template
 from core.agent import setup_node, strategist_node, tailor_app, extract_lesson
 
 from database import engine, get_db, SessionLocal
@@ -448,70 +448,107 @@ def sanitize_url(url: str) -> str:
     url = re.sub(r'[\\{}\[\]]', '', url)
     return url
 
+def _latex_error(stdout: bytes) -> str:
+    """The lines of a LaTeX log that say what went wrong (the '!' line and its context)."""
+    lines = stdout.decode("utf-8", errors="ignore").splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("!"):
+            return "\n".join(lines[i:i + 4])
+    return "\n".join(lines[-15:])
+
+
+# pdfLaTeX cannot print emoji; drop them (and the invisible joiners/selectors that come with them).
+_EMOJI = re.compile("[\U0001F000-\U0001FAFF\U00002600-\U000026FF\U00002700-\U000027BF\uFE0E\uFE0F\u200D]")
+_KEEP = set("\u2605\u2713\u2714")  # mapped in templates/cv/_unicode.tex
+
+
+def _strip_emoji(obj):
+    if isinstance(obj, str):
+        return _EMOJI.sub(lambda m: m.group(0) if m.group(0) in _KEEP else "", obj)
+    if isinstance(obj, dict):
+        return {k: _strip_emoji(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_strip_emoji(v) for v in obj]
+    return obj
+
+
+def _clean_personal_info(info: dict) -> dict:
+    """https:// prefix and sanitised URLs, so the links in the header work."""
+    info = dict(info or {})
+    for key in ['github', 'linkedin', 'portfolio']:
+        url = info.get(key, '') or ''
+        if url and not url.startswith('http'):
+            url = 'https://' + url
+        info[key] = sanitize_url(url)
+    return info
+
+
+def _saved_template(db: Session, user_id: str) -> Optional[str]:
+    profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
+    return profile.cv_template if profile is not None else None
+
+
+def _compile_pdf(tex_content: str, name: str, engine: str, user_id: str, what: str, extra_files=()) -> bytes:
+    """Compile tex_content to PDF in a temporary directory and return the bytes."""
+    import shutil
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with open(os.path.join(temp_dir, f'{name}.tex'), 'w', encoding='utf-8') as f:
+            f.write(tex_content)
+        for src in extra_files:
+            dest = os.path.join(temp_dir, os.path.basename(src))
+            if os.path.isdir(src):
+                shutil.copytree(src, dest)
+            else:
+                shutil.copy2(src, temp_dir)
+        cmd = [engine, '-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', f'{name}.tex']
+        try:
+            # pdflatex runs twice so references settle; XeLaTeX letters need one pass.
+            for _ in range(2 if engine == 'pdflatex' else 1):
+                subprocess.run(cmd, cwd=temp_dir, check=True, capture_output=True, timeout=60)
+        except subprocess.TimeoutExpired:
+            logger.error("LaTeX compilation timed out for user %s (%s)", user_id, what)
+            raise HTTPException(status_code=500, detail="PDF compilation timed out.")
+        except subprocess.CalledProcessError as e:
+            logger.error("LaTeX failed for user %s (%s): %s", user_id, what, _latex_error(e.stdout or b""))
+            raise HTTPException(status_code=500, detail="PDF compilation failed. Check your data for unsupported characters.")
+        pdf_path = os.path.join(temp_dir, f'{name}.pdf')
+        if not os.path.exists(pdf_path):
+            raise HTTPException(status_code=500, detail="PDF was not generated.")
+        with open(pdf_path, 'rb') as f:
+            return f.read()
+
+
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+
+
+def _jinja_template(path: str):
+    try:
+        return jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATE_DIR)).get_template(path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template error: {str(e)}")
+
+
 @app.post("/api/compile_cv")
 @limiter.limit("20/minute")
-def compile_cv(request: Request, req: CompileCVRequest, user_id: str = Depends(get_current_user_id)):
+def compile_cv(request: Request, req: CompileCVRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    # The design: the one this CV was saved with, else the one chosen in Settings.
+    template_id = resolve_template(req.template, _saved_template(db, user_id))
     data = req.model_dump(exclude={"template"})
-    
-    # Ensure URLs have https:// prefix for valid LaTeX hyperlinks and sanitize
-    if 'personal_info' in data and data['personal_info']:
-        for key in ['github', 'linkedin', 'portfolio']:
-            url = data['personal_info'].get(key, '')
-            if url and not url.startswith('http'):
-                url = 'https://' + url
-            data['personal_info'][key] = sanitize_url(url)
-            
+    if data.get('personal_info'):
+        data['personal_info'] = _clean_personal_info(data['personal_info'])
     for section in data.get('sections', []):
         for item in section.get('items', []):
             if item.get('url'):
                 item['url'] = sanitize_url(item['url'])
 
     # Apply escaping to prevent LaTeX compilation errors
-    safe_data = _escape_data(data)
-    
-    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-    try:
-        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
-        template = jinja_env.get_template(template_file(req.template))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Template error: {str(e)}")
+    safe_data = _escape_data(_strip_emoji(data))
+    tex_content = _jinja_template(template_file(template_id)).render(**safe_data)
+    pdf_bytes = _compile_pdf(tex_content, 'cv', 'pdflatex', user_id, 'CV')
 
-    tex_content = template.render(**safe_data)
-    
-    # Create a temporary directory to compile the PDF
-    with tempfile.TemporaryDirectory() as temp_dir:
-        tex_path = os.path.join(temp_dir, 'cv.tex')
-        with open(tex_path, 'w', encoding='utf-8') as f:
-            f.write(tex_content)
-        
-        # Run pdflatex twice for references
-        try:
-            subprocess.run(
-                ['pdflatex', '-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', 'cv.tex'],
-                cwd=temp_dir, check=True, capture_output=True, timeout=60
-            )
-            subprocess.run(
-                ['pdflatex', '-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', 'cv.tex'],
-                cwd=temp_dir, check=True, capture_output=True, timeout=60
-            )
-        except subprocess.TimeoutExpired:
-            logger.error("LaTeX compilation timed out for user %s", user_id)
-            raise HTTPException(status_code=500, detail="PDF compilation timed out.")
-        except subprocess.CalledProcessError as e:
-            logger.error("LaTeX failed for user %s: %s", user_id, e.stdout.decode('utf-8', errors='ignore'))
-            raise HTTPException(status_code=500, detail="PDF compilation failed. Check your CV data for unsupported characters.")
-            
-        pdf_path = os.path.join(temp_dir, 'cv.pdf')
-        if not os.path.exists(pdf_path):
-            raise HTTPException(status_code=500, detail="PDF was not generated.")
-            
-        with open(pdf_path, 'rb') as f:
-            pdf_bytes = f.read()
-
-    # Return the raw PDF bytes
     import base64
     b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-    return JSONResponse(content={"status": "success", "pdf_base64": b64_pdf})
+    return JSONResponse(content={"status": "success", "pdf_base64": b64_pdf, "template": template_id})
 
 class FeedbackRequest(BaseModel):
     user_feedback: str = Field(..., max_length=5_000)
@@ -527,58 +564,32 @@ class CompileCLRequest(BaseModel):
     company_name: str
     company_location: str = "Sweden"
     cover_letter_paragraphs: list
+    # The letter uses the same design as the CV; unknown ids are rejected (422).
+    template: Optional[TemplateId] = None
 
 @app.post("/api/compile_cl")
 @limiter.limit("20/minute")
-def compile_cl(request: Request, req: CompileCLRequest, user_id: str = Depends(get_current_user_id)):
-    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-    try:
-        jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
-        template = jinja_env.get_template('cl_template.tex')
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Template error: {str(e)}")
-
-    safe_paragraphs = [_escape_data(p).replace('\r\n', '\n').replace('\n\n', ' \\\\ \\mbox{} \\\\ ').replace('\n', ' \\\\ ') for p in req.cover_letter_paragraphs]
-    tex_content = template.render(
-        personal_info=_escape_data(req.personal_info),
+def compile_cl(request: Request, req: CompileCLRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    template_id = resolve_template(req.template, _saved_template(db, user_id))
+    path, engine = letter_template(template_id)
+    paragraphs, info = req.cover_letter_paragraphs, req.personal_info
+    if engine == 'pdflatex':
+        paragraphs, info = _strip_emoji(paragraphs), _clean_personal_info(_strip_emoji(info))
+    safe_paragraphs = [_escape_data(p).replace('\r\n', '\n').replace('\n\n', ' \\\\ \\mbox{} \\\\ ').replace('\n', ' \\\\ ') for p in paragraphs]
+    tex_content = _jinja_template(path).render(
+        document='letter',
+        personal_info=_escape_data(info),
         company_name=_escape_data(req.company_name),
         company_location=_escape_data(req.company_location),
         cover_letter_paragraphs=safe_paragraphs
     )
-    
-    with tempfile.TemporaryDirectory() as temp_dir:
-        tex_path = os.path.join(temp_dir, 'cl.tex')
-        with open(tex_path, 'w', encoding='utf-8') as f:
-            f.write(tex_content)
-        
-        import shutil
-        shutil.copy2(os.path.join(template_dir, 'cover.cls'), temp_dir)
-        dest_fonts = os.path.join(temp_dir, 'OpenFonts')
-        if not os.path.exists(dest_fonts):
-            shutil.copytree(os.path.join(template_dir, 'OpenFonts'), dest_fonts)
-
-        try:
-            subprocess.run(
-                ['xelatex', '-no-shell-escape', '-interaction=nonstopmode', '-halt-on-error', 'cl.tex'],
-                cwd=temp_dir, check=True, capture_output=True, timeout=60
-            )
-        except subprocess.TimeoutExpired:
-            logger.error("LaTeX compilation timed out for user %s (CL)", user_id)
-            raise HTTPException(status_code=500, detail="PDF compilation timed out.")
-        except subprocess.CalledProcessError as e:
-            logger.error("LaTeX failed for user %s (CL): %s", user_id, e.stdout.decode('utf-8', errors='ignore'))
-            raise HTTPException(status_code=500, detail="PDF compilation failed. Check your data for unsupported characters.")
-            
-        pdf_path = os.path.join(temp_dir, 'cl.pdf')
-        if not os.path.exists(pdf_path):
-            raise HTTPException(status_code=500, detail="PDF was not generated.")
-            
-        with open(pdf_path, 'rb') as f:
-            pdf_bytes = f.read()
+    # The classic letter needs its class file and bundled fonts next to it.
+    extra = [os.path.join(TEMPLATE_DIR, 'cover.cls'), os.path.join(TEMPLATE_DIR, 'OpenFonts')] if engine == 'xelatex' else []
+    pdf_bytes = _compile_pdf(tex_content, 'cl', engine, user_id, 'CL', extra)
 
     import base64
     b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-    return JSONResponse(content={"status": "success", "pdf_base64": b64_pdf})
+    return JSONResponse(content={"status": "success", "pdf_base64": b64_pdf, "template": template_id})
 
 @app.get("/")
 def read_root():
@@ -588,6 +599,7 @@ class ProfileUpdate(BaseModel):
     cv_data_json: Optional[str] = None
     email: Optional[str] = None  # Ignored: trial eligibility uses the verified email from Clerk (see trial.py)
     strict_eligibility: Optional[bool] = None
+    cv_template: Optional[TemplateId] = None  # CV and cover letter design (Settings)
 
 @app.get("/api/user/profile")
 def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
@@ -596,7 +608,7 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
         return {"status": "success", "data": {"has_baseline": False, "cv_data": None}}
     
     cv_data = json.loads(profile.cv_data_json) if profile.cv_data_json else None
-    return {"status": "success", "data": {"has_baseline": bool(cv_data), "cv_data": cv_data, "credits": profile.credits, "strict_eligibility": profile.strict_eligibility}}
+    return {"status": "success", "data": {"has_baseline": bool(cv_data), "cv_data": cv_data, "credits": profile.credits, "strict_eligibility": profile.strict_eligibility, "cv_template": resolve_template(profile.cv_template)}}
 
 
 
@@ -623,6 +635,8 @@ def update_user_profile(request: Request, req: ProfileUpdate, user_id: str = Dep
                 profile.cv_embedding_json = embedding_json
         if req.strict_eligibility is not None:
             profile.strict_eligibility = req.strict_eligibility
+        if req.cv_template is not None:
+            profile.cv_template = req.cv_template
 
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     if not profile:
