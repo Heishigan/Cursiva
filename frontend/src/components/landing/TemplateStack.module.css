@@ -21,7 +21,7 @@
 .name { font-weight: 700; color: var(--text-strong); margin-right: 10px; }
 .count { font-size: 0.85rem; color: var(--text-dim); }
 .hint { font-size: 0.85rem; color: var(--text-dim); }
-.credit { font-size: 0.78rem; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; min-height: 1.2em; }
+.credit { font-size: 0.85rem; color: var(--text-dim); min-height: 1.2em; }
 .credit a { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); text-decoration: none; }
 .credit a:hover { color: var(--accent); }
 
