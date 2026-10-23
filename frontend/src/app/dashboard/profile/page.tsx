@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import styles from "./profile.module.css";
 import Link from "next/link";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { ExternalLink, FileText, Pencil, Plus, Briefcase, GraduationCap, Award, FolderGit2, Code2, Info, Globe, Download, ChevronUp, ChevronDown } from "lucide-react";
+import { ExternalLink, FileText, Pencil, Plus, Briefcase, GraduationCap, Award, FolderGit2, Code2, Info, Palette, Globe, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 
 export default function ProfilePage() {
@@ -468,13 +468,16 @@ export default function ProfilePage() {
         </div>
 
         {/* Dynamic Sections */}
-        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', padding: '12px 16px', borderRadius: '8px', marginBottom: '12px', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
           <Info size={16} color="var(--accent)" style={{ marginTop: '2px', flexShrink: 0 }} />
           <div>
             <strong>Customize Your CV:</strong> You can freely edit, reorder, or add custom sections below to best represent your experience. The AI will use this baseline to tailor your applications.
-            <div style={{ marginTop: '6px' }}>
-              <strong>Choose a design:</strong> Your CV and cover letter use the design picked in <Link href="/dashboard/settings#design" style={{ color: 'var(--accent)' }}>Settings</Link>. Change it there at any time.
-            </div>
+          </div>
+        </div>
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <Palette size={16} color="var(--accent)" style={{ marginTop: '2px', flexShrink: 0 }} />
+          <div>
+            <strong>Choose a design:</strong> Your CV and cover letter use the design picked in <Link href="/dashboard/settings#design" style={{ color: 'var(--accent)' }}>Settings</Link>. Change it there at any time.
           </div>
         </div>
 
