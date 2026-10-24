@@ -1,4 +1,4 @@
-// CV and cover letter designs, chosen once in Settings. Ids must match backend/cv_templates.py.
+// CV and cover letter designs, chosen once on the profile page. Ids must match backend/cv_templates.py.
 // Images in /public/templates are renders of the same sample CV in each style.
 export type CvTemplateId = "classic" | "modern" | "editorial" | "technical" | "signature";
 
@@ -22,6 +22,3 @@ export const DEFAULT_CV_TEMPLATE: CvTemplateId = "classic";
 
 export const isCvTemplateId = (v: unknown): v is CvTemplateId =>
   typeof v === "string" && CV_TEMPLATES.some((t) => t.id === v);
-
-export const cvTemplateName = (id: unknown): string =>
-  (CV_TEMPLATES.find((t) => t.id === id) ?? CV_TEMPLATES[0]).name;

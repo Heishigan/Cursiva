@@ -49,12 +49,10 @@ export default function TemplateStack() {
         <span className={styles.hint}>Click the CV to see the next style</span>
       </div>
       <div className={styles.credit}>
-        {top.credit ? (
+        {top.credit && (
           <a href={top.credit.href} target="_blank" rel="noopener noreferrer">
             {top.credit.label} · github.com/jakegut/resume <ExternalLink size={12} />
           </a>
-        ) : (
-          <span>Original Cursiva design</span>
         )}
       </div>
     </div>

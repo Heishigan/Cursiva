@@ -659,6 +659,7 @@
 .designHead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .designTitle { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-strong); }
 .designNote { font-size: 0.8rem; color: var(--text-dim); }
+.designError { color: var(--danger); }
 .designCredit { margin: 10px 0 0; font-size: 0.78rem; color: var(--text-dim); }
 .designCredit a { color: var(--text-secondary); }
 .designCredit a:hover { color: var(--accent); }

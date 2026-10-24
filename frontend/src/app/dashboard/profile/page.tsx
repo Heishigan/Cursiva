@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const [isCompiling, setIsCompiling] = useState(false);
   const [design, setDesign] = useState<CvTemplateId | null>(null);
   const [designNote, setDesignNote] = useState("");
+  const [previewError, setPreviewError] = useState("");
   const [hasBaseline, setHasBaseline] = useState<boolean>(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -76,9 +77,13 @@ export default function ProfilePage() {
         const blob = new Blob([byteArray], { type: 'application/pdf' });
         const blobUrl = URL.createObjectURL(blob);
         setPdfUrl(blobUrl);
+        setPreviewError("");
+      } else {
+        setPreviewError("The PDF didn't build in this design.");
       }
     } catch (e) {
       console.error("Compilation error:", e);
+      setPreviewError("The PDF didn't build in this design.");
     }
     setIsCompiling(false);
   };
@@ -607,7 +612,7 @@ export default function ProfilePage() {
         <section id="design" className={styles.designBar} aria-labelledby="design-title">
           <div className={styles.designHead}>
             <h2 id="design-title" className={styles.designTitle}>Design</h2>
-            <span className={styles.designNote} aria-live="polite">{designNote}</span>
+            <span className={`${styles.designNote} ${previewError ? styles.designError : ''}`} aria-live="polite">{previewError || designNote}</span>
           </div>
           <DesignPicker value={design} onChange={chooseDesign} busy={isCompiling} labelledBy="design-title" />
           <p className={styles.designCredit}>

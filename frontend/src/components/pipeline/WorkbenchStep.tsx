@@ -1,8 +1,6 @@
 import styles from './flow.module.css';
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from '@clerk/nextjs';
-import Link from 'next/link';
-import { cvTemplateName } from '@/config/cvTemplates';
 
 const CL_FIELDS: [string, string][] = [
   ["salutation", "Greeting"], ["hook", "Opening"], ["match", "Why you"],
@@ -31,8 +29,8 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<"CV" | "Cover Letter" | "Job ad">("CV");
   const [view, setView] = useState<"preview" | "edit">("preview"); // small screens only
-  // The design comes from Settings: the server compiles with it and says which one it
-  // used, and it is then kept in the CV data so the saved application keeps its look.
+  // The design comes from the profile page: the server compiles with it and says which
+  // one it used, and it is then kept in the CV data so the saved application keeps its look.
   const [cvData, setCvData] = useState(data.cv);
   const [clData, setClData] = useState(data.cl);
   const [isSaving, setIsSaving] = useState(false);
@@ -380,9 +378,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                 </div>
               )}
             </div>
-            <div className={styles.previewNote}>
-              Design: {cvTemplateName(cvData.template)} · <Link href="/dashboard/profile#design" className={styles.previewLink}>Change on your profile</Link>
-            </div>
+            <div className={styles.previewNote}>The PDF updates as you edit.</div>
           </section>
         )}
       </div>
