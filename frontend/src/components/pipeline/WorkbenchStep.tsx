@@ -381,7 +381,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
               )}
             </div>
             <div className={styles.previewNote}>
-              Design: {cvTemplateName(cvData.template)} · <Link href="/dashboard/settings#design" className={styles.previewLink}>Change in Settings</Link>
+              Design: {cvTemplateName(cvData.template)} · <Link href="/dashboard/profile#design" className={styles.previewLink}>Change on your profile</Link>
             </div>
           </section>
         )}

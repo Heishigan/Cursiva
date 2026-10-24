@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import styles from "./profile.module.css";
-import Link from "next/link";
+import DesignPicker from "@/components/DesignPicker";
+import { DEFAULT_CV_TEMPLATE, isCvTemplateId, type CvTemplateId } from "@/config/cvTemplates";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { ExternalLink, FileText, Pencil, Plus, Briefcase, GraduationCap, Award, FolderGit2, Code2, Info, Palette, Globe, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
@@ -12,6 +13,8 @@ export default function ProfilePage() {
   const [cvData, setCvData] = useState<any>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
+  const [design, setDesign] = useState<CvTemplateId | null>(null);
+  const [designNote, setDesignNote] = useState("");
   const [hasBaseline, setHasBaseline] = useState<boolean>(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -27,6 +30,9 @@ export default function ProfilePage() {
           cache: "no-store"
         });
         const data = await res.json();
+        if (data.status === "success") {
+          setDesign(isCvTemplateId(data.data.cv_template) ? data.data.cv_template : DEFAULT_CV_TEMPLATE);
+        }
         
         if (data.status === "success" && data.data.has_baseline) {
           const parsed = data.data.cv_data;
@@ -75,6 +81,29 @@ export default function ProfilePage() {
       console.error("Compilation error:", e);
     }
     setIsCompiling(false);
+  };
+
+  // Save the design for every application, then show it straight away.
+  const chooseDesign = async (id: CvTemplateId) => {
+    if (id === design || isCompiling) return;
+    const previous = design;
+    setDesign(id);
+    setDesignNote("");
+    try {
+      const token = await getToken();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ cv_template: id })
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setDesignNote("Saved");
+      if (cvData) compilePdf({ ...cvData, template: id });
+    } catch (e) {
+      console.error("Failed to save the design", e);
+      setDesign(previous);
+      setDesignNote("Couldn't save. Try again.");
+    }
   };
 
   const syncProfileToBackend = async (data: any) => {
@@ -477,7 +506,7 @@ export default function ProfilePage() {
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
           <Palette size={16} color="var(--accent)" style={{ marginTop: '2px', flexShrink: 0 }} />
           <div>
-            <strong>Choose a design:</strong> Your CV and cover letter use the design picked in <Link href="/dashboard/settings#design" style={{ color: 'var(--accent)' }}>Settings</Link>. Change it there at any time.
+            <strong>Choose a design:</strong> Pick one <a href="#design" style={{ color: 'var(--accent)' }}>above your CV preview</a> and watch it update. Every application uses it for both your CV and cover letter.
           </div>
         </div>
 
@@ -575,6 +604,16 @@ export default function ProfilePage() {
       </div>
 
       <div className={styles.rightColumn}>
+        <section id="design" className={styles.designBar} aria-labelledby="design-title">
+          <div className={styles.designHead}>
+            <h2 id="design-title" className={styles.designTitle}>Design</h2>
+            <span className={styles.designNote} aria-live="polite">{designNote}</span>
+          </div>
+          <DesignPicker value={design} onChange={chooseDesign} busy={isCompiling} labelledBy="design-title" />
+          <p className={styles.designCredit}>
+            CV and matching cover letter. Classic is based on <a href="https://github.com/jakegut/resume" target="_blank" rel="noreferrer">Jake&apos;s Resume</a>.
+          </p>
+        </section>
         <div className={styles.pdfContainer}>
           {isCompiling && (
             <div className={styles.pdfOverlay}>
