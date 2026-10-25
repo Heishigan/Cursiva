@@ -9,6 +9,7 @@ class UserProfile(Base):
     credits = Column(Integer, default=1)
     strict_eligibility = Column(Boolean, default=True)
     cv_embedding_json = Column(Text, nullable=True)
+    cv_template = Column(String, nullable=True)  # CV and cover letter design; None means classic
 
 class UsedTrialEmail(Base):
     __tablename__ = "used_trial_emails"

@@ -1,0 +1,25 @@
+%% Editorial: EB Garamond, centred small-caps header, rules either side of section titles.
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[lining]{ebgaramond}
+\usepackage[letterspace=150]{microtype}
+\usepackage[a4paper, top=1.7cm, bottom=1.7cm, left=2.0cm, right=2.0cm]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\definecolor{accent}{HTML}{7A2E2E}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, pdftitle={ {{- personal_info.get('name', '') }} {{ 'Cover Letter' if document == 'letter' else 'CV' }}}, pdfauthor={ {{- personal_info.get('name', '') -}} }}
+{% raw %}
+\newcommand{\cvsep}{\discretionary{}{}{\hbox{\enspace{\color{accent}\textperiodcentered}\enspace}}}
+\newcommand{\cvskillsep}{,}
+\newcommand{\cvsubsep}{, }
+\newcommand{\cvheader}[4]{\begin{center}{\fontsize{26}{30}\selectfont\color{accent}\textsc{\textls{#1}}}\par\vspace{6pt}{\itshape #2}\end{center}\vspace{-4pt}}
+\newcommand{\cvsection}[1]{\par\vspace{9pt}\noindent{\color{accent}\leaders\hrule height 0.4pt depth 0pt\hfill}\enspace{\large\textsc{\textls[100]{#1}}}\enspace{\color{accent}\leaders\hrule height 0.4pt depth 0pt\hfill}\par\vspace{5pt}}
+\newcommand{\cvitem}[5]{\par{\bfseries #1}\hfill{\itshape #2}\par{\itshape #3}\par}
+\newcommand{\cvitemend}{\par\vspace{5pt}}
+\newenvironment{cvbullets}{\begin{itemize}[leftmargin=1.2em, label={\color{accent}\textendash}, noitemsep, topsep=2pt, itemsep=1pt]}{\end{itemize}}
+\newenvironment{cvskills}{\begin{tabular}{@{}p{3.4cm}p{\dimexpr\linewidth-3.4cm-2\tabcolsep\relax}@{}}}{\end{tabular}}
+\newcommand{\cvskill}[2]{\textsc{#1} & #2 \\[2pt]}
+{% endraw %}
+{% include 'cv/_letter.tex' if document == 'letter' else 'cv/_body.tex' %}

@@ -1,0 +1,147 @@
+{
+ "personal_info": {
+  "name": "Jake Gutierrez",
+  "email": "jake@su.edu",
+  "phone": "123-456-7890",
+  "location": "Georgetown, TX",
+  "linkedin": "https://linkedin.com/in/jake",
+  "github": "https://github.com/jake",
+  "portfolio": ""
+ },
+ "professional_summary": "Computer science graduate who builds full-stack web applications and data tools, with research experience in procedural content generation and a track record of shipping software people use.",
+ "sections": [
+  {
+   "title": "Education",
+   "type": "education",
+   "items": [
+    {
+     "title": "Southwestern University",
+     "subtitle": "Bachelor of Arts in Computer Science, Minor in Business",
+     "date": "Aug. 2018 -- May 2021",
+     "context": "",
+     "url": "",
+     "bullets": []
+    },
+    {
+     "title": "Blinn College",
+     "subtitle": "Associate's in Liberal Arts",
+     "date": "Aug. 2014 -- May 2018",
+     "context": "",
+     "url": "",
+     "bullets": []
+    }
+   ]
+  },
+  {
+   "title": "Experience",
+   "type": "work_experience",
+   "items": [
+    {
+     "title": "Undergraduate Research Assistant",
+     "subtitle": "Texas A&M University",
+     "date": "June 2020 -- Present",
+     "context": "College Station, TX",
+     "url": "",
+     "bullets": [
+      "Developed a REST API using FastAPI and PostgreSQL to store data from learning management systems",
+      "Developed a full-stack web application using Flask, React, PostgreSQL and Docker to analyze GitHub data",
+      "Explored ways to visualize GitHub collaboration in a classroom setting"
+     ]
+    },
+    {
+     "title": "Information Technology Support Specialist",
+     "subtitle": "Southwestern University",
+     "date": "Sep. 2018 -- Present",
+     "context": "Georgetown, TX",
+     "url": "",
+     "bullets": [
+      "Communicate with managers to set up campus computers used on campus",
+      "Assess and troubleshoot computer problems brought by students, faculty and staff"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Projects",
+   "type": "projects",
+   "items": [
+    {
+     "title": "Gitlytics",
+     "subtitle": "Python, Flask, React, PostgreSQL, Docker",
+     "date": "June 2020 -- Present",
+     "context": "",
+     "url": "",
+     "bullets": [
+      "Developed a full-stack web application using Flask serving a REST API with React as the frontend",
+      "Implemented GitHub OAuth to get data from user's repositories"
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Technical Skills",
+   "type": "skills",
+   "items": [
+    {
+     "title": "Languages",
+     "subtitle": "",
+     "date": "",
+     "context": "",
+     "url": "",
+     "bullets": [
+      "Java",
+      "Python",
+      "C/C++",
+      "SQL (Postgres)",
+      "JavaScript",
+      "HTML/CSS",
+      "R"
+     ]
+    },
+    {
+     "title": "Frameworks",
+     "subtitle": "",
+     "date": "",
+     "context": "",
+     "url": "",
+     "bullets": [
+      "React",
+      "Node.js",
+      "Flask",
+      "JUnit",
+      "WordPress",
+      "Material-UI",
+      "FastAPI"
+     ]
+    },
+    {
+     "title": "Developer Tools",
+     "subtitle": "",
+     "date": "",
+     "context": "",
+     "url": "",
+     "bullets": [
+      "Git",
+      "Docker",
+      "TravisCI",
+      "Google Cloud Platform",
+      "VS Code",
+      "PyCharm"
+     ]
+    },
+    {
+     "title": "Libraries",
+     "subtitle": "",
+     "date": "",
+     "context": "",
+     "url": "",
+     "bullets": [
+      "pandas",
+      "NumPy",
+      "Matplotlib"
+     ]
+    }
+   ]
+  }
+ ]
+}

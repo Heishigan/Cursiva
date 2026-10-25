@@ -83,7 +83,8 @@ export default function ApplicationDetailPage() {
           personal_info: cvPayload.personal_info,
           company_name: data.company_name,
           company_location: clPayload.company_location || "Sweden",
-          cover_letter_paragraphs: paragraphs
+          cover_letter_paragraphs: paragraphs,
+          template: cvPayload.template  // the letter matches the saved CV's design
         })
       });
       if (clRes.ok) {

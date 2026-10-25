@@ -1,0 +1,55 @@
+%% Shared body: the same JSON fields as classic.tex. Each template only defines
+%% \cvheader{name}{contacts}{first name}{rest of name}, \cvsection{title},
+%% \cvitem{title}{date}{subtitle and context joined}{subtitle}{context}, \cvskillsep,
+%% and the cvbullets and cvskills environments.
+%% Page breaks: every entry sits in an unbreakable cvblock, and a section title shares
+%% its block with the first entry, so an entry is never split across pages and a
+%% title never sits alone at the bottom of a page.
+\newenvironment{cvblock}{\par\noindent\begin{minipage}{\linewidth}}{\end{minipage}\par}
+{% include 'cv/_unicode.tex' %}
+\pagestyle{empty}
+\frenchspacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\begin{document}
+{% include 'cv/_header.tex' %}
+
+{% if professional_summary %}
+\begin{cvblock}
+\cvsection{Professional Summary}
+{{ professional_summary }}
+\end{cvblock}
+{% endif %}
+
+{% for section in sections %}
+{% if section.type == 'skills' %}
+\begin{cvblock}
+\cvsection{ {{- section.title -}} }
+\begin{cvskills}
+{% for item in section['items'] %}
+\cvskill{ {{- item.title -}} }{ {%- if item.bullets %}{{ item.bullets | join('\\cvskillsep{} ') }}{% elif item.context %}{{ item.context }}{% endif -%} }
+{% endfor %}
+\end{cvskills}
+\end{cvblock}
+{% elif not section['items'] %}
+\cvsection{ {{- section.title -}} }
+{% else %}
+{% for item in section['items'] %}
+\begin{cvblock}
+{% if loop.first %}
+\cvsection{ {{- section.title -}} }
+{% endif %}
+\cvitem{ {%- if item.url %}\href{ {{- item.url -}} }{ {{- item.title -}} }{% else %}{{ item.title }}{% endif -%} }{ {{- item.date -}} }{ {%- if item.subtitle and item.subtitle|trim %}{{ item.subtitle }}{% endif %}{% if (item.subtitle and item.subtitle|trim) and (item.context and item.context|trim) %}\cvsubsep {% endif %}{% if item.context and item.context|trim %}{{ item.context }}{% endif -%} }{ {{- item.subtitle -}} }{ {{- item.context -}} }
+{% if item.bullets %}
+\begin{cvbullets}
+{% for bullet in item.bullets %}
+\item {{ bullet }}
+{% endfor %}
+\end{cvbullets}
+{% endif %}
+\end{cvblock}
+\cvitemend
+{% endfor %}
+{% endif %}
+{% endfor %}
+\end{document}

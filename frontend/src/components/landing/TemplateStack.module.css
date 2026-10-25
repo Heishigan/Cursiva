@@ -1,0 +1,30 @@
+.wrap { background: var(--surface); border: var(--border-standard); border-radius: var(--radius-lg); padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
+
+/* The stack: every card sits in the same grid cell; depth pushes the back cards down and to the right. */
+.stack { display: grid; padding: 0 28px 28px 0; border: 0; background: none; cursor: pointer; border-radius: var(--radius-sm); }
+.stack:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.card {
+  grid-area: 1 / 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  transform: translate(calc(var(--depth) * 7px), calc(var(--depth) * 7px)) rotate(calc(var(--depth) * 0.6deg));
+  transition: transform 0.28s ease, opacity 0.28s ease, filter 0.28s ease;
+  filter: brightness(calc(1 - var(--depth) * 0.06));
+}
+.stack:hover .card:not(.leaving) { transform: translate(calc(var(--depth) * 9px), calc(var(--depth) * 9px)) rotate(calc(var(--depth) * 0.9deg)); }
+.leaving { transform: translateX(60%) rotate(8deg) !important; opacity: 0; }
+.img { width: 100%; height: auto; display: block; }
+
+.meta { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.name { font-weight: 700; color: var(--text-strong); margin-right: 10px; }
+.count { font-size: 0.85rem; color: var(--text-dim); }
+.hint { font-size: 0.85rem; color: var(--text-dim); }
+.credit { font-size: 0.85rem; color: var(--text-dim); min-height: 1.2em; }
+.credit a { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); text-decoration: none; }
+.credit a:hover { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}

@@ -1,0 +1,30 @@
+%% Signature: Lato with a two-weight blue name, a monospace contact line,
+%% spaced uppercase section titles, arrow bullets. Single column for ATS.
+\documentclass[a4paper,10.5pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[default]{lato}
+\usepackage[scale=0.86]{sourcecodepro}
+\usepackage[letterspace=90]{microtype}
+\usepackage[a4paper, top=1.5cm, bottom=1.6cm, left=1.8cm, right=1.8cm]{geometry}
+\usepackage{enumitem}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\definecolor{accent}{HTML}{1D6FDC}
+\definecolor{ink}{HTML}{222222}
+\definecolor{muted}{HTML}{6B7280}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, pdftitle={ {{- personal_info.get('name', '') }} {{ 'Cover Letter' if document == 'letter' else 'CV' }}}, pdfauthor={ {{- personal_info.get('name', '') -}} }}
+{% raw %}
+\newcommand{\cvskillsep}{\nobreak\hspace{0.3em}{\color{accent}\textbullet}}
+\newcommand{\cvsubsep}{\enspace|\enspace}
+\newcommand{\cvheader}[4]{{\centering{\fontsize{32}{36}\selectfont\color{accent}{\fontseries{eb}\selectfont #3}\ {\fontseries{l}\selectfont #4}}\par\vspace{7pt}{\small\ttfamily\color{ink}#2}\par}\vspace{2pt}}
+\newcommand{\cvsep}{\discretionary{}{}{\hbox{\enspace{\color{muted}\textperiodcentered}\enspace}}}
+\newcommand{\cvsection}[1]{\par\vspace{12pt}{\color{accent}\large\bfseries\textls{\MakeUppercase{#1}}}\par\vspace{5pt}}
+\newcommand{\cvitem}[5]{\par{\bfseries\color{ink}\MakeUppercase{#1}}\if\relax\detokenize{#4}\relax\else\enspace{\color{muted}\fontseries{l}\selectfont|\enspace #4}\fi\par\vspace{1pt}{\scriptsize\bfseries\color{muted}#2\if\relax\detokenize{#5}\relax\else\if\relax\detokenize{#2}\relax\else\enspace|\enspace\fi #5\fi}\par}
+\newcommand{\cvitemend}{\par\vspace{7pt}}
+\newenvironment{cvbullets}{\begin{itemize}[leftmargin=2.2em, labelsep=0.6em, label={\color{accent}$\rightarrow$}, noitemsep, topsep=3pt, itemsep=1.5pt]}{\end{itemize}}
+\newenvironment{cvskills}{\par}{\par}
+\newcommand{\cvskill}[2]{{\small\bfseries\color{ink}\MakeUppercase{#1}}\par\vspace{1pt}#2\par\vspace{6pt}}
+{% endraw %}
+{% include 'cv/_letter.tex' if document == 'letter' else 'cv/_body.tex' %}

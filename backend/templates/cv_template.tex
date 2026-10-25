@@ -30,6 +30,7 @@
 }
 
 \pagestyle{empty}
+{% include 'cv/_unicode.tex' %}
 
 \begin{document}
 
@@ -78,6 +79,7 @@
 {% else %}
 {% for item in section['items'] %}
 {% if section.type == 'education' %}
+\begin{minipage}{\linewidth}
 \textbf{ {{- item.title -}} } \hfill \textit{ {{- item.date -}} }\\
 {%- if (item.subtitle and item.subtitle|trim) or (item.context and item.context|trim) %}
 {{ item.subtitle }} {% if (item.subtitle and item.subtitle|trim) and (item.context and item.context|trim) %}\quad|\quad{% endif %} {{ item.context }}
@@ -89,6 +91,7 @@
 {% endfor %}
 \end{itemize}
 {%- endif %}
+\end{minipage}
 \vspace{0.9em}
 {% else %}
 \begin{minipage}{\linewidth}

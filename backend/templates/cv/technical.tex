@@ -1,0 +1,28 @@
+%% Technical: Fira Sans with Fira Mono dates, indigo marker before each section title.
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[sfdefault,light]{FiraSans}
+\usepackage[scale=0.88]{FiraMono}
+\usepackage{microtype}
+\usepackage[a4paper, top=1.6cm, bottom=1.6cm, left=1.8cm, right=1.8cm]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\definecolor{accent}{HTML}{4338CA}
+\definecolor{muted}{HTML}{52525B}
+\definecolor{hair}{HTML}{D4D4D8}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black, pdftitle={ {{- personal_info.get('name', '') }} {{ 'Cover Letter' if document == 'letter' else 'CV' }}}, pdfauthor={ {{- personal_info.get('name', '') -}} }}
+{% raw %}
+\newcommand{\cvsep}{\discretionary{}{}{\hbox{\enspace{\color{hair}/}\enspace}}}
+\newcommand{\cvskillsep}{,}
+\newcommand{\cvsubsep}{\enspace/\enspace}
+\newcommand{\cvheader}[4]{{\centering{\fontsize{22}{26}\selectfont\fontseries{sb}\selectfont #1}\par\vspace{5pt}{\small\ttfamily\color{muted}#2}\par}\vspace{4pt}}
+\newcommand{\cvsection}[1]{\par\vspace{10pt}{\color{accent}\rule[-1.5pt]{3pt}{11pt}}\hspace{7pt}{\fontseries{sb}\selectfont\color{accent}#1}\hspace{8pt}{\color{hair}\leaders\hrule height 2.6pt depth -2.2pt\hfill}\par\vspace{5pt}}
+\newcommand{\cvitem}[5]{\par{\fontseries{sb}\selectfont #1}\hfill{\small\ttfamily\color{muted}#2}\par{\small\color{muted}#3}\par}
+\newcommand{\cvitemend}{\par\vspace{6pt}}
+\newenvironment{cvbullets}{\begin{itemize}[leftmargin=1.1em, label={\color{accent}\guillemotright}, noitemsep, topsep=3pt, itemsep=1.5pt]}{\end{itemize}}
+\newenvironment{cvskills}{\begin{tabular}{@{}p{3.2cm}p{\dimexpr\linewidth-3.2cm-2\tabcolsep\relax}@{}}}{\end{tabular}}
+\newcommand{\cvskill}[2]{{\fontseries{sb}\selectfont #1} & #2 \\[3pt]}
+{% endraw %}
+{% include 'cv/_letter.tex' if document == 'letter' else 'cv/_body.tex' %}
