@@ -1,4 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 
 import type { Metadata } from "next";
 import "./globals.css";
@@ -23,6 +24,9 @@ export default function RootLayout({
       <body>
         <ClerkProvider
           appearance={{
+            // Clerk's dark theme as the base, so every Clerk screen (menus,
+            // account pages, sign-in) gets light text; our colours go on top.
+            theme: dark,
             variables: {
               colorPrimary: "#c8f24c",
               colorBackground: "#111113",
