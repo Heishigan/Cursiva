@@ -1,7 +1,8 @@
 import styles from './flow.module.css';
 import { useState } from "react";
+import type { JobMetadata, StrategyResult } from "@/types/cv";
 
-export default function StrategyStep({ result, jobMetadata, onSubmit }: { result: any, jobMetadata?: any, onSubmit: (answers: string) => void }) {
+export default function StrategyStep({ result, jobMetadata, onSubmit }: { result: StrategyResult | null, jobMetadata?: JobMetadata | null, onSubmit: (answers: string) => void }) {
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [customInstructions, setCustomInstructions] = useState("");
 
@@ -28,6 +29,8 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
     return match ? match[1] : (result?.strategy_plan || "");
   })();
 
+  const strategicOptions = result?.strategic_options ?? [];
+
   const fitLevel = (() => {
     if (!fitAssessmentRaw) return null;
     const cleaned = cleanStrategyText(fitAssessmentRaw);
@@ -37,7 +40,7 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
 
   const fitText = (() => {
     if (!fitAssessmentRaw) return "";
-    let cleaned = cleanStrategyText(fitAssessmentRaw);
+    const cleaned = cleanStrategyText(fitAssessmentRaw);
     return cleaned.replace(/^(High Fit|Moderate Fit|Low Fit)\.?\s*/i, '');
   })();
 
@@ -81,10 +84,10 @@ export default function StrategyStep({ result, jobMetadata, onSubmit }: { result
             <p className={styles.read}>{fitText || plan}</p>
           </div>
 
-          {result?.strategic_options?.length > 0 && (
+          {strategicOptions.length > 0 && (
             <fieldset className={styles.options}>
               <legend className={styles.label}>Choose an angle</legend>
-              {result.strategic_options.map((option: string, idx: number) => (
+              {strategicOptions.map((option: string, idx: number) => (
                 <label key={idx} className={`${styles.option} ${selectedOption === option ? styles.optionOn : ''}`}>
                   <input
                     type="radio"

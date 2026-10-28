@@ -4,6 +4,7 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { format } from "date-fns";
 import { Briefcase, Clock, XCircle, Key, Eye, Edit2, Trash2, Plus } from "lucide-react";
 import styles from './page.module.css';
+import type { ApplicationSummary } from "@/types/cv";
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
@@ -12,7 +13,7 @@ export default function DashboardPage() {
   const [credits, setCredits] = useState<number | null>(null);
   const [parsedName, setParsedName] = useState<string | null>(null);
 
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ company_name: '', role_name: '', status: '', created_at: '' });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -59,7 +60,7 @@ export default function DashboardPage() {
     fetchApplications();
   }, [isLoaded, user]);
 
-  const handleEditClick = (app: any) => {
+  const handleEditClick = (app: ApplicationSummary) => {
     setEditingId(app.id);
     setEditForm({ 
       company_name: app.company_name, 
@@ -246,7 +247,7 @@ export default function DashboardPage() {
         {applications.length === 0 ? (
           <div className={styles.emptyState}>
             <Briefcase size={48} />
-            <p>You haven't added any applications yet. <br/>Start the pipeline to create your first tailored CV.</p>
+            <p>You haven&apos;t added any applications yet. <br/>Start the pipeline to create your first tailored CV.</p>
           </div>
         ) : (
           <div className={styles.tableWrapper}>
@@ -262,7 +263,7 @@ export default function DashboardPage() {
             </div>
             
             <div className={styles.appList}>
-              {paginatedApplications.map((app, index) => (
+              {paginatedApplications.map((app) => (
                 <div key={app.id} className={styles.appCard}>
                   {editingId === app.id ? (
                     <>

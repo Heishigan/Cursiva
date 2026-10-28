@@ -1,0 +1,124 @@
+name: CI
+
+# Runs on every pull request into main and on every push to main.
+# Branch protection on main should require all four jobs to pass, because
+# Cloud Build deploys on every push to main regardless of this workflow.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1. Backend unit tests (SQLite, no secrets needed)
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt pytest httpx
+      - run: python -m pytest
+
+  # 2. Migrations build an empty Postgres 16 database that matches models.py
+  migrations-postgres:
+    name: Migrations on Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: cursiva_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Same driver as production: psycopg2 from requirements.txt.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/cursiva_ci
+      CLERK_ISSUER: https://clerk.test.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Apply all migrations to an empty database
+        run: python -m alembic upgrade head
+      - name: Apply again (must be a no-op)
+        run: python -m alembic upgrade head
+      - name: Database matches models.py (fails if a model change has no migration)
+        run: python -m alembic check
+
+  # 3. Frontend type check and production build
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # A dummy, publicly documented test key: the build only needs a well-formed value.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  # 4. CV template tests inside the production Docker image (real LaTeX fonts)
+  docker-templates:
+    name: CV templates in Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the backend image (same Dockerfile as production)
+        run: docker build -t cursiva-backend backend/
+      - name: Run the template tests in the image (any skipped test fails the job)
+        shell: bash
+        run: |
+          # tests/ is excluded from the image by .dockerignore, so mount it.
+          # pdftotext (poppler-utils) is a test-only tool, installed here and
+          # not in the production image. Root is needed for apt and pip.
+          docker run --rm --user root --entrypoint sh \
+            -v "$PWD/backend/tests:/app/tests:ro" \
+            cursiva-backend -c '
+              set -e
+              apt-get update -qq
+              apt-get install -y -qq --no-install-recommends poppler-utils > /dev/null
+              pip install -q pytest httpx
+              python -m pytest tests/test_cv_templates.py -rs -p no:cacheprovider
+            ' | tee pytest.log
+          if grep -qE '[0-9]+ skipped' pytest.log; then
+            echo "::error::Some template tests were skipped inside the image"
+            exit 1
+          fi

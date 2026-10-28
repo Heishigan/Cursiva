@@ -5,46 +5,21 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { format } from "date-fns";
 import styles from '@/app/dashboard/pipeline/pipeline.module.css';
+import type { ApplicationDetail } from "@/types/cv";
 
 export default function ApplicationDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { getToken } = useAuth();
   
-  const [appData, setAppData] = useState<any>(null);
+  const [appData, setAppData] = useState<ApplicationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const [cvPdfUrl, setCvPdfUrl] = useState<string | null>(null);
   const [clPdfUrl, setClPdfUrl] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
 
-  useEffect(() => {
-    const fetchApplication = async () => {
-      try {
-        const token = await getToken();
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (res.ok) {
-          const result = await res.json();
-          setAppData(result.data);
-          compilePdfs(result.data, token);
-        } else {
-          router.push('/dashboard');
-        }
-      } catch (e) {
-        console.error("Failed to fetch application", e);
-        router.push('/dashboard');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchApplication();
-  }, [id]);
-
-  const compilePdfs = async (data: any, token: string | null) => {
+  const compilePdfs = async (data: ApplicationDetail, token: string | null) => {
     setIsCompiling(true);
     try {
       // Compile CV
@@ -99,6 +74,32 @@ export default function ApplicationDetailPage() {
     }
   };
 
+  useEffect(() => {
+    const fetchApplication = async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const result = await res.json();
+          setAppData(result.data);
+          compilePdfs(result.data, token);
+        } else {
+          router.push('/dashboard');
+        }
+      } catch (e) {
+        console.error("Failed to fetch application", e);
+        router.push('/dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchApplication();
+  }, [id]);
+
   if (isLoading) {
     return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: 'white' }}>Loading application details...</div>;
   }
@@ -131,7 +132,7 @@ export default function ApplicationDetailPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (e) {
+    } catch {
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = filename;
