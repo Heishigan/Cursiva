@@ -1,4 +1,5 @@
 import styles from './flow.module.css';
+import type { JobMetadata } from "@/types/cv";
 
 function DownloadIcon() {
   return (
@@ -23,7 +24,7 @@ function Sheet({ url, label }: { url: string; label: string }) {
   );
 }
 
-export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, onReset }: { cvPdfUrl: string, clPdfUrl: string, jobMetadata?: any, userName?: string, onReset: () => void }) {
+export default function DoneStep({ cvPdfUrl, clPdfUrl, jobMetadata, userName, onReset }: { cvPdfUrl: string, clPdfUrl: string, jobMetadata?: JobMetadata | null, userName?: string, onReset: () => void }) {
   const cleanStr = (s?: string) => (s || "").replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
   const namePart = cleanStr(userName) || "User";
   const rolePart = cleanStr(jobMetadata?.role_name) || "Role";

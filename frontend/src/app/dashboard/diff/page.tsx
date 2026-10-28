@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import { useAuth, useUser } from "@clerk/nextjs";
+import type { CvData } from "@/types/cv";
 
 export default function DiffViewer() {
-  const router = useRouter();
   const { getToken } = useAuth();
   const { user } = useUser();
-  const [cvData, setCvData] = useState<any>(null);
+  const [cvData, setCvData] = useState<CvData | null>(null);
   const [clData, setClData] = useState<string[]>([]);
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   
   const [cvPdfUrl, setCvPdfUrl] = useState<string | null>(null);
   const [clPdfUrl, setClPdfUrl] = useState<string | null>(null);
-  const [isCompiling, setIsCompiling] = useState(false);
+  const [, setIsCompiling] = useState(false);
   
   const [feedback, setFeedback] = useState("");
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
@@ -52,12 +51,6 @@ export default function DiffViewer() {
     setRole(r);
   }, [user?.id]);
 
-  useEffect(() => {
-    if (cvData && !cvPdfUrl) {
-      compilePdfs();
-    }
-  }, [cvData, clData]);
-
   const compilePdfs = async () => {
     setIsCompiling(true);
     try {
@@ -82,7 +75,7 @@ export default function DiffViewer() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            personal_info: cvData.personal_info,
+            personal_info: cvData!.personal_info,
             company_name: company,
             company_location: localStorage.getItem(`diff_company_location_${user?.id || 'default'}`) || "Sweden",
             cover_letter_paragraphs: clData
@@ -103,6 +96,12 @@ export default function DiffViewer() {
     }
     setIsCompiling(false);
   };
+
+  useEffect(() => {
+    if (cvData && !cvPdfUrl) {
+      compilePdfs();
+    }
+  }, [cvData, clData]);
 
   const handleDownload = (dataUrl: string | null, type: string) => {
     if (!dataUrl) return;
@@ -127,7 +126,7 @@ export default function DiffViewer() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (e) {
+    } catch {
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = filename;
@@ -212,7 +211,7 @@ export default function DiffViewer() {
                       localStorage.setItem(`diff_cl_${user.id}`, JSON.stringify(data.cover_letter_parts));
                     }
                   }
-                } catch (e) {
+                } catch {
                   // ignore parse error
                 }
               }

@@ -140,7 +140,10 @@ def test_template_pdf_text_reads_in_order(template_id, tmp_path):
                        cwd=tmp_path, check=True, capture_output=True, timeout=120)
     text = subprocess.run(["pdftotext", str(tmp_path / "cv.pdf"), "-"], capture_output=True, text=True).stdout
     flat = " ".join(text.split()).lower()
-    positions = [flat.find(s["title"].lower()) for s in SAMPLE["sections"]]
+    # Find each section by its heading line: a plain search for "experience"
+    # would hit the summary ("research experience") before the heading.
+    lines = [line.strip().lower() for line in text.splitlines()]
+    positions = [lines.index(s["title"].lower()) if s["title"].lower() in lines else -1 for s in SAMPLE["sections"]]
     assert all(p >= 0 for p in positions) and positions == sorted(positions)
     assert "jake" in flat and "gutierrez" in flat
     assert "developed a rest api using fastapi and postgresql" in flat

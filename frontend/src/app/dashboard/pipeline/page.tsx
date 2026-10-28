@@ -1,6 +1,6 @@
 "use client";
 import styles from './pipeline.module.css';
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import Glassbox, { type Stages, type StageEvent, type CvDoc, type LetterDoc, type LiveDocs } from "@/components/pipeline/glassbox/Glassbox";
 import PasteJdStep from "@/components/pipeline/PasteJdStep";
@@ -8,6 +8,7 @@ import StrategyStep from "@/components/pipeline/StrategyStep";
 import WorkbenchStep from "@/components/pipeline/WorkbenchStep";
 import DoneStep from "@/components/pipeline/DoneStep";
 import FlowRail from "@/components/pipeline/FlowRail";
+import type { CoverLetterData, CvData, JobMetadata, StrategyResult, WorkbenchData } from "@/types/cv";
 
 export default function PipelinePage() {
   const { getToken } = useAuth();
@@ -18,9 +19,9 @@ export default function PipelinePage() {
   
   // Data State
   const [jdText, setJdText] = useState("");
-  const [strategyResult, setStrategyResult] = useState<any>(null);
-  const [jobMetadata, setJobMetadata] = useState<any>(null);
-  const [tailoredData, setTailoredData] = useState<any>(null);
+  const [strategyResult, setStrategyResult] = useState<StrategyResult | null>(null);
+  const [jobMetadata, setJobMetadata] = useState<JobMetadata | null>(null);
+  const [tailoredData, setTailoredData] = useState<WorkbenchData | null>(null);
   const [finalPdfs, setFinalPdfs] = useState({ cvUrl: "", clUrl: "" });
   
   const [, setLogs] = useState<string[]>([]); // legacy status messages (kept for debugging)
@@ -361,7 +362,7 @@ export default function PipelinePage() {
     }
   };
 
-  const handleApproveAndSave = async (cvPdfUrl: string, clPdfUrl: string, cvData: any, clData: any) => {
+  const handleApproveAndSave = async (cvPdfUrl: string, clPdfUrl: string, cvData: CvData, clData: CoverLetterData) => {
     try {
       const token = await getToken();
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/applications`, {
@@ -413,7 +414,7 @@ export default function PipelinePage() {
           <>
             {step === 1 && <PasteJdStep initialText={jdText} onSubmit={submitJd} />}
             {step === 2 && <StrategyStep result={strategyResult} jobMetadata={jobMetadata} onSubmit={submitStrategy} />}
-            {step === 3 && <WorkbenchStep data={tailoredData} jdText={jdText} onApproveAndSave={handleApproveAndSave} freeRedo={!!redo?.free} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
+            {step === 3 && <WorkbenchStep data={tailoredData!} jdText={jdText} onApproveAndSave={handleApproveAndSave} freeRedo={!!redo?.free} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
             {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); setRedo(null); }} />}
           </>
         )}
@@ -451,7 +452,7 @@ export default function PipelinePage() {
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
             <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)' }}>Out of Credits</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
-              You don't have enough credits to generate this application. Please top up your account to continue.
+              You don&apos;t have enough credits to generate this application. Please top up your account to continue.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '16px', fontWeight: 600, borderRadius: '8px' }} onClick={() => window.location.href = '/dashboard/settings'}>Go to Settings</button>
@@ -467,7 +468,7 @@ export default function PipelinePage() {
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
             <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)' }}>No Baseline CV</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
-              You haven't set up a baseline CV yet. Please upload a baseline resume to continue.
+              You haven&apos;t set up a baseline CV yet. Please upload a baseline resume to continue.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '16px', fontWeight: 600, borderRadius: '8px' }} onClick={() => window.location.href = '/dashboard/profile'}>Go to Profile</button>

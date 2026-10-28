@@ -4,13 +4,19 @@ import styles from "./profile.module.css";
 import DesignPicker from "@/components/DesignPicker";
 import { DEFAULT_CV_TEMPLATE, isCvTemplateId, type CvTemplateId } from "@/config/cvTemplates";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { ExternalLink, FileText, Pencil, Plus, Briefcase, GraduationCap, Award, FolderGit2, Code2, Info, Palette, Globe, Download, ChevronUp, ChevronDown } from "lucide-react";
+import { FileText, Pencil, Plus, Briefcase, GraduationCap, Award, FolderGit2, Code2, Info, Palette, Globe, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
+import type { CvData, CvSectionItem, PersonalInfo } from "@/types/cv";
+
+// Editing forms: the header form flattens personal info plus the summary; the
+// item form edits bullets as one block of text, one bullet per line.
+type HeaderForm = PersonalInfo & { professional_summary: string };
+type ItemForm = Partial<CvSectionItem> & { bulletsText?: string };
 
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
-  const [cvData, setCvData] = useState<any>(null);
+  const [cvData, setCvData] = useState<CvData | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
   const [design, setDesign] = useState<CvTemplateId | null>(null);
@@ -54,7 +60,7 @@ export default function ProfilePage() {
     fetchProfile();
   }, [isLoaded, user]);
 
-  const compilePdf = async (data: any) => {
+  const compilePdf = async (data: CvData) => {
     setIsCompiling(true);
     try {
       const token = await getToken();
@@ -111,7 +117,7 @@ export default function ProfilePage() {
     }
   };
 
-  const syncProfileToBackend = async (data: any) => {
+  const syncProfileToBackend = async (data: CvData | null) => {
     try {
       const token = await getToken();
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/user/profile`, {
@@ -128,9 +134,9 @@ export default function ProfilePage() {
   };
 
   const [isEditingHeader, setIsEditingHeader] = useState(false);
-  const [headerForm, setHeaderForm] = useState<any>(null);
+  const [headerForm, setHeaderForm] = useState<HeaderForm | null>(null);
   const [editingItem, setEditingItem] = useState<{ sIdx: number, iIdx: number } | null>(null);
-  const [itemForm, setItemForm] = useState<any>(null);
+  const [itemForm, setItemForm] = useState<ItemForm | null>(null);
   const [isAddingSection, setIsAddingSection] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
@@ -165,7 +171,7 @@ export default function ProfilePage() {
       } else {
         alert("Failed to parse PDF: " + (data.detail || data.reason || "Unknown error"));
       }
-    } catch (e) {
+    } catch {
       alert("Error parsing PDF. Is backend running?");
     }
     setIsUploading(false);
@@ -245,6 +251,7 @@ export default function ProfilePage() {
   };
 
   const saveHeaderEdit = () => {
+    if (!headerForm) return;
     const newData = { ...cvData };
     newData.personal_info = {
       ...newData.personal_info,
@@ -264,7 +271,7 @@ export default function ProfilePage() {
     setIsEditingHeader(false);
   };
 
-  const openItemEdit = (sIdx: number, iIdx: number, item?: any) => {
+  const openItemEdit = (sIdx: number, iIdx: number, item?: CvSectionItem) => {
     setEditingItem({ sIdx, iIdx });
     if (item) {
       setItemForm({ 
@@ -284,9 +291,10 @@ export default function ProfilePage() {
   };
 
   const saveItemEdit = () => {
-    if (!editingItem) return;
+    if (!editingItem || !itemForm) return;
     const newData = { ...cvData };
-    const updatedItem = { ...itemForm, url: itemForm.url || "" };
+    // A new item starts with every text field set, so the form holds a whole item.
+    const updatedItem = { ...itemForm, url: itemForm.url || "" } as CvSectionItem & { bulletsText?: string };
     updatedItem.bullets = (updatedItem.bulletsText || '').split('\n').filter((b: string) => b.trim() !== '');
     delete updatedItem.bulletsText;
     
@@ -515,7 +523,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {sections.map((section: any, sIdx: number) => (
+        {sections.map((section, sIdx) => (
           <div key={sIdx} className={styles.sectionGroup}>
             <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 className={styles.sectionTitle}>{section.title}</h2>
@@ -542,7 +550,7 @@ export default function ProfilePage() {
             )}
 
             <div className={styles.cardGroup}>
-              {section.items.map((item: any, iIdx: number) => (
+              {section.items.map((item, iIdx) => (
                 <div key={iIdx} className={styles.itemCard}>
                   <div className={styles.itemLayout}>
                     

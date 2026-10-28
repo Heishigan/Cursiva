@@ -1,8 +1,9 @@
 import styles from './flow.module.css';
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from '@clerk/nextjs';
+import type { CoverLetterData, CvData, WorkbenchData } from "@/types/cv";
 
-const CL_FIELDS: [string, string][] = [
+const CL_FIELDS: [keyof CoverLetterData, string][] = [
   ["salutation", "Greeting"], ["hook", "Opening"], ["match", "Why you"],
   ["curiosity", "Why them"], ["fit", "Fit"], ["sign_off", "Sign-off"],
 ];
@@ -25,7 +26,7 @@ const Up = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
 const Down = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>;
 const Bin = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>;
 
-export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback, freeRedo = false }: { data: any, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: any, clData: any) => void, onSubmitFeedback?: (feedback: string) => void, freeRedo?: boolean }) {
+export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback, freeRedo = false }: { data: WorkbenchData, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: CvData, clData: CoverLetterData) => void, onSubmitFeedback?: (feedback: string) => void, freeRedo?: boolean }) {
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<"CV" | "Cover Letter" | "Job ad">("CV");
   const [view, setView] = useState<"preview" | "edit">("preview"); // small screens only
@@ -49,13 +50,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   // Debounced compilation
   const compileTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    // Initial compile
-    compileCv(cvData);
-    compileCl(clData);
-  }, []);
-
-  const compileCv = async (cvPayload: any) => {
+  const compileCv = async (cvPayload: CvData) => {
     setIsCompilingCv(true);
     setCvCompileError(null);
     try {
@@ -75,17 +70,17 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
          return;
       }
       setCvPdfUrl(`data:application/pdf;base64,${data.pdf_base64}`);
-      if (data.template) setCvData((prev: typeof data.cv) => (prev.template === data.template ? prev : { ...prev, template: data.template }));
-    } catch (e: any) {
+      if (data.template) setCvData((prev) => (prev.template === data.template ? prev : { ...prev, template: data.template }));
+    } catch (e) {
       console.error(e);
-      setCvCompileError(e.message || "Failed to contact backend.");
+      setCvCompileError((e as Error).message || "Failed to contact backend.");
       setCvPdfUrl(null);
     } finally {
       setIsCompilingCv(false);
     }
   };
 
-  const compileCl = async (clPayload: any) => {
+  const compileCl = async (clPayload: CoverLetterData) => {
     setIsCompilingCl(true);
     setClCompileError(null);
     try {
@@ -120,14 +115,20 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
          return;
       }
       setClPdfUrl(`data:application/pdf;base64,${resData.pdf_base64}`);
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      setClCompileError(e.message || "Failed to contact backend.");
+      setClCompileError((e as Error).message || "Failed to contact backend.");
       setClPdfUrl(null);
     } finally {
       setIsCompilingCl(false);
     }
   };
+
+  useEffect(() => {
+    // Initial compile
+    compileCv(cvData);
+    compileCl(clData);
+  }, []);
 
   const handleCvSummaryChange = (value: string) => {
     const newCv = { ...cvData, professional_summary: value };
@@ -137,16 +138,16 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   };
 
   const handleContextChange = (sIdx: number, iIdx: number, value: string) => {
-    const newCv = { ...cvData, sections: cvData.sections.map((sec: any, si: number) => si !== sIdx ? sec : {
-      ...sec, items: sec.items.map((it: any, ii: number) => ii !== iIdx ? it : { ...it, context: value }) }) };
+    const newCv = { ...cvData, sections: cvData.sections.map((sec, si) => si !== sIdx ? sec : {
+      ...sec, items: sec.items.map((it, ii) => ii !== iIdx ? it : { ...it, context: value }) }) };
     setCvData(newCv);
     if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
     compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
   };
 
   const handleBulletChange = (sIdx: number, iIdx: number, bIdx: number, value: string) => {
-    const newCv = { ...cvData, sections: cvData.sections.map((sec: any, si: number) => si !== sIdx ? sec : {
-      ...sec, items: sec.items.map((it: any, ii: number) => ii !== iIdx ? it : {
+    const newCv = { ...cvData, sections: cvData.sections.map((sec, si) => si !== sIdx ? sec : {
+      ...sec, items: sec.items.map((it, ii) => ii !== iIdx ? it : {
         ...it, bullets: it.bullets.map((b: string, bi: number) => bi === bIdx ? value : b) }) }) };
     setCvData(newCv);
     if (compileTimeoutRef.current) clearTimeout(compileTimeoutRef.current);
@@ -192,7 +193,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
     compileTimeoutRef.current = setTimeout(() => compileCv(newCv), 1000);
   };
 
-  const handleClChange = (field: string, value: string) => {
+  const handleClChange = (field: keyof CoverLetterData, value: string) => {
     const newCl = { ...clData, [field]: value };
     setClData(newCl);
 
@@ -285,7 +286,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                 <label htmlFor="cv-summary" className={styles.label}>Professional summary</label>
                 <textarea id="cv-summary" className={styles.edit} value={cvData.professional_summary || ""} onChange={(e) => handleCvSummaryChange(e.target.value)} />
               </div>
-              {cvData.sections.map((sec: any, sIdx: number) => {
+              {cvData.sections.map((sec, sIdx) => {
                 const isSkills = sec.type === 'skills';
                 return (
                   <div key={sIdx} className={styles.block}>
@@ -297,7 +298,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                         <button className={`${styles.icon} ${styles.iconDanger}`} onClick={() => deleteSection(sIdx)} aria-label={`Delete ${sec.title}`}><Bin /></button>
                       </div>
                     </div>
-                    {sec.items.map((item: any, iIdx: number) => {
+                    {sec.items.map((item, iIdx) => {
                       let skillsList: string[] = [];
                       if (isSkills) {
                         if (item.bullets && item.bullets.length > 0) {

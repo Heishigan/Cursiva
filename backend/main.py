@@ -8,10 +8,13 @@ import hashlib
 import os
 from dotenv import load_dotenv
 load_dotenv()
+import hmac
 import logging
+import error_logging
 if not logging.getLogger().handlers:
     # Cloud Run captures stdout/stderr; without this INFO logs were dropped.
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+error_logging.setup_error_logging()
 from svix.webhooks import Webhook, WebhookVerificationError
 import fitz
 import json
@@ -65,6 +68,24 @@ def rate_limit_key(request) -> str:
 limiter = Limiter(key_func=rate_limit_key)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Unhandled errors: one structured ERROR log without user text, then a 500.
+# Added before CORSMiddleware so it sits inside it and the 500 carries CORS
+# headers (the browser then shows the error instead of a CORS failure).
+app.add_middleware(error_logging.UnhandledErrorMiddleware)
+
+
+@app.post("/internal/sweep-stale-runs")
+@limiter.limit("10/minute")
+def sweep_stale_runs_endpoint(request: Request, x_cron_secret: Optional[str] = Header(None, alias="X-Cron-Secret")):
+    cron_secret = os.environ.get("CRON_SECRET", "").strip()
+    if not cron_secret:
+        raise HTTPException(status_code=404, detail="Not found")
+    # Compare bytes: compare_digest raises TypeError on non-ASCII str input.
+    if not x_cron_secret or not hmac.compare_digest(x_cron_secret.encode(), cron_secret.encode()):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    swept = credits.sweep_stale_runs()
+    return {"swept": swept}
 
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
@@ -732,7 +753,7 @@ def save_job(request: Request, req: SaveJobRequest, user_id: str = Depends(get_c
         embedding = embedder.embed_query(req.job_description)
         embedding_json = json.dumps(embedding)
     except Exception as e:
-        print(f"Failed to generate job embedding: {e}")
+        logger.warning("Failed to generate job embedding: %s", type(e).__name__)
 
     new_job = SavedJob(
         id=job_id,

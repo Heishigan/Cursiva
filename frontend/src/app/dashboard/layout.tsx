@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { UserButton, useAuth, useUser } from "@clerk/nextjs";
 import { LayoutGrid, PlusCircle, User, Settings, Target } from "lucide-react";
 import styles from "./layout.module.css";
@@ -9,7 +9,6 @@ import Logo from "@/components/Logo";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [missingBaseline, setMissingBaseline] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
   const [credits, setCredits] = useState<number | null>(() => {
