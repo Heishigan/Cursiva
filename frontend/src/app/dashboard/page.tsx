@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [itemsToDelete, setItemsToDelete] = useState<string[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [query, setQuery] = useState("");
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -124,7 +125,8 @@ export default function DashboardPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.length === paginatedApplications.length) {
+    // "All selected" means every row on this page, whatever is selected on other pages.
+    if (paginatedApplications.length > 0 && paginatedApplications.every(a => selectedIds.includes(a.id))) {
       setSelectedIds(prev => prev.filter(id => !paginatedApplications.map(a => a.id).includes(id)));
     } else {
       const newSelected = new Set([...selectedIds, ...paginatedApplications.map(a => a.id)]);
@@ -144,8 +146,21 @@ export default function DashboardPage() {
     rejected: applications.filter(a => a.status === 'Rejected').length
   };
 
-  const totalPages = Math.ceil(applications.length / itemsPerPage);
-  const paginatedApplications = applications.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Search by company, role, status or date (as shown, e.g. "27 Oct", or as 2026-10-27).
+  const needle = query.trim().toLowerCase();
+  const filteredApplications = !needle ? applications : applications.filter(a => {
+    const d = new Date(a.created_at);
+    const dates = isNaN(d.getTime()) ? "" : [
+      a.created_at.slice(0, 10),
+      d.toLocaleDateString(),
+      d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
+      d.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+    ].join(" ");
+    return `${a.company_name} ${a.role_name} ${a.status} ${dates}`.toLowerCase().includes(needle);
+  });
+  const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
+  const page = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedApplications = filteredApplications.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
     <div className={styles.container}>
@@ -232,7 +247,17 @@ export default function DashboardPage() {
       <div className={styles.recentSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Recent Applications</h2>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {applications.length > 0 && (
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+                placeholder="Search company, role or date"
+                aria-label="Search applications"
+                style={{ minWidth: '220px', padding: '8px 12px', background: 'transparent', color: 'var(--text-primary)', border: 'var(--border-standard)', borderRadius: 'var(--radius-sm)', fontSize: '14px' }}
+              />
+            )}
             {selectedIds.length > 0 && (
               <button onClick={() => confirmDelete(selectedIds)} style={{ padding: '8px 16px', background: 'transparent', color: 'var(--danger)', border: 'var(--border-standard)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                 <Trash2 size={16} /> Delete Selected ({selectedIds.length})
@@ -263,6 +288,9 @@ export default function DashboardPage() {
             </div>
             
             <div className={styles.appList}>
+              {filteredApplications.length === 0 && (
+                <p style={{ padding: '24px', margin: 0, color: 'var(--text-dim)', fontSize: '14px' }}>No applications match &ldquo;{query.trim()}&rdquo;.</p>
+              )}
               {paginatedApplications.map((app) => (
                 <div key={app.id} className={styles.appCard}>
                   {editingId === app.id ? (

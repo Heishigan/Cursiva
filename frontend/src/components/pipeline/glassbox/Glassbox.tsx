@@ -29,7 +29,13 @@ export type LiveDocs = { cv?: "streaming" | "done"; letter?: "streaming" | "done
 
 interface CvItem { title?: string; subtitle?: string; date?: string; context?: string; bullets?: string[] }
 interface CvSection { title?: string; type?: string; items?: CvItem[] }
-export interface CvDoc { professional_summary?: string; sections?: CvSection[]; personal_info?: { name?: string } }
+export interface CvChange { kind: "summary" | "bullet"; id: string; before: string; after: string }
+export interface CvDropped { id: string; reason: string; before: string; proposed: string }
+export interface CvDoc {
+  professional_summary?: string; sections?: CvSection[]; personal_info?: { name?: string };
+  // Pipeline v2: the checked changes, played onto the original CV one at a time.
+  changes?: CvChange[]; dropped?: CvDropped[];
+}
 export interface LetterDoc { salutation?: string; hook?: string; match?: string; curiosity?: string; fit?: string; sign_off?: string }
 
 const ORDER: AgentId[] = ["reader", "strategist", "cv", "checker", "letter"];
@@ -60,11 +66,14 @@ const WAITING: Record<AgentId, string> = {
 
 const norm = (s?: string) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
 
+// `step` marks a block that changes during the replay: `before` is the user's
+// own wording, `dropReason` set means the suggested rewrite was rejected.
+type Replay = { step?: number; before?: string; proposed?: string; dropReason?: string };
 type Block =
-  | { kind: "summary"; text: string; changed: boolean }
+  | ({ kind: "summary"; text: string; changed: boolean } & Replay)
   | { kind: "section"; text: string }
   | { kind: "item"; text: string; sub: string }
-  | { kind: "bullet"; text: string; changed: boolean };
+  | ({ kind: "bullet"; text: string; changed: boolean } & Replay);
 
 function cvBlocks(cv: CvDoc | undefined, generic: CvDoc | null, streaming: boolean): Block[] {
   if (!cv) return [];
@@ -91,8 +100,27 @@ function cvBlocks(cv: CvDoc | undefined, generic: CvDoc | null, streaming: boole
   if (streaming && last?.kind === "summary" && last.changed) {
     last.changed = !norm(generic?.professional_summary).startsWith(norm(last.text));
   }
+  // Pipeline v2: number the changes in reading order for the replay.
+  if (cv.changes || cv.dropped) {
+    const changed = new Map((cv.changes || []).filter(c => c.kind === "bullet").map(c => [norm(c.after), c]));
+    const dropped = new Map((cv.dropped || []).map(d => [norm(d.before), d]));
+    const summary = (cv.changes || []).find(c => c.kind === "summary");
+    let step = 0;
+    for (const b of blocks) {
+      if (b.kind === "summary" && summary) {
+        Object.assign(b, { step: step++, before: summary.before });
+      } else if (b.kind === "bullet") {
+        const c = changed.get(norm(b.text));
+        const d = dropped.get(norm(b.text));
+        if (c) Object.assign(b, { step: step++, before: c.before });
+        else if (d) Object.assign(b, { step: step++, before: d.before, proposed: d.proposed, dropReason: d.reason, changed: false });
+      }
+    }
+  }
   return blocks;
 }
+
+const REPLAY_MS = 1100;
 
 const LETTER_KEYS: (keyof LetterDoc)[] = ["salutation", "hook", "match", "curiosity", "fit", "sign_off"];
 
@@ -194,10 +222,14 @@ export default function Glassbox({
   const blocks = useMemo(() => cvBlocks(drafts.cv, genericCv, cvStreaming), [drafts.cv, genericCv, cvStreaming]);
   const cvRevision = String((stages.cv?.facts as { revision?: number } | undefined)?.revision ?? 1);
   const shownCv = useReveal(blocks.length, `cv-${cvRevision}-${blocks.length > 0}`, 70, !!live.cv);
-  const cvTextLen = blocks.slice(0, shownCv).reduce((n, b) => n + b.text.length, 0);
+  // Once the whole CV is on the page, play the checked changes onto it one by one.
+  const replaySteps = blocks.reduce((n, b) => ("step" in b && b.step !== undefined ? n + 1 : n), 0);
+  const cvAllShown = blocks.length > 0 && shownCv >= blocks.length;
+  const replayed = useReveal(cvAllShown ? replaySteps : 0, `replay-${replaySteps}`, REPLAY_MS, false);
+  const cvTextLen = blocks.slice(0, shownCv).reduce((n, b) => n + b.text.length, 0) + replayed;
   const cvPaperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const el = cvPaperRef.current?.querySelector("[data-last='true']");
+    const el = cvPaperRef.current?.querySelector("[data-current='true']") || cvPaperRef.current?.querySelector("[data-last='true']");
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [cvTextLen]);
 
@@ -272,9 +304,26 @@ export default function Glassbox({
                           const c = isLast && cvStreaming ? caret : null;
                           if (b.kind === "section") return <div key={i} data-last={last} className={`${styles.cvSection} ${anim}`}>{b.text}{c}</div>;
                           if (b.kind === "item") return <div key={i} data-last={last} className={`${styles.cvItem} ${anim}`}><span>{b.text}{c}</span>{b.sub && <span className={styles.cvSub}>{b.sub}</span>}</div>;
+                          const base = b.kind === "summary" ? styles.cvSummary : styles.cvBullet;
+                          if (b.step !== undefined) {
+                            // Replay: the user's wording until this change's turn, then the change.
+                            const now = replayed === b.step;
+                            const done = replayed > b.step;
+                            const cur = now ? "true" : undefined;
+                            if (b.dropReason !== undefined) {
+                              return (
+                                <div key={i} data-last={last} data-current={cur}>
+                                  <p className={`${base} ${anim}`}>{b.before}</p>
+                                  {now && <p className={styles.dropNote}><s>{b.proposed}</s><span>Not used: {b.dropReason}</span></p>}
+                                </div>
+                              );
+                            }
+                            if (done) return <p key={i} data-last={last} className={`${base} ${styles.changed} ${styles.swapIn}`}>{b.text}</p>;
+                            return <p key={i} data-last={last} data-current={cur} className={`${base} ${now ? styles.rewriting : ""} ${anim}`}>{b.before}</p>;
+                          }
                           const changed = b.changed ? styles.changed : "";
-                          if (b.kind === "summary") return <p key={i} data-last={last} className={`${styles.cvSummary} ${changed} ${anim}`}>{b.text}{c}</p>;
-                          return <p key={i} data-last={last} className={`${styles.cvBullet} ${changed} ${anim}`}>{b.text}{c}</p>;
+                          if (b.kind === "summary") return <p key={i} data-last={last} className={`${base} ${changed} ${anim}`}>{b.text}{c}</p>;
+                          return <p key={i} data-last={last} className={`${base} ${changed} ${anim}`}>{b.text}{c}</p>;
                         })}
                       </>
                     ) : (

@@ -33,7 +33,10 @@ export default function PipelinePage() {
   const [liveDocs, setLiveDocs] = useState<LiveDocs>({});
   // The application's original run (for feedback redos) and whether its free redo is still unused.
   const [redo, setRedo] = useState<{ runId: string; free: boolean } | null>(null);
+  const [redoFeedback, setRedoFeedback] = useState(""); // feedback of a redo that hasn't succeeded yet
   const [genericForView, setGenericForView] = useState<CvDoc | null>(null);
+  // Pipeline v2: the Strategy step's letter switch, kept for redos.
+  const [writeLetter, setWriteLetter] = useState<boolean | undefined>(undefined);
   const handleProgress = (data: { type?: string; agent?: string; doc?: string; content?: unknown; partial?: boolean }) => {
     if (data.type === 'stage' && data.agent) {
       const ev = data as unknown as StageEvent;
@@ -82,6 +85,9 @@ export default function PipelinePage() {
       } catch {}
     };
     fetchCredits();
+    // Keep this page's balance (used to gate a new run) in step with the sidebar.
+    window.addEventListener('cursiva:credits-changed', fetchCredits);
+    return () => window.removeEventListener('cursiva:credits-changed', fetchCredits);
   }, [getToken]);
 
   useEffect(() => {
@@ -152,6 +158,7 @@ export default function PipelinePage() {
     }
     setJdText(text);
     setRedo(null);
+    setRedoFeedback("");
     localStorage.setItem("cursiva_backup_jd", text);
     setIsProcessing(true);
     setLogs([]);
@@ -177,10 +184,7 @@ export default function PipelinePage() {
         })
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Server Error: ${response.status} ${errText}`);
-      }
+      if (!response.ok) throw new Error(httpErrorMessage(response.status));
 
       if (!response.body) throw new Error("No response body");
 
@@ -199,8 +203,14 @@ export default function PipelinePage() {
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            let data;
             try {
-              const data = JSON.parse(line.substring(6));
+              data = JSON.parse(line.substring(6));
+            } catch (e) {
+              console.error("JSON parse error on line:", line, e);
+              continue;
+            }
+            {
               if (handleProgress(data)) {
                 // handled by the Glassbox view
               } else if (data.type === 'status') {
@@ -216,8 +226,6 @@ export default function PipelinePage() {
                   setEligibilityWarning(data.reason);
                 }
               }
-            } catch (e) {
-              console.error("JSON parse error on line:", line, e);
             }
           }
         }
@@ -235,7 +243,34 @@ export default function PipelinePage() {
     }
   };
 
-  const submitStrategy = async (userAnswers: string, feedback: string = "") => {
+  const httpErrorMessage = (status: number) => {
+    if (status === 429) return "You're sending requests faster than we can handle. Please wait a minute and try again.";
+    if (status === 401 || status === 403) return "Your session has expired. Please sign in again.";
+    if (status === 413 || status === 422) return "The job ad or CV is too long to process. Shorten it and try again.";
+    return "The server couldn't handle that request. Please try again in a minute.";
+  };
+
+  const submitStrategy = async (userAnswers: string, feedback: string = "", letterChoice?: boolean,
+                                edited?: { cv: CvData; cl: CoverLetterData }) => {
+    // Pipeline v2 sends the analysis back with the letter switch and, on a redo,
+    // the drafts as the user left them on the Review step.
+    const analysis = strategyResult?.analysis;
+    const letterOn = letterChoice ?? writeLetter;
+    if (!feedback) setWriteLetter(letterChoice);
+    const v2Fields = analysis ? {
+      analysis,
+      generate_cover_letter: letterOn,
+      ...(feedback && edited ? {
+        previous_tailored_cv: { professional_summary: edited.cv.professional_summary, sections: edited.cv.sections },
+        previous_letter: edited.cl,
+      } : {}),
+    } : {};
+    if (feedback && edited) {
+      // The Review step is unmounted while the redo runs. Keep the user's edits
+      // and feedback so a failed redo returns to them instead of the old draft.
+      setTailoredData(prev => prev ? { ...prev, cv: edited.cv, cl: edited.cl } : prev);
+      setRedoFeedback(feedback);
+    }
     setIsProcessing(true);
     setLogs([]);
     // Keep the reader and strategist results so their cards stay "done".
@@ -267,7 +302,8 @@ export default function PipelinePage() {
           user_strategy_answers: userAnswers,
           user_feedback: feedback,
           redo_of: feedback ? redo?.runId : undefined,
-          thread_id: threadId
+          thread_id: threadId,
+          ...v2Fields
         })
       });
 
@@ -277,10 +313,7 @@ export default function PipelinePage() {
         return;
       }
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Server Error: ${response.status} ${errText}`);
-      }
+      if (!response.ok) throw new Error(httpErrorMessage(response.status));
 
       if (!response.body) throw new Error("No response body");
 
@@ -299,8 +332,14 @@ export default function PipelinePage() {
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            let data;
             try {
-              const data = JSON.parse(line.substring(6));
+              data = JSON.parse(line.substring(6));
+            } catch (e) {
+              console.error("JSON parse error on line:", line, e);
+              continue;
+            }
+            {
               if (handleProgress(data)) {
                 // handled by the Glassbox view
               } else if (data.type === 'status') {
@@ -311,6 +350,7 @@ export default function PipelinePage() {
                   // Combine with generic personal info
                   const genericData = JSON.parse(genericCv);
                   if (data.run_id) setRedo({ runId: data.run_id, free: !!data.free_redo_available });
+                  setRedoFeedback("");
                   const completeTailoredCv = {
                     ...data.tailored_cv,
                     personal_info: genericData.personal_info
@@ -333,14 +373,16 @@ export default function PipelinePage() {
                     cv: completeTailoredCv,
                     cl: data.cover_letter_parts,
                     company: jobMetadata?.company_name || "Company",
-                    role: jobMetadata?.role_name || "Role"
+                    role: jobMetadata?.role_name || "Role",
+                    review: data.review
                   });
-                  await pause(800); // let the CHECKED stamp land
+                  // Let the CHECKED stamp land, and (pipeline v2) let the live view finish
+                  // playing each change onto the CV before moving to Review.
+                  const replay = (data.review?.cv?.changes?.length || 0) + (data.review?.cv?.edits_dropped?.length || 0);
+                  await pause(replay ? Math.min(1500 + replay * 1100, 15000) : 800);
                   setStep(3);
                 }
               }
-            } catch (e) {
-              console.error("JSON parse error on line:", line, e);
             }
           }
         }
@@ -359,6 +401,8 @@ export default function PipelinePage() {
       alert(error instanceof Error && error.message ? error.message : "Tailoring failed.");
     } finally {
       setIsProcessing(false);
+      // A run charges a credit (or refunds it): refresh the balance everywhere.
+      window.dispatchEvent(new Event('cursiva:credits-changed'));
     }
   };
 
@@ -413,8 +457,8 @@ export default function PipelinePage() {
         ) : (
           <>
             {step === 1 && <PasteJdStep initialText={jdText} onSubmit={submitJd} />}
-            {step === 2 && <StrategyStep result={strategyResult} jobMetadata={jobMetadata} onSubmit={submitStrategy} />}
-            {step === 3 && <WorkbenchStep data={tailoredData!} jdText={jdText} onApproveAndSave={handleApproveAndSave} freeRedo={!!redo?.free} onSubmitFeedback={(feedback) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback)} />}
+            {step === 2 && <StrategyStep result={strategyResult} jobMetadata={jobMetadata} onSubmit={(answers, letter) => submitStrategy(answers, "", letter)} />}
+            {step === 3 && <WorkbenchStep data={tailoredData!} jdText={jdText} onApproveAndSave={handleApproveAndSave} freeRedo={!!redo?.free} initialFeedback={redoFeedback} onSubmitFeedback={(feedback, cv, cl) => submitStrategy(localStorage.getItem(`diff_user_answers_${user?.id}`) || "", feedback, undefined, cv && cl ? { cv, cl } : undefined)} />}
             {step === 4 && <DoneStep cvPdfUrl={finalPdfs.cvUrl} clPdfUrl={finalPdfs.clUrl} jobMetadata={jobMetadata} userName={tailoredData?.cv?.personal_info?.name} onReset={() => { setStep(1); setJdText(""); setStrategyResult(null); setJobMetadata(null); setTailoredData(null); setFinalPdfs({cvUrl:"",clUrl:""}); setRedo(null); }} />}
           </>
         )}

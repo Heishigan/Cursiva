@@ -26,7 +26,8 @@ from fastapi import Request
 
 from core.models import FullCVData, CompileCVRequest
 from cv_templates import TemplateId, template_file, resolve_template, letter_template
-from core.agent import setup_node, strategist_node, tailor_app, extract_lesson
+from core.agent import setup_node, strategist_node, tailor_app, extract_lesson, get_lessons
+from pipeline_v2 import service as pipeline_v2
 
 from database import engine, get_db, SessionLocal
 from models import Base, UserProfile, JobApplication, UserLesson, SavedJob, StripeEvent
@@ -136,6 +137,11 @@ class TailorRequest(BaseModel):
     # The draft the user is giving feedback on, so feedback is applied to it
     # instead of regenerating from scratch.
     previous_tailored_cv: Optional[dict] = None
+    # Pipeline v2 only (PIPELINE_VERSION=2): the analysis from /api/intake, the
+    # Strategy step's letter switch, and the letter being revised on a redo.
+    analysis: Optional[dict] = None
+    generate_cover_letter: Optional[bool] = None
+    previous_letter: Optional[dict] = None
     thread_id: Optional[str] = None  # unused (no checkpointer); kept for client compatibility
     # Set on a feedback redo: the run_id returned by the run being revised.
     redo_of: Optional[str] = Field(None, max_length=64)
@@ -153,6 +159,17 @@ def _sse(payload: dict) -> str:
 def run_intake(request: Request, req: IntakeRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     profile = db.query(UserProfile).filter(UserProfile.clerk_id == user_id).first()
     strict_eligibility = profile.strict_eligibility if profile is not None else True
+
+    if pipeline_v2.enabled():
+        def find_duplicate(company_name: str, role_name: str) -> bool:
+            with SessionLocal() as gen_db:
+                return gen_db.query(JobApplication).filter(
+                    JobApplication.clerk_id == user_id,
+                    JobApplication.company_name == company_name,
+                    JobApplication.role_name == role_name
+                ).first() is not None
+        return StreamingResponse(pipeline_v2.intake_events(req, user_id, strict_eligibility, find_duplicate),
+                                 media_type="text/event-stream")
 
     # Plain (sync) generator on purpose: Starlette iterates it in a worker
     # thread. An async generator here would run the blocking LLM calls on the
@@ -235,6 +252,9 @@ def _jd_hash(job_description: str) -> str:
 def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_current_user_id)):
     if req.previous_tailored_cv is not None and len(json.dumps(req.previous_tailored_cv)) > 100_000:
         raise HTTPException(status_code=413, detail="Previous CV draft is too large.")
+    for extra in (req.analysis, req.previous_letter):
+        if extra is not None and len(json.dumps(extra)) > 100_000:
+            raise HTTPException(status_code=413, detail="Request data is too large.")
     credits.sweep_stale_runs()
     jd_hash = _jd_hash(req.job_description)
     # A feedback redo of a successful run for the same job ad gets one free
@@ -272,76 +292,79 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
             return m
 
         try:
-            initial_state = {
-                "api_key": os.environ.get("OPENAI_API_KEY"),
-                "user_id": user_id,
-                "job_description": req.job_description,
-                "generic_cv_raw": req.generic_cv_raw,
-                "company_name": req.company_name,
-                "role_name": req.role_name,
-                "strategy_plan": req.strategy_plan,
-                "role_philosophy": req.role_philosophy or "",
-                "sharpest_project_insight": req.sharpest_project_insight or "",
-                "user_strategy_answers": req.user_strategy_answers,
-                "user_feedback": req.user_feedback,
-                "revision_count": 0,
-                "generate_cover_letter": True,
-            }
-            if req.user_feedback and req.previous_tailored_cv:
-                initial_state["tailored_cv"] = req.previous_tailored_cv
-            yield progress.stage("cv", "working", "Tailoring your CV to the role", revision=1)
-            stream = tailor_app.stream(initial_state,
-                                       config={"callbacks": [usage_cb], "configurable": {"stream_drafts": True}},
-                                       stream_mode=["updates", "custom"])
-            for item in stream:
-                mode, event = item if isinstance(item, tuple) else ("updates", item)
-                if mode == "custom":
-                    dp = event.get("draft_partial") if isinstance(event, dict) else None
-                    if dp and dp.get("doc") in ("cv", "letter"):
-                        yield progress.draft(dp["doc"], dp.get("content") or {}, partial=True)
-                    continue
-                for node_name, node_state in event.items():
-                    final_state.update(node_state)
-                    if node_name == "tailor":
-                        rev_count = node_state.get("revision_count", 0)
-                        tailored_cv = node_state.get("tailored_cv", {})
-                        reasoning = tailored_cv.get("reasoning", "Modifying content to match the provided strategy...") if isinstance(tailored_cv, dict) else "Modifying content..."
-                        yield _sse({'type': 'status', 'message': f'Tailoring CV (Revision {rev_count}): {reasoning}'})
-                        changes = progress.cv_changes(req.generic_cv_raw, tailored_cv)
-                        yield progress.stage("cv", "done", progress.cv_summary(changes), revision=rev_count, **changes)
-                        yield progress.draft("cv", {k: v for k, v in tailored_cv.items() if k != "reasoning"})
-                        yield progress.stage("checker", "working", "Checking every claim against your CV",
-                                             numbers=progress.numbers_in(tailored_cv))
-                    elif node_name == "reviewer":
-                        feedback = node_state.get("review_feedback", "")
-                        report = node_state.get("review_report") or {}
-                        fixed = report.get("autofixed") or []
-                        if feedback and feedback != "PASS":
-                            failure_reasons.append(feedback)
-                            short_feedback = feedback.split('.')[0] if '.' in feedback else feedback
-                            yield _sse({'type': 'status', 'message': f'Reviewer found issues: {short_feedback}'})
-                            issues = report.get("rule_issues", 0) + report.get("fact_issues", 0)
-                            if final_state.get("revision_count", 0) < MAX_REVISIONS:
-                                yield progress.stage("checker", "retry", f"Sent back: {issues} issue{'s' if issues != 1 else ''} to fix",
-                                                     issues=issues, autofixed=fixed)
-                                yield progress.stage("cv", "working", "Fixing what the checker flagged",
-                                                     revision=final_state.get("revision_count", 0) + 1)
+            if pipeline_v2.enabled():
+                yield from pipeline_v2.tailor_events(req, user_id, usage_cb, final_state, get_lessons)
+            else:
+                initial_state = {
+                    "api_key": os.environ.get("OPENAI_API_KEY"),
+                    "user_id": user_id,
+                    "job_description": req.job_description,
+                    "generic_cv_raw": req.generic_cv_raw,
+                    "company_name": req.company_name,
+                    "role_name": req.role_name,
+                    "strategy_plan": req.strategy_plan,
+                    "role_philosophy": req.role_philosophy or "",
+                    "sharpest_project_insight": req.sharpest_project_insight or "",
+                    "user_strategy_answers": req.user_strategy_answers,
+                    "user_feedback": req.user_feedback,
+                    "revision_count": 0,
+                    "generate_cover_letter": True,
+                }
+                if req.user_feedback and req.previous_tailored_cv:
+                    initial_state["tailored_cv"] = req.previous_tailored_cv
+                yield progress.stage("cv", "working", "Tailoring your CV to the role", revision=1)
+                stream = tailor_app.stream(initial_state,
+                                           config={"callbacks": [usage_cb], "configurable": {"stream_drafts": True}},
+                                           stream_mode=["updates", "custom"])
+                for item in stream:
+                    mode, event = item if isinstance(item, tuple) else ("updates", item)
+                    if mode == "custom":
+                        dp = event.get("draft_partial") if isinstance(event, dict) else None
+                        if dp and dp.get("doc") in ("cv", "letter"):
+                            yield progress.draft(dp["doc"], dp.get("content") or {}, partial=True)
+                        continue
+                    for node_name, node_state in event.items():
+                        final_state.update(node_state)
+                        if node_name == "tailor":
+                            rev_count = node_state.get("revision_count", 0)
+                            tailored_cv = node_state.get("tailored_cv", {})
+                            reasoning = tailored_cv.get("reasoning", "Modifying content to match the provided strategy...") if isinstance(tailored_cv, dict) else "Modifying content..."
+                            yield _sse({'type': 'status', 'message': f'Tailoring CV (Revision {rev_count}): {reasoning}'})
+                            changes = progress.cv_changes(req.generic_cv_raw, tailored_cv)
+                            yield progress.stage("cv", "done", progress.cv_summary(changes), revision=rev_count, **changes)
+                            yield progress.draft("cv", {k: v for k, v in tailored_cv.items() if k != "reasoning"})
+                            yield progress.stage("checker", "working", "Checking every claim against your CV",
+                                                 numbers=progress.numbers_in(tailored_cv))
+                        elif node_name == "reviewer":
+                            feedback = node_state.get("review_feedback", "")
+                            report = node_state.get("review_report") or {}
+                            fixed = report.get("autofixed") or []
+                            if feedback and feedback != "PASS":
+                                failure_reasons.append(feedback)
+                                short_feedback = feedback.split('.')[0] if '.' in feedback else feedback
+                                yield _sse({'type': 'status', 'message': f'Reviewer found issues: {short_feedback}'})
+                                issues = report.get("rule_issues", 0) + report.get("fact_issues", 0)
+                                if final_state.get("revision_count", 0) < MAX_REVISIONS:
+                                    yield progress.stage("checker", "retry", f"Sent back: {issues} issue{'s' if issues != 1 else ''} to fix",
+                                                         issues=issues, autofixed=fixed)
+                                    yield progress.stage("cv", "working", "Fixing what the checker flagged",
+                                                         revision=final_state.get("revision_count", 0) + 1)
+                                else:
+                                    yield progress.stage("checker", "failed", "Still not right after 3 attempts",
+                                                         issues=issues, autofixed=fixed)
                             else:
-                                yield progress.stage("checker", "failed", "Still not right after 3 attempts",
-                                                     issues=issues, autofixed=fixed)
-                        else:
-                            yield _sse({'type': 'status', 'message': 'Reviewer checked constraints: Passed!'})
-                            done_bits = ["Passed all checks"] + [f.capitalize() for f in fixed]
-                            yield progress.stage("checker", "done", " · ".join(done_bits), autofixed=fixed)
-                            fixed_cv = node_state.get("tailored_cv") or {}
-                            yield progress.draft("cv", {k: v for k, v in fixed_cv.items() if k != "reasoning"})
-                            yield progress.stage("letter", "working", "Writing your cover letter")
-                    elif node_name == "cover_letter":
-                        yield _sse({'type': 'status', 'message': 'Generating Cover Letter based on the tailored CV and company context...'})
-                        parts = node_state.get("cover_letter_parts") or {}
-                        lf = progress.letter_facts(parts)
-                        yield progress.stage("letter", "done", f"{lf['paragraphs']} paragraphs · {lf['words']} words", **lf)
-                        yield progress.draft("letter", parts)
+                                yield _sse({'type': 'status', 'message': 'Reviewer checked constraints: Passed!'})
+                                done_bits = ["Passed all checks"] + [f.capitalize() for f in fixed]
+                                yield progress.stage("checker", "done", " · ".join(done_bits), autofixed=fixed)
+                                fixed_cv = node_state.get("tailored_cv") or {}
+                                yield progress.draft("cv", {k: v for k, v in fixed_cv.items() if k != "reasoning"})
+                                yield progress.stage("letter", "working", "Writing your cover letter")
+                        elif node_name == "cover_letter":
+                            yield _sse({'type': 'status', 'message': 'Generating Cover Letter based on the tailored CV and company context...'})
+                            parts = node_state.get("cover_letter_parts") or {}
+                            lf = progress.letter_facts(parts)
+                            yield progress.stage("letter", "done", f"{lf['paragraphs']} paragraphs · {lf['words']} words", **lf)
+                            yield progress.draft("letter", parts)
 
             if final_state.get("review_feedback") != "PASS":
                 credits.refund_run(run_id, "failed_review", metrics=metrics("failed_review"))
@@ -362,7 +385,8 @@ def run_tailor(request: Request, req: TailorRequest, user_id: str = Depends(get_
                         'revision_count': final_state.get('revision_count'),
                         'review_feedback': final_state.get('review_feedback'),
                         'run_id': application_run_id,
-                        'free_redo_available': credits.free_redo_available(application_run_id)})
+                        'free_redo_available': credits.free_redo_available(application_run_id),
+                        **({'review': final_state['review']} if final_state.get('review') else {})})
         except GeneratorExit:
             # Client disconnected before an outcome was recorded.
             if outcome is None:
@@ -580,11 +604,59 @@ def submit_feedback(request: Request, req: FeedbackRequest, user_id: str = Depen
     extract_lesson(os.environ.get("OPENAI_API_KEY"), user_id, req.user_feedback)
     return {"status": "success"}
 
+# ---- Saved writing rules ("lessons"), visible and editable in Settings ----
+MAX_RULES_PER_USER = 30
+RULE_SCOPES = {"CV", "Cover_Letter", "General"}
+
+
+class RuleCreate(BaseModel):
+    lesson: str = Field(..., min_length=3, max_length=500)
+    scope: List[str] = Field(default_factory=lambda: ["General"])
+
+
+def _rule_out(r: UserLesson) -> dict:
+    return {"id": r.id, "lesson": r.lesson, "scope": r.scope or ["General"]}
+
+
+@app.get("/api/lessons")
+def list_rules(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    rows = db.query(UserLesson).filter(UserLesson.clerk_id == user_id).order_by(UserLesson.id).all()
+    return {"status": "success", "data": [_rule_out(r) for r in rows]}
+
+
+@app.post("/api/lessons")
+@limiter.limit("30/minute;200/day")
+def add_rule(request: Request, req: RuleCreate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    from core.agent import _INJECTION_PATTERN
+    text_ = " ".join(req.lesson.split())
+    if _INJECTION_PATTERN.search(text_):
+        raise HTTPException(status_code=400, detail="This rule looks like an instruction to the AI system, so it can't be saved.")
+    scope = [x for x in req.scope if x in RULE_SCOPES] or ["General"]
+    if db.query(UserLesson).filter(UserLesson.clerk_id == user_id).count() >= MAX_RULES_PER_USER:
+        raise HTTPException(status_code=400, detail=f"You can save up to {MAX_RULES_PER_USER} rules. Delete one in Settings first.")
+    row = UserLesson(clerk_id=user_id, lesson=text_, scope=scope)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"status": "success", "data": _rule_out(row)}
+
+
+@app.delete("/api/lessons/{rule_id}")
+def delete_rule(rule_id: int, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    row = db.query(UserLesson).filter(UserLesson.id == rule_id, UserLesson.clerk_id == user_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    db.delete(row)
+    db.commit()
+    return {"status": "success"}
+
+
 class CompileCLRequest(BaseModel):
     personal_info: dict
-    company_name: str
-    company_location: str = "Sweden"
-    cover_letter_paragraphs: list
+    company_name: str = Field(..., max_length=300)
+    company_location: str = Field("Sweden", max_length=300)
+    # Text only: anything else used to crash the LaTeX escaping with a 500.
+    cover_letter_paragraphs: List[str] = Field(..., max_length=20)
     # The letter uses the same design as the CV; unknown ids are rejected (422).
     template: Optional[TemplateId] = None
 
@@ -617,7 +689,7 @@ def read_root():
     return {"message": "Welcome to the Cursiva API"}
 
 class ProfileUpdate(BaseModel):
-    cv_data_json: Optional[str] = None
+    cv_data_json: Optional[str] = Field(None, max_length=100_000)
     email: Optional[str] = None  # Ignored: trial eligibility uses the verified email from Clerk (see trial.py)
     strict_eligibility: Optional[bool] = None
     cv_template: Optional[TemplateId] = None  # CV and cover letter design (Settings)
@@ -636,6 +708,15 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
 @app.post("/api/user/profile")
 @limiter.limit("20/minute")
 def update_user_profile(request: Request, req: ProfileUpdate, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    # A CV that isn't a JSON object would be stored and then crash every later
+    # read of the profile, so it is refused here.
+    if req.cv_data_json is not None and req.cv_data_json.strip():
+        try:
+            parsed_cv = json.loads(req.cv_data_json)
+        except ValueError:
+            parsed_cv = None
+        if not isinstance(parsed_cv, dict):
+            raise HTTPException(status_code=422, detail="The CV data is not valid. Please reload the page and try again.")
     # Compute the (slow) embedding once, outside the transaction.
     embedding_json = None
     if req.cv_data_json is not None and req.cv_data_json.strip():
@@ -678,11 +759,11 @@ def update_user_profile(request: Request, req: ProfileUpdate, user_id: str = Dep
     return {"status": "success"}
 
 class JobApplicationCreate(BaseModel):
-    company_name: str
-    role_name: str
-    job_description: str
-    cv_data_json: str
-    cl_data_json: str
+    company_name: str = Field(..., max_length=300)
+    role_name: str = Field(..., max_length=300)
+    job_description: str = Field(..., max_length=50_000)
+    cv_data_json: str = Field(..., max_length=200_000)
+    cl_data_json: str = Field(..., max_length=200_000)
 
 @app.post("/api/applications")
 @limiter.limit("30/minute")
@@ -855,10 +936,10 @@ def get_application(app_id: str, user_id: str = Depends(get_current_user_id), db
     }
 
 class JobApplicationUpdate(BaseModel):
-    company_name: Optional[str] = None
-    role_name: Optional[str] = None
-    status: Optional[str] = None
-    created_at: Optional[str] = None
+    company_name: Optional[str] = Field(None, max_length=300)
+    role_name: Optional[str] = Field(None, max_length=300)
+    status: Optional[str] = Field(None, max_length=50)
+    created_at: Optional[str] = Field(None, max_length=40)
 
 import datetime
 
@@ -875,7 +956,10 @@ def update_application(app_id: str, req: JobApplicationUpdate, user_id: str = De
     if req.status is not None:
         app.status = req.status
     if req.created_at is not None:
-        app.created_at = datetime.datetime.fromisoformat(req.created_at.replace('Z', '+00:00'))
+        try:
+            app.created_at = datetime.datetime.fromisoformat(req.created_at.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=422, detail="That date isn't valid.")
         
     db.commit()
     return {"status": "success"}

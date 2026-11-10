@@ -134,3 +134,13 @@
 @keyframes shimmer { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 @keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes scan { from { top: -56px; } to { top: 100%; } }
+
+/* Pipeline v2 replay: a line about to change, the change landing, a rejected rewrite */
+.rewriting { text-decoration: line-through; opacity: 0.55; animation: gbPulse 1.1s ease-in-out; }
+.swapIn { animation: gbSwap 0.5s ease-out; }
+.dropNote { margin: 2px 0 6px; padding: 6px 8px; border-left: 2px solid var(--danger); font-size: 0.85em; line-height: 1.4; display: flex; flex-direction: column; gap: 2px; animation: gbSwap 0.4s ease-out; }
+.dropNote s { opacity: 0.6; }
+.dropNote span { color: var(--danger); }
+@keyframes gbPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.3; } }
+@keyframes gbSwap { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rewriting, .swapIn, .dropNote { animation: none; } }

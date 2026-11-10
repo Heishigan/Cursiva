@@ -54,7 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
           const jd = results[0].result;
           statusDiv.innerText = "Sending to Cursiva...";
           
-          fetch("https://cursiva-backend-1045461593148.europe-north1.run.app/api/jobs/save", {
+          // Save to the backend that matches the Cursiva tab the token came from,
+          // so a local test never writes to production (and the reverse).
+          const isLocal = cursivaTabs[0].url.includes('localhost:3000');
+          const api = isLocal ? "http://localhost:8000" : "https://cursiva-backend-1045461593148.europe-north1.run.app";
+          fetch(`${api}/api/jobs/save`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

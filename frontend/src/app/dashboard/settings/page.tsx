@@ -4,6 +4,7 @@ import styles from "./settings.module.css";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { CreditCard, Zap } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import WritingRules from "@/components/settings/WritingRules";
 
 function SettingsContent() {
   const { user, isLoaded } = useUser();
@@ -167,6 +168,11 @@ function SettingsContent() {
             </span>
           </label>
         </div>
+      </div>
+
+      <div className={styles.card} style={{ marginTop: '24px' }}>
+        <h2 className={styles.cardTitle} style={{ marginTop: 0, marginBottom: '12px' }}>Saved writing rules</h2>
+        <WritingRules />
       </div>
     </div>
   );

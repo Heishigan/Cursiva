@@ -26,8 +26,25 @@ const Up = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
 const Down = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>;
 const Bin = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>;
 
-export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback, freeRedo = false }: { data: WorkbenchData, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: CvData, clData: CoverLetterData) => void, onSubmitFeedback?: (feedback: string) => void, freeRedo?: boolean }) {
+export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmitFeedback, freeRedo = false, initialFeedback = "" }: { data: WorkbenchData, jdText: string, onApproveAndSave: (cvPdfUrl: string, clPdfUrl: string, cvData: CvData, clData: CoverLetterData) => void, onSubmitFeedback?: (feedback: string, cv?: CvData, cl?: CoverLetterData) => void, freeRedo?: boolean, initialFeedback?: string }) {
   const { getToken } = useAuth();
+  // Pipeline v2 can skip the letter (switched off on the Strategy step).
+  const hasLetter = data.review ? data.review.letter_written : true;
+  const review = data.review;
+  const hidden = review?.cv.projects_hidden || [];
+  // Pipeline v2 writes an opening, one or two body paragraphs and a closing;
+  // the second body field only shows when that paragraph exists.
+  const clFields: [keyof CoverLetterData, string][] = review
+    ? ([["salutation", "Greeting"], ["hook", "Opening"], ["match", "Body"], ["curiosity", "Body (continued)"],
+        ["fit", "Closing"], ["sign_off", "Sign-off"]] as [keyof CoverLetterData, string][])
+        .filter(([f]) => f !== "curiosity" || !!(data.cl?.curiosity || "").trim())
+    : CL_FIELDS;
+  // Track changes on the Review step (pipeline v2): matched by text, so they
+  // follow a bullet when the user moves or deletes items.
+  const nrm = (t?: string) => (t || "").replace(/\s+/g, " ").trim().toLowerCase();
+  const changeOf = new Map((review?.cv.changes || []).filter(c => c.kind === "bullet").map(c => [nrm(c.after), c.before]));
+  const summaryChange = (review?.cv.changes || []).find(c => c.kind === "summary");
+  const droppedOf = new Map((review?.cv.edits_dropped || []).filter(d => d.before).map(d => [nrm(d.before), d.reason]));
   const [activeTab, setActiveTab] = useState<"CV" | "Cover Letter" | "Job ad">("CV");
   const [view, setView] = useState<"preview" | "edit">("preview"); // small screens only
   // The design comes from the profile page: the server compiles with it and says which
@@ -44,7 +61,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   const [cvCompileError, setCvCompileError] = useState<string | null>(null);
   const [clCompileError, setClCompileError] = useState<string | null>(null);
 
-  const [globalFeedback, setGlobalFeedback] = useState("");
+  const [globalFeedback, setGlobalFeedback] = useState(initialFeedback);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   // Debounced compilation
@@ -127,7 +144,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   useEffect(() => {
     // Initial compile
     compileCv(cvData);
-    compileCl(clData);
+    if (hasLetter) compileCl(clData);
   }, []);
 
   const handleCvSummaryChange = (value: string) => {
@@ -206,7 +223,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
     setIsSubmittingFeedback(true);
     try {
       if (onSubmitFeedback) {
-        onSubmitFeedback(globalFeedback);
+        onSubmitFeedback(globalFeedback, cvData, clData);
       } else {
         alert("Lesson Extracted! Continuing to next iteration...");
       }
@@ -219,7 +236,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   };
 
   const handleSaveClick = async () => {
-    if (!cvPdfUrl || !clPdfUrl) {
+    if (!cvPdfUrl || (hasLetter && !clPdfUrl)) {
        alert("Please wait for PDFs to compile before saving.");
        return;
     }
@@ -227,11 +244,11 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
   };
 
   const proceedWithSave = async () => {
-    if (!cvPdfUrl || !clPdfUrl) return;
+    if (!cvPdfUrl || (hasLetter && !clPdfUrl)) return;
     setShowDisclaimer(false);
     setIsSaving(true);
     try {
-      await onApproveAndSave(cvPdfUrl, clPdfUrl, cvData, clData);
+      await onApproveAndSave(cvPdfUrl, clPdfUrl || "", cvData, clData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -241,7 +258,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
 
   const compiling = isCompilingCv || isCompilingCl;
   const tabs: { id: "CV" | "Cover Letter" | "Job ad"; label: string }[] = [
-    { id: "CV", label: "CV" }, { id: "Cover Letter", label: "Cover letter" }, { id: "Job ad", label: "Job ad" },
+    { id: "CV", label: "CV" }, ...(hasLetter ? [{ id: "Cover Letter" as const, label: "Cover letter" }] : []), { id: "Job ad", label: "Job ad" },
   ];
   const showPreview = activeTab !== "Job ad";
   const pdfUrl = activeTab === "CV" ? cvPdfUrl : clPdfUrl;
@@ -284,7 +301,11 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
             <>
               <div className={styles.block}>
                 <label htmlFor="cv-summary" className={styles.label}>Professional summary</label>
-                <textarea id="cv-summary" className={styles.edit} value={cvData.professional_summary || ""} onChange={(e) => handleCvSummaryChange(e.target.value)} />
+                <textarea id="cv-summary"
+                  className={`${styles.edit} ${summaryChange && nrm(cvData.professional_summary) === nrm(summaryChange.after) ? styles.changedEdit : ''}`}
+                  title={summaryChange && nrm(cvData.professional_summary) === nrm(summaryChange.after) ? `Your original: ${summaryChange.before}` : undefined}
+                  value={cvData.professional_summary || ""} onChange={(e) => handleCvSummaryChange(e.target.value)} />
+                {review?.cv.summary_from_profile && <p className={styles.inlineNote}>The tailored summary didn&apos;t pass the checks, so this is your Profile summary.</p>}
               </div>
               {cvData.sections.map((sec, sIdx) => {
                 const isSkills = sec.type === 'skills';
@@ -298,6 +319,9 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                         <button className={`${styles.icon} ${styles.iconDanger}`} onClick={() => deleteSection(sIdx)} aria-label={`Delete ${sec.title}`}><Bin /></button>
                       </div>
                     </div>
+                    {sec.type === 'projects' && hidden.length > 0 && (
+                      <p className={styles.inlineNote}>Left out to keep five projects: {hidden.join(", ")}</p>
+                    )}
                     {sec.items.map((item, iIdx) => {
                       let skillsList: string[] = [];
                       if (isSkills) {
@@ -326,10 +350,18 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
                             <textarea className={styles.edit} aria-label={`${item.title}, description`} value={item.context}
                               onChange={(e) => handleContextChange(sIdx, iIdx, e.target.value)} />
                           )}
-                          {!isSkills && (item.bullets || []).map((b: string, bIdx: number) => (
-                            <textarea key={bIdx} className={styles.edit} aria-label={`${item.title}, bullet ${bIdx + 1}`} value={b}
-                              onChange={(e) => handleBulletChange(sIdx, iIdx, bIdx, e.target.value)} />
-                          ))}
+                          {!isSkills && (item.bullets || []).map((b: string, bIdx: number) => {
+                            const before = changeOf.get(nrm(b));
+                            const droppedWhy = droppedOf.get(nrm(b));
+                            return (
+                              <div key={bIdx}>
+                                <textarea className={`${styles.edit} ${before ? styles.changedEdit : ''}`} aria-label={`${item.title}, bullet ${bIdx + 1}`} value={b}
+                                  title={before ? `Your original: ${before}` : undefined}
+                                  onChange={(e) => handleBulletChange(sIdx, iIdx, bIdx, e.target.value)} />
+                                {droppedWhy && <p className={styles.inlineNote}>A suggested rewrite wasn&apos;t used: {droppedWhy}</p>}
+                              </div>
+                            );
+                          })}
                           {isSkills && skillsList.length > 0 && (
                             <div className={styles.chips}>
                               {skillsList.map((b: string, bIdx: number) => b.trim() ? <span key={bIdx} className={styles.chip}>{b.trim()}</span> : null)}
@@ -344,7 +376,7 @@ export default function WorkbenchStep({ data, jdText, onApproveAndSave, onSubmit
             </>
           )}
 
-          {activeTab === "Cover Letter" && CL_FIELDS.map(([field, label]) => (
+          {activeTab === "Cover Letter" && clFields.map(([field, label]) => (
             <div key={field} className={styles.block}>
               <label htmlFor={`cl-${field}`} className={styles.label}>{label}</label>
               <textarea id={`cl-${field}`} className={styles.edit} value={clData[field] || ""} onChange={(e) => handleClChange(field, e.target.value)} />

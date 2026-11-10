@@ -16,6 +16,8 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_TMP}/test.db"
 os.environ.setdefault("OPENAI_API_KEY", "sk-test-not-real")
 os.environ.setdefault("STRIPE_WEBHOOK_SECRET", "whsec_test_local")
 os.environ.setdefault("CLERK_ISSUER", "https://clerk.test.invalid")
+# The old pipeline's tests run against it explicitly; pipeline v2's tests set "2" themselves.
+os.environ["PIPELINE_VERSION"] = "1"
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

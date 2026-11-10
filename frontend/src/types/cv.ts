@@ -49,6 +49,7 @@ export interface WorkbenchData {
   cl: CoverLetterData;
   company: string;
   role: string;
+  review?: DraftReview; // pipeline v2 only
 }
 
 export interface JobMetadata {
@@ -68,6 +69,54 @@ export interface StrategyResult {
   role_philosophy?: string;
   sharpest_project_insight?: string;
   strategic_options?: string[];
+  // Pipeline v2 only (see backend/pipeline_v2/analysis.py).
+  fit_label?: string;
+  analysis?: JobAnalysis;
+}
+
+// Pipeline v2: the analysis of the ad against the Profile CV.
+export interface JobRequirement {
+  ad_line: string;
+  text: string;
+  kind: "must" | "nice";
+  category: string;
+  evidence: string[];
+  status: "met" | "partial" | "missing";
+  note: string;
+}
+
+export interface JobAnalysis {
+  is_job_ad: boolean;
+  company: string;
+  role: string;
+  location: string;
+  work_mode: string;
+  ad_language: string;
+  summary: string;
+  requirements: JobRequirement[];
+  application: { cover_letter: "wanted" | "not_wanted" | "not_stated"; cover_letter_quote: string; questions: string[]; how_to_apply: string };
+  angles: { title: string; rationale: string; evidence: string[] }[];
+  fit: { label: string; met: number; total: number; hard_gaps: string[]; gaps: string[] };
+  letter_language: "en" | "sv";
+  write_letter_default: boolean;
+}
+
+// Pipeline v2: what the checks did, shown on the Review step.
+export interface DraftReview {
+  cv: {
+    edits_applied?: string[];
+    edits_dropped?: { id: string; reason: string; before?: string; proposed?: string }[];
+    changes?: { kind: "summary" | "bullet"; id: string; before: string; after: string }[];
+    projects_hidden?: string[];
+    summary_sentences_dropped?: number;
+    summary_from_profile?: boolean;
+  };
+  letter: {
+    sentences?: { key: string; text: string; sources: string[] }[];
+    flags?: { key: string; reason: string }[];
+    words?: number;
+  };
+  letter_written: boolean;
 }
 
 // /api/jobs/matches (the backend always stores the three strings)

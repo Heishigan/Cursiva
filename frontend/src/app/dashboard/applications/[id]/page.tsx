@@ -17,6 +17,7 @@ export default function ApplicationDetailPage() {
   
   const [cvPdfUrl, setCvPdfUrl] = useState<string | null>(null);
   const [clPdfUrl, setClPdfUrl] = useState<string | null>(null);
+  const [hasLetter, setHasLetter] = useState(true);
   const [isCompiling, setIsCompiling] = useState(false);
 
   const compilePdfs = async (data: ApplicationDetail, token: string | null) => {
@@ -47,6 +48,8 @@ export default function ApplicationDetailPage() {
         clPayload.fit,
         clPayload.sign_off
       ].filter(Boolean);
+      setHasLetter(paragraphs.length > 0);
+      if (paragraphs.length === 0) return; // saved without a cover letter
 
       const clRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile_cl`, {
         method: "POST",
@@ -211,7 +214,7 @@ export default function ApplicationDetailPage() {
               </>
             ) : (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                 {isCompiling ? "Compiling..." : "Failed to load"}
+                 {isCompiling ? "Compiling..." : hasLetter ? "Failed to load" : "No cover letter for this application"}
               </div>
             )}
           </div>
