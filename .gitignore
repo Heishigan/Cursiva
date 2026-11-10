@@ -60,3 +60,12 @@ node_modules/
 
 # Tests
 .pytest_cache/
+
+# Personal application material for qualitative review (never commit)
+review/
+
+# Local pipeline v2 debug traces (contain CV and letter text)
+backend/debug_runs/
+
+# Local-only helper for adding test credits (never commit)
+backend/scripts/dev_add_credits.py

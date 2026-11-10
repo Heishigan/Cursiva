@@ -22,6 +22,9 @@ const DEFAULT_CV = {
   ]
 };
 
+type DraftItem = Record<string, unknown> & { bulletsText?: string };
+type DraftSection = Record<string, unknown> & { items?: DraftItem[] };
+
 export default function Onboarding() {
   const router = useRouter();
   const { getToken, isLoaded } = useAuth();
@@ -36,6 +39,8 @@ export default function Onboarding() {
   const [mode, setMode] = useState<'select' | 'upload' | 'manual'>('select');
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [cvData, setCvData] = useState<any>(DEFAULT_CV);
   const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
   const [editingHeader, setEditingHeader] = useState(false);
@@ -150,17 +155,39 @@ export default function Onboarding() {
   };
 
   const handleSaveCV = async () => {
-    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(cvData));
+    // The typing buffer (bulletsText) is not part of the CV.
+    const cleanCv = {
+      ...cvData,
+      sections: ((cvData.sections || []) as DraftSection[]).map((sec) => ({
+        ...sec,
+        items: (sec.items || []).map((it) => { const { bulletsText, ...rest } = it; void bulletsText; return rest; }),
+      })),
+    };
+    const hasEntries = cleanCv.sections.some((sec: { items: unknown[] }) => sec.items.length > 0);
+    if (!(cleanCv.personal_info?.name || '').trim() || !hasEntries) {
+      setSaveError("Add your name and at least one entry (work, education, project or skills) before saving.");
+      return;
+    }
+    setSaveError('');
+    setIsSaving(true);
     // Persist CV + email to backend (email used server-side for cycling detection only)
     try {
       const token = await getToken();
       const primaryEmail = user?.emailAddresses?.[0]?.emailAddress || '';
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/user/profile`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/user/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ cv_data_json: JSON.stringify(cvData), email: primaryEmail })
+        body: JSON.stringify({ cv_data_json: JSON.stringify(cleanCv), email: primaryEmail })
       });
-    } catch {}
+      if (!res.ok) throw new Error(String(res.status));
+    } catch {
+      // Don't celebrate a CV that wasn't saved: the dashboard would send the user straight back here.
+      setSaveError("We couldn't save your CV. Check your connection and try again.");
+      setIsSaving(false);
+      return;
+    }
+    setIsSaving(false);
+    if (user?.id) localStorage.setItem(`generic_cv_json_${user.id}`, JSON.stringify(cleanCv));
     setStep(3);
     setTimeout(() => {
       confetti({
@@ -207,7 +234,10 @@ export default function Onboarding() {
   };
   const updateBulletsText = (sIdx: number, iIdx: number, text: string) => {
     const sections = [...cvData.sections];
-    sections[sIdx].items[iIdx].bullets = text.split('\n').filter(b => b.trim() !== '');
+    // Keep the text exactly as typed (bulletsText) so Enter can start a new bullet;
+    // filtering empty lines straight away swallowed the line break.
+    sections[sIdx].items[iIdx] = { ...sections[sIdx].items[iIdx], bulletsText: text,
+                                   bullets: text.split('\n').map(b => b.trim()).filter(b => b !== '') };
     setCvData((prev: any) => ({ ...prev, sections }));
   };
   const deleteItem = (sIdx: number, iIdx: number) => {
@@ -434,7 +464,7 @@ export default function Onboarding() {
                             <label className={styles.label}>Bullets <span style={{color:'var(--text-secondary)',fontWeight:400}}>(One bullet per line)</span></label>
                             <textarea 
                               className={styles.input} 
-                              value={item.bullets ? item.bullets.join('\n') : ''} 
+                              value={item.bulletsText ?? (item.bullets ? item.bullets.join('\n') : '')} 
                               onChange={e => updateBulletsText(sIdx, iIdx, e.target.value)} 
                               rows={5} 
                             />
@@ -492,8 +522,9 @@ export default function Onboarding() {
                 </div>
               ))}
 
-              <button className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1.1rem', marginTop: '24px' }} onClick={handleSaveCV}>
-                Confirm & Save Baseline →
+              {saveError && <p role="alert" style={{ color: 'var(--danger)', marginTop: '16px', marginBottom: 0 }}>{saveError}</p>}
+              <button className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1.1rem', marginTop: '24px', opacity: isSaving ? 0.6 : 1 }} onClick={handleSaveCV} disabled={isSaving}>
+                {isSaving ? 'Saving…' : 'Confirm & Save Baseline →'}
               </button>
             </div>
           )}

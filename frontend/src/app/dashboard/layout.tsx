@@ -11,6 +11,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [missingBaseline, setMissingBaseline] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [creditsTick, setCreditsTick] = useState(0);
   const [credits, setCredits] = useState<number | null>(() => {
     // Show cached credits immediately to avoid blank "..." on cold start
     if (typeof window !== 'undefined') {
@@ -91,7 +92,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     
     fetchProfile();
-  }, [getToken, pathname, authLoaded, userLoaded, user?.id]);
+  }, [getToken, pathname, authLoaded, userLoaded, user?.id, creditsTick]);
+
+  // Pages that spend or refund credits without changing the route (a pipeline
+  // run, a redo) announce it, so the balance here doesn't go stale.
+  useEffect(() => {
+    const bump = () => setCreditsTick(t => t + 1);
+    window.addEventListener('cursiva:credits-changed', bump);
+    return () => window.removeEventListener('cursiva:credits-changed', bump);
+  }, []);
 
   const getStatusText = () => {
     if (missingBaseline === null) return "Checking...";

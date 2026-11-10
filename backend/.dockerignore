@@ -54,3 +54,6 @@ Thumbs.db
 *.sql
 *.xlsx
 engine_patched.py
+
+# Local pipeline v2 debug traces
+debug_runs/

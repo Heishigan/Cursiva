@@ -170,3 +170,21 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* ---- Pipeline v2: requirement checklist, application banner, letter switch, check notes ---- */
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.checkRow { display: flex; gap: 10px; align-items: baseline; font-size: 13px; line-height: 1.45; }
+.checkIcon { flex-shrink: 0; width: 18px; text-align: center; font: 700 14px/1.45 'Plus Jakarta Sans', sans-serif; }
+.status_met { color: var(--accent); }
+.status_partial { color: var(--warning); }
+.status_missing { color: var(--danger); }
+.fitGood { color: var(--accent); }
+.fitStretch { color: var(--warning); border-color: var(--warning); background: transparent; }
+.fitUnlikely { color: var(--danger); border-color: var(--danger); background: transparent; }
+.banner { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--line); border-left: 4px solid var(--warning); border-radius: 10px; background: var(--surface); font-size: 14px; line-height: 1.5; color: var(--text); }
+.banner p, .banner ul { margin: 0; }
+.banner ul { padding-left: 18px; }
+.switchRow { display: flex; gap: 12px; align-items: center; font-size: 14px; color: var(--text); cursor: pointer; }
+.switchRow input { width: 18px; height: 18px; accent-color: var(--accent); }
+.changedEdit { box-shadow: inset 3px 0 0 var(--accent); }
+.inlineNote { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-dim); }
